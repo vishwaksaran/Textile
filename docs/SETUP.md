@@ -15,9 +15,25 @@ Work through Part 1 first. Part 2 can wait until you are ready to go live.
 1. Go to [supabase.com](https://supabase.com) and sign up (the free tier is enough to start).
 2. **New project**. Give it a name, and set a strong database password — **save it in
    your password manager now**; Supabase will not show it again.
-3. Choose the region closest to your customers. For an Indian store that is
-   **Mumbai (ap-south-1)** — it meaningfully affects page speed.
-4. Wait ~2 minutes for provisioning.
+3. Choose the region closest to your customers. Open the **Region** dropdown and
+   pick the specific city, not just the "Asia-Pacific" group — for an Indian
+   store that is **Mumbai (ap-south-1)**. Every query pays this round trip, so
+   it is the one setting here you cannot change later without migrating.
+4. On the **Security** panel:
+
+   | Setting | Choose | Why |
+   |---|---|---|
+   | Enable Data API | **On** | `supabase-js` talks to PostgREST; the app cannot read anything without it. |
+   | Automatically expose new tables | Either | Safe to leave on. `0001_init.sql` issues its own `GRANT`s, so the schema works with it off too. |
+   | Enable automatic RLS | **On** | A safety net. The migration already enables RLS on all five tables; this catches any table you add later. |
+
+   Supabase advises turning *Automatically expose new tables* off. That advice
+   exists because an exposed table with no RLS policies is readable by anyone
+   holding the anon key. It does not apply to the tables in this schema — every
+   one has RLS enabled and explicit policies — but leaving it off is still the
+   safer habit, and this project supports it.
+
+5. Wait ~2 minutes for provisioning.
 
 ## 1.2 Copy the three keys
 
@@ -214,3 +230,14 @@ written with the service role after the payment signature is verified.
 **Images upload but do not display**
 The bucket is not public. `0001_init.sql` sets this up; if you created buckets by
 hand, mark them public in Storage → Configuration.
+
+**"permission denied for table products"**
+The API roles hold no privileges on the table. Re-run `0001_init.sql` — its
+`grant` block at the end fixes this. It happens when a project was created with
+*Automatically expose new tables* off and the schema was built by some other
+route.
+
+**The storefront shows demo products even though Supabase is configured**
+The app falls back to the bundled catalogue whenever a query fails or returns
+nothing. Check that `0002_seed.sql` ran, and that the dev server was restarted
+after `.env.local` changed.

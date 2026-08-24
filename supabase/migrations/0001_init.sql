@@ -174,6 +174,30 @@ create policy "Admins can read own row" on admins
 -- Razorpay signature check, so there is deliberately no public insert policy.
 
 -- =====================================================================
+-- Data API privileges
+-- =====================================================================
+-- PostgREST checks table privileges BEFORE it evaluates RLS, so a table with
+-- perfect policies still answers "permission denied" if the API role holds no
+-- GRANT. New Supabase projects can be created with "Automatically expose new
+-- tables" switched off, which skips those grants entirely — so state them
+-- here and the schema behaves the same either way.
+--
+-- These grants only make a table visible to the API. The RLS policies above
+-- remain the thing that decides which rows each role may actually see: anon
+-- can read active products and categories and nothing else, and orders stay
+-- unreachable without the service-role key.
+grant usage on schema public to anon, authenticated, service_role;
+
+-- Storefront reads run under `anon` (or `authenticated` for a signed-in admin).
+grant select on categories, products to anon, authenticated;
+
+-- Only needed for the admin lookup fallback when no service-role key is set.
+grant select on admins to authenticated;
+
+-- The server writes orders, stock and uploads with the service-role key.
+grant all on categories, products, orders, order_items, admins to service_role;
+
+-- =====================================================================
 -- Storage buckets
 -- =====================================================================
 insert into storage.buckets (id, name, public)
