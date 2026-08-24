@@ -1,0 +1,65 @@
+import type { Metadata } from 'next';
+import { ProsePage } from '@/components/store/prose-page';
+import { COMMERCE } from '@/lib/config';
+import { formatINR } from '@/lib/utils';
+
+export const metadata: Metadata = {
+  title: 'Shipping Policy',
+  description: 'Dispatch times, courier partners, charges and delivery windows.',
+};
+
+export default function ShippingPage() {
+  return (
+    <ProsePage
+      eyebrow="Getting it to you"
+      title="Shipping Policy"
+      intro="Everything is insured, packed in muslin, and tracked door to door."
+    >
+      <h2>Charges</h2>
+      <ul>
+        <li>
+          Free shipping on orders of {formatINR(COMMERCE.freeShippingThreshold)} and above.
+        </li>
+        <li>
+          A flat {formatINR(COMMERCE.shippingFlatRate)} on smaller orders, anywhere in India.
+        </li>
+        <li>International orders are quoted individually — write to us before paying.</li>
+      </ul>
+
+      <h2>Dispatch</h2>
+      <p>
+        Orders placed before 4pm are usually packed the same day and handed to the courier within
+        two working days. During wedding season this can stretch to three.
+      </p>
+
+      <h2>Courier partners</h2>
+      <p>
+        We ship through Delhivery, Blue Dart, DTDC, India Post, Ekart and Shadowfax, choosing by
+        which serves your pincode best. You do not get to pick the courier, but you always get the
+        tracking ID.
+      </p>
+
+      <h2>Tracking</h2>
+      <p>
+        The moment your parcel leaves us, the tracking ID reaches you three ways: a WhatsApp
+        message, an SMS and an email. You can also look it up any time on our{' '}
+        <a href="/track">track order</a> page using your order ID.
+      </p>
+
+      <h2>Delivery windows</h2>
+      <ul>
+        <li>Tamil Nadu and Kerala — 2 to 3 working days</li>
+        <li>Rest of South and West India — 3 to 5 working days</li>
+        <li>North and East India — 4 to 7 working days</li>
+        <li>North-east, Andaman and remote pincodes — 7 to 10 working days</li>
+      </ul>
+
+      <h2>If something goes wrong</h2>
+      <p>
+        Parcels are insured. If a shipment is lost or arrives damaged, tell us within 48 hours of
+        the delivery date with photographs of the packaging, and we will replace the piece or
+        refund you in full.
+      </p>
+    </ProsePage>
+  );
+}

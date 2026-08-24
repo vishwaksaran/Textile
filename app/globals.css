@@ -1,0 +1,161 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+
+  body {
+    @apply bg-background text-on-surface antialiased;
+    /* Faint paper grain — the tactile base of the whole design. */
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  }
+
+  ::selection {
+    @apply bg-primary-container/40 text-deep-maroon;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-primary-container ring-offset-2 ring-offset-background;
+  }
+
+  /* Every interactive control clears the 44px touch target on coarse pointers. */
+  @media (pointer: coarse) {
+    button,
+    a[role='button'],
+    [data-touch-target] {
+      min-height: 44px;
+    }
+  }
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-container-max px-margin-mobile md:px-margin-desktop;
+  }
+
+  .gold-divider {
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      theme('colors.primary-container') 50%,
+      transparent 100%
+    );
+  }
+
+  .textile-card {
+    box-shadow: 0 4px 24px rgba(74, 4, 4, 0.04);
+    transition:
+      box-shadow 0.3s ease,
+      transform 0.3s ease;
+  }
+
+  .textile-card:hover {
+    box-shadow: 0 8px 32px rgba(74, 4, 4, 0.08);
+    transform: translateY(-4px);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .textile-card:hover {
+      transform: none;
+    }
+  }
+
+  .textile-card-image-wrapper {
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Inset gold rule that draws itself on hover. */
+  .textile-card-image-wrapper::after {
+    content: '';
+    position: absolute;
+    inset: 8px;
+    border: 1px solid transparent;
+    transition: border-color 0.4s ease;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  .group:hover .textile-card-image-wrapper::after,
+  .textile-card:hover .textile-card-image-wrapper::after {
+    border-color: rgba(212, 175, 55, 0.6);
+  }
+
+  .textile-card-image-wrapper img {
+    transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+
+  .group:hover .textile-card-image-wrapper img,
+  .textile-card:hover .textile-card-image-wrapper img {
+    transform: scale(1.05);
+  }
+
+  /* Sweeping highlight on primary buttons. */
+  .btn-shine::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.16), transparent);
+    transform: skewX(-25deg);
+    transition: left 0.7s ease;
+  }
+
+  .btn-shine:hover::after {
+    left: 200%;
+  }
+
+/* ---------------------------------------------------- admin console -- */
+  .zari-divider {
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      rgba(212, 175, 55, 0) 0%,
+      rgba(212, 175, 55, 1) 50%,
+      rgba(212, 175, 55, 0) 100%
+    );
+  }
+
+  .glass-panel {
+    background: rgba(255, 253, 245, 0.85);
+    backdrop-filter: blur(8px);
+  }
+
+  .ambient-shadow {
+    box-shadow: 0 10px 30px -10px rgba(74, 4, 4, 0.06);
+  }
+
+
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}

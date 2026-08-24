@@ -1,0 +1,191 @@
+import type { Metadata } from 'next';
+import { notFound } from 'next/navigation';
+import { Truck, ShieldCheck, RotateCcw, type LucideIcon } from 'lucide-react';
+import { Breadcrumbs } from '@/components/store/breadcrumbs';
+import { ImageGallery } from '@/components/store/image-gallery';
+import { AddToCart } from '@/components/store/add-to-cart';
+import { StickyBuyBar } from '@/components/store/sticky-buy-bar';
+import { RelatedCarousel } from '@/components/store/related-carousel';
+import { Badge } from '@/components/ui/badge';
+import { AnimatedPage } from '@/components/shared/motion';
+import { getProductById, getRelatedProducts } from '@/lib/data';
+import { COMMERCE, STORE } from '@/lib/config';
+import { discountPercent, effectivePrice, formatINR } from '@/lib/utils';
+
+export const revalidate = 120;
+
+export async function generateMetadata({
+  params,
+}: {
+  params: { id: string };
+}): Promise<Metadata> {
+  const product = await getProductById(params.id);
+  if (!product) return { title: 'Piece not found' };
+
+  return {
+    title: product.name,
+    description: product.description?.slice(0, 160),
+    openGraph: {
+      title: product.name,
+      description: product.description?.slice(0, 160),
+      images: product.images?.[0] ? [product.images[0]] : undefined,
+    },
+  };
+}
+
+export default async function ProductPage({ params }: { params: { id: string } }) {
+  const product = await getProductById(params.id);
+  if (!product) notFound();
+
+  const related = await getRelatedProducts(product);
+  const price = effectivePrice(product);
+  const off = discountPercent(product);
+  const soldOut = product.is_sold_out || product.stock_quantity <= 0;
+  const low = !soldOut && product.stock_quantity <= 3;
+
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.name,
+    description: product.description ?? undefined,
+    image: product.images,
+    brand: { '@type': 'Brand', name: STORE.name },
+    offers: {
+      '@type': 'Offer',
+      price,
+      priceCurrency: 'INR',
+      availability: soldOut
+        ? 'https://schema.org/OutOfStock'
+        : 'https://schema.org/InStock',
+    },
+  };
+
+  return (
+    <AnimatedPage>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
+      <div className="container-page pt-6">
+        <Breadcrumbs
+          trail={[
+            { label: 'Home', href: '/' },
+            { label: 'Collections', href: '/collections' },
+            ...(product.categories
+              ? [{ label: product.categories.name, href: `/category/${product.categories.slug}` }]
+              : []),
+            { label: product.name },
+          ]}
+        />
+      </div>
+
+      <div className="container-page grid grid-cols-1 gap-10 py-8 lg:grid-cols-2 lg:gap-16 lg:py-12">
+        <ImageGallery images={product.images ?? []} alt={product.name} dimmed={soldOut} />
+
+        <div className="space-y-6">
+          <div className="space-y-3">
+            {product.categories?.name && (
+              <p className="font-label-sm text-label-sm uppercase tracking-widest text-earthy-bronze">
+                {product.categories.name}
+              </p>
+            )}
+            <h1 className="font-display-lg text-[32px] leading-tight text-deep-maroon md:text-[42px] md:leading-[50px]">
+              {product.name}
+            </h1>
+
+            <div className="flex flex-wrap items-baseline gap-3">
+              <span className="font-headline-lg text-headline-lg text-on-surface">
+                {formatINR(price)}
+              </span>
+              {off && (
+                <>
+                  <span className="font-body-lg text-body-lg text-on-surface-variant/70 line-through">
+                    {formatINR(product.price)}
+                  </span>
+                  <Badge variant="maroon">{off}% off</Badge>
+                </>
+              )}
+            </div>
+            <p className="font-body-md text-xs text-on-surface-variant">
+              Inclusive of all taxes.{' '}
+              {COMMERCE.freeShippingThreshold > 0 &&
+                `Free shipping above ${formatINR(COMMERCE.freeShippingThreshold)}.`}
+            </p>
+          </div>
+
+          <div>
+            {soldOut ? (
+              <Badge variant="error">Sold Out</Badge>
+            ) : low ? (
+              <Badge variant="warning">Only {product.stock_quantity} left</Badge>
+            ) : (
+              <Badge variant="success">In Stock</Badge>
+            )}
+          </div>
+
+          <div className="gold-divider" />
+
+          {product.description && (
+            <div className="space-y-3">
+              <h2 className="font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant">
+                About this piece
+              </h2>
+              <p className="whitespace-pre-line font-body-md text-body-md leading-relaxed text-on-surface-variant">
+                {product.description}
+              </p>
+            </div>
+          )}
+
+          <div id="buy-box" className="scroll-mt-32 pt-2">
+            <AddToCart product={product} />
+          </div>
+
+          <ul className="grid grid-cols-1 gap-4 border-t border-outline-variant/40 pt-6 sm:grid-cols-3">
+            <Assurance Icon={Truck} title="Ships in 2 days" body="Insured courier, pan-India." />
+            <Assurance
+              Icon={ShieldCheck}
+              title="Authenticity card"
+              body="Named weaver and loom origin."
+            />
+            <Assurance
+              Icon={RotateCcw}
+              title="7-day returns"
+              body="Unworn, with tags and card intact."
+            />
+          </ul>
+        </div>
+      </div>
+
+      {related.length > 0 && (
+        <section className="border-t border-outline-variant/30 bg-surface-container-low py-16">
+          <div className="container-page">
+            <RelatedCarousel products={related} />
+          </div>
+        </section>
+      )}
+
+      <StickyBuyBar product={product} />
+    </AnimatedPage>
+  );
+}
+
+function Assurance({
+  Icon,
+  title,
+  body,
+}: {
+  Icon: LucideIcon;
+  title: string;
+  body: string;
+}) {
+  return (
+    <li className="flex gap-3">
+      <Icon className="h-5 w-5 flex-none text-earthy-bronze" strokeWidth={1.5} />
+      <div>
+        <p className="font-body-md text-sm font-semibold text-deep-maroon">{title}</p>
+        <p className="font-body-md text-xs text-on-surface-variant">{body}</p>
+      </div>
+    </li>
+  );
+}
