@@ -7,7 +7,7 @@ export const STORE = {
   tagline: 'Celebrating Ancient Craftsmanship',
   legalName: 'Sri Laxmi Silks Coimbatore',
   email: process.env.ADMIN_EMAIL ?? 'orders@srilaxmisilks.in',
-  phone: '+91 98430 00000',
+  phone: '+91 97894 67448',
   gstin: '33ABCDE1234F1Z5',
   address: {
     line1: '123 Cross Cut Road',
@@ -66,12 +66,19 @@ export function generateCourierTrackingUrl(courier: string, trackingId: string):
  * Uses NEXT_PUBLIC_WHATSAPP_NUMBER when set, otherwise falls back to the
  * store's listed phone number. wa.me wants digits only, including the country
  * code and no plus sign.
+ *
+ * NOTE ON DIRECTION: `text` prefills the *customer's* compose box — it is the
+ * opening line they send to you, not a greeting they receive. The auto-reply
+ * a customer gets back is configured in the WhatsApp Business app under
+ * Business tools → Greeting message, not here.
  */
+export const WHATSAPP_PREFILL = 'How can I assist you';
+
 export function whatsappUrl(message?: string): string {
   const raw = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? STORE.phone;
   const digits = raw.replace(/\D/g, '');
   const number = digits.length === 10 ? `91${digits}` : digits;
-  const text = message ?? `Hello ${STORE.name}, I have a question about a saree.`;
+  const text = message ?? WHATSAPP_PREFILL;
   return `https://wa.me/${number}?text=${encodeURIComponent(text)}`;
 }
 
