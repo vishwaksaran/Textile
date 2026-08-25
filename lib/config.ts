@@ -60,6 +60,21 @@ export function generateCourierTrackingUrl(courier: string, trackingId: string):
   return build ? build(encodeURIComponent(trackingId)) : `https://www.google.com/search?q=${encodeURIComponent(`${courier} ${trackingId}`)}`;
 }
 
+/**
+ * Public "message us" link for the floating button and the contact page.
+ *
+ * Uses NEXT_PUBLIC_WHATSAPP_NUMBER when set, otherwise falls back to the
+ * store's listed phone number. wa.me wants digits only, including the country
+ * code and no plus sign.
+ */
+export function whatsappUrl(message?: string): string {
+  const raw = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? STORE.phone;
+  const digits = raw.replace(/\D/g, '');
+  const number = digits.length === 10 ? `91${digits}` : digits;
+  const text = message ?? `Hello ${STORE.name}, I have a question about a saree.`;
+  return `https://wa.me/${number}?text=${encodeURIComponent(text)}`;
+}
+
 export function appUrl(path = ''): string {
   const base =
     process.env.NEXT_PUBLIC_APP_URL ??

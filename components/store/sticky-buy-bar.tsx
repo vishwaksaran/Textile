@@ -4,6 +4,7 @@ import * as React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AddToCart } from '@/components/store/add-to-cart';
 import { effectivePrice, formatINR } from '@/lib/utils';
+import { useUiStore } from '@/stores/ui-store';
 import type { Product } from '@/types';
 
 /**
@@ -12,6 +13,7 @@ import type { Product } from '@/types';
  */
 export function StickyBuyBar({ product }: { product: Product }) {
   const [visible, setVisible] = React.useState(false);
+  const setBuyBarVisible = useUiStore((s) => s.setBuyBarVisible);
 
   React.useEffect(() => {
     const anchor = document.getElementById('buy-box');
@@ -23,6 +25,11 @@ export function StickyBuyBar({ product }: { product: Product }) {
     observer.observe(anchor);
     return () => observer.disconnect();
   }, []);
+
+  React.useEffect(() => {
+    setBuyBarVisible(visible);
+    return () => setBuyBarVisible(false);
+  }, [visible, setBuyBarVisible]);
 
   const soldOut = product.is_sold_out || product.stock_quantity <= 0;
 

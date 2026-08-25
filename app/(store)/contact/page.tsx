@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Mail, MapPin, MessageCircle, Phone, type LucideIcon } from 'lucide-react';
 import { ProsePage } from '@/components/store/prose-page';
-import { STORE } from '@/lib/config';
+import { STORE, whatsappUrl } from '@/lib/config';
 
 export const metadata: Metadata = {
   title: 'Contact Us',
@@ -26,7 +26,7 @@ export default function ContactPage() {
           Icon={MessageCircle}
           label="WhatsApp"
           value={STORE.phone}
-          href={`https://wa.me/${STORE.phone.replace(/\D/g, '')}`}
+          href={whatsappUrl()}
         />
         <ContactCard
           Icon={Mail}

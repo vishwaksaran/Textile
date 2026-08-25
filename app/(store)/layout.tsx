@@ -3,6 +3,7 @@ import { Footer } from '@/components/store/footer';
 import { CartDrawer } from '@/components/store/cart-drawer';
 import { MobileNav } from '@/components/store/mobile-nav';
 import { SearchDialog } from '@/components/store/search-dialog';
+import { WhatsAppFab } from '@/components/store/whatsapp-fab';
 import { getCategories, usingDemoData } from '@/lib/data';
 import { DemoDataNotice } from '@/components/store/demo-notice';
 
@@ -19,6 +20,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
       <Footer categories={categories} />
       <CartDrawer />
       <SearchDialog />
+      <WhatsAppFab />
       <MobileNav />
     </>
   );
