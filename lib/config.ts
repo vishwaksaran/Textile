@@ -72,7 +72,7 @@ export function generateCourierTrackingUrl(courier: string, trackingId: string):
  * a customer gets back is configured in the WhatsApp Business app under
  * Business tools → Greeting message, not here.
  */
-export const WHATSAPP_PREFILL = 'How can I assist you';
+export const WHATSAPP_PREFILL = `Hello ${STORE.name}, Can I have More Info`;
 
 export function whatsappUrl(message?: string): string {
   const raw = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? STORE.phone;
