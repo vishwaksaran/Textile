@@ -1,14 +1,14 @@
 import 'server-only';
 
 import { Resend } from 'resend';
-import { STORE, appUrl } from '@/lib/config';
+import { STORE, appUrl, envOr } from '@/lib/config';
 import { formatDate, invoiceNumber, shortOrderId } from '@/lib/utils';
 import type { Order } from '@/types';
 
 const apiKey = process.env.RESEND_API_KEY;
 export const isEmailConfigured = Boolean(apiKey);
 
-const FROM = process.env.RESEND_FROM ?? `${STORE.name} <onboarding@resend.dev>`;
+const FROM = envOr(process.env.RESEND_FROM, `${STORE.name} <onboarding@resend.dev>`);
 const ADMIN_TO = process.env.ADMIN_EMAIL;
 
 let resend: Resend | null = null;

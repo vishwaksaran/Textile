@@ -2,11 +2,30 @@
  * Single source of truth for store identity and commerce rules.
  * Anything a shop owner might want to change without touching components.
  */
+
+/**
+ * Treat a blank environment variable as absent.
+ *
+ * `??` only falls back on null/undefined, so a variable that exists but is
+ * empty — exactly what you get by pasting .env.example into a host's
+ * environment panel, where every value is blank — slips through and becomes
+ * an empty string. That took down a Vercel build: `new URL('')` throws
+ * ERR_INVALID_URL while Next collects page data.
+ *
+ * Takes the value rather than the name on purpose: Next inlines literal
+ * `process.env.NEXT_PUBLIC_*` references at build time, so a dynamic lookup
+ * would break in client bundles.
+ */
+export function envOr(value: string | undefined, fallback: string): string {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : fallback;
+}
+
 export const STORE = {
   name: 'Sri Laxmi Silks',
   tagline: 'Celebrating Ancient Craftsmanship',
   legalName: 'Sri Laxmi Silks Coimbatore',
-  email: process.env.ADMIN_EMAIL ?? 'orders@srilaxmisilks.in',
+  email: envOr(process.env.ADMIN_EMAIL, 'orders@srilaxmisilks.in'),
   phone: '+91 97894 67448',
   gstin: '33ABCDE1234F1Z5',
   address: {
@@ -75,16 +94,36 @@ export function generateCourierTrackingUrl(courier: string, trackingId: string):
 export const WHATSAPP_PREFILL = `Hello ${STORE.name}, Can I have More Info`;
 
 export function whatsappUrl(message?: string): string {
-  const raw = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER ?? STORE.phone;
+  const raw = envOr(process.env.NEXT_PUBLIC_WHATSAPP_NUMBER, STORE.phone);
   const digits = raw.replace(/\D/g, '');
   const number = digits.length === 10 ? `91${digits}` : digits;
   const text = message ?? WHATSAPP_PREFILL;
   return `https://wa.me/${number}?text=${encodeURIComponent(text)}`;
 }
 
+/**
+ * The site's own absolute base URL, used for invoice links, order emails,
+ * the sitemap and `metadataBase`.
+ *
+ * Deliberately forgiving about what a shop owner types into a host's
+ * environment panel: blank falls through to the deploy URL, a bare host like
+ * "yourstore.in" gains a scheme, and a trailing slash is trimmed. Anything
+ * still unparseable falls back rather than throwing, because this runs during
+ * the production build — a bad value here should not take the whole deploy
+ * down, and the fallback is always valid.
+ */
 export function appUrl(path = ''): string {
-  const base =
-    process.env.NEXT_PUBLIC_APP_URL ??
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
-  return `${base.replace(/\/$/, '')}${path}`;
+  const vercel = envOr(process.env.VERCEL_URL, '');
+  const fallback = vercel ? `https://${vercel}` : 'http://localhost:3000';
+
+  let base = envOr(process.env.NEXT_PUBLIC_APP_URL, fallback);
+  if (!/^https?:\/\//i.test(base)) base = `https://${base.replace(/^\/+/, '')}`;
+
+  try {
+    new URL(base);
+  } catch {
+    base = fallback;
+  }
+
+  return `${base.replace(/\/+$/, '')}${path}`;
 }
