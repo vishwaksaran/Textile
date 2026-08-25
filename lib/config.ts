@@ -25,7 +25,7 @@ export const STORE = {
   name: 'Sri Laxmi Silks',
   tagline: 'Celebrating Ancient Craftsmanship',
   legalName: 'Sri Laxmi Silks Coimbatore',
-  email: envOr(process.env.ADMIN_EMAIL, 'orders@srilaxmisilks.in'),
+  email: envOr(process.env.ADMIN_EMAIL, 'orders@srilaxmisilks.com'),
   phone: '+91 97894 67448',
   gstin: '33ABCDE1234F1Z5',
   address: {

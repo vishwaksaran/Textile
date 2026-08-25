@@ -45,6 +45,12 @@ Go to **Project Settings → API**. You need three values:
 | `anon` `public` key | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes |
 | `service_role` `secret` key | `SUPABASE_SERVICE_ROLE_KEY` | **No — never** |
 
+**Which tab?** Supabase now shows two sets under Settings → API Keys. Use the
+**Legacy anon, service_role API keys** tab — those are the names this project
+expects, and `@supabase/supabase-js` accepts them. Do not click *Disable legacy
+API keys* until you have migrated deliberately; it will break the site
+immediately.
+
 > The `service_role` key bypasses every security rule in the database. It belongs
 > only in `.env.local` and in your host's environment variables. If it ever appears
 > in client code, in a screenshot, or in a git commit, rotate it immediately from
