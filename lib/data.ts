@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { createServerSupabase, isSupabaseConfigured } from '@/lib/supabase/server';
+import { createPublicSupabase, isSupabaseConfigured } from '@/lib/supabase/server';
 import { DEMO_CATEGORIES, DEMO_PRODUCTS } from '@/lib/demo-data';
 import { effectivePrice } from '@/lib/utils';
 import { upgradeImageUrl, upgradeImageUrls } from '@/lib/images';
@@ -39,7 +39,7 @@ function withHiResCover<T extends { image_url?: string | null }>(row: T): T {
 export const usingDemoData = !isSupabaseConfigured;
 
 export async function getCategories(): Promise<Category[]> {
-  const supabase = createServerSupabase();
+  const supabase = createPublicSupabase();
   if (!supabase) return DEMO_CATEGORIES;
 
   const { data, error } = await supabase.from('categories').select('*').order('created_at');
@@ -48,7 +48,7 @@ export async function getCategories(): Promise<Category[]> {
 }
 
 export async function getCategoryBySlug(slug: string): Promise<Category | null> {
-  const supabase = createServerSupabase();
+  const supabase = createPublicSupabase();
   if (!supabase) return DEMO_CATEGORIES.find((c) => c.slug === slug) ?? null;
 
   const { data, error } = await supabase
@@ -108,7 +108,7 @@ export async function getProducts(q: ProductQuery = {}): Promise<{
   products: Product[];
   total: number;
 }> {
-  const supabase = createServerSupabase();
+  const supabase = createPublicSupabase();
   if (!supabase) return queryDemo(q);
 
   let categoryId: string | undefined;
@@ -159,7 +159,7 @@ export async function getProducts(q: ProductQuery = {}): Promise<{
 }
 
 export async function getProductById(id: string): Promise<Product | null> {
-  const supabase = createServerSupabase();
+  const supabase = createPublicSupabase();
   if (!supabase) return DEMO_PRODUCTS.find((p) => p.id === id) ?? null;
 
   const { data, error } = await supabase
@@ -196,7 +196,7 @@ export async function getStockLevels(
   productIds: string[],
 ): Promise<Record<string, { stock: number; price: number; name: string }>> {
   if (productIds.length === 0) return {};
-  const supabase = createServerSupabase();
+  const supabase = createPublicSupabase();
 
   if (!supabase) {
     return Object.fromEntries(
