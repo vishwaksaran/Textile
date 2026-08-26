@@ -77,6 +77,7 @@ export async function POST(request: Request) {
       notifications: {
         adminEmail: report.adminEmail,
         customerEmail: report.customerEmail,
+        customerWhatsApp: report.customerWhatsApp,
       },
     });
   } catch (err) {
