@@ -12,7 +12,8 @@
     "admin:list": "node scripts/create-admin.mjs --list",
     "email:test": "node scripts/test-email.mjs",
     "whatsapp:test": "node scripts/test-whatsapp.mjs",
-    "whatsapp:templates": "node scripts/whatsapp-templates.mjs"
+    "whatsapp:templates": "node scripts/whatsapp-templates.mjs",
+    "icons": "node scripts/make-icons.mjs"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.6",
@@ -49,6 +50,7 @@
     "eslint": "^8.57.1",
     "eslint-config-next": "14.2.23",
     "postcss": "^8.5.1",
+    "sharp": "^0.35.4",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.7.3"
   }

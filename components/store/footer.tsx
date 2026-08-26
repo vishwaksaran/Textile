@@ -43,7 +43,7 @@ export function Footer({ categories = [] }: { categories?: Category[] }) {
       <div className="container-page grid grid-cols-1 gap-gutter py-16 sm:grid-cols-2 lg:grid-cols-5">
         <div className="space-y-4">
           <div className="flex items-center gap-3 text-primary-fixed">
-            <LogoMark className="h-10" />
+            <LogoMark className="h-10" invert />
             <span className="font-display-lg text-2xl">{STORE.name}</span>
           </div>
           <p className="font-body-md text-sm text-warm-cream/80">{STORE.tagline}</p>
