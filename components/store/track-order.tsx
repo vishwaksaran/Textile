@@ -25,6 +25,9 @@ interface TrackedOrder {
   items: { name: string; image: string | null; quantity: number; price: number }[];
 }
 
+/** A full order id needs no second factor; a short code does. */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 const STAGES = [
   { key: 'processing', label: 'Packed', Icon: PackageSearch },
   { key: 'shipped', label: 'Shipped', Icon: Truck },
@@ -36,9 +39,10 @@ export function TrackOrder() {
   const [orderId, setOrderId] = React.useState(params.get('id') ?? '');
   const [order, setOrder] = React.useState<TrackedOrder | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+  const [phone, setPhone] = React.useState('');
   const [loading, setLoading] = React.useState(false);
 
-  const lookup = React.useCallback(async (id: string) => {
+  const lookup = React.useCallback(async (id: string, phone = '') => {
     const trimmed = id.trim();
     if (!trimmed) {
       setError('Enter the order ID from your confirmation email.');
@@ -48,7 +52,31 @@ export function TrackOrder() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`/api/orders/${encodeURIComponent(trimmed)}`, {
+      // The full UUID identifies an order on its own. The short code printed
+      // on the invoice is only eight characters, so it needs the buyer's
+      // phone number alongside it before we will resolve it.
+      let fullId = trimmed;
+      if (!UUID_RE.test(trimmed)) {
+        if (phone.replace(/\D/g, '').length < 10) {
+          setOrder(null);
+          setError('Also enter the mobile number used on the order.');
+          return;
+        }
+        const res = await fetch('/api/orders/lookup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: trimmed, phone }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setOrder(null);
+          setError(data.error ?? 'We could not find that order.');
+          return;
+        }
+        fullId = data.id;
+      }
+
+      const res = await fetch(`/api/orders/${encodeURIComponent(fullId)}`, {
         cache: 'no-store',
       });
       if (!res.ok) {
@@ -85,31 +113,58 @@ export function TrackOrder() {
   return (
     <div className="mx-auto max-w-2xl space-y-8">
       <form
-        className="flex flex-col gap-4 sm:flex-row sm:items-end"
+        className="space-y-4"
         onSubmit={(e) => {
           e.preventDefault();
-          void lookup(orderId);
+          void lookup(orderId, phone);
         }}
       >
-        <Field
-          label="Order ID"
-          htmlFor="order-id"
-          error={error}
-          className="flex-1"
-          hint="Looks like 8f3c21ab-… or the short code on your invoice."
-        >
-          <Input
-            id="order-id"
-            value={orderId}
-            onChange={(e) => {
-              setOrderId(e.target.value);
-              setError(null);
-            }}
-            placeholder="Paste your order ID"
-            autoComplete="off"
-          />
-        </Field>
-        <Button type="submit" size="lg" disabled={loading} className="sm:w-40">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+          <Field
+            label="Order ID"
+            htmlFor="order-id"
+            error={error}
+            className="flex-1"
+            hint="The short code from your invoice, like 9BA42876 — or the full ID from your email."
+          >
+            <Input
+              id="order-id"
+              value={orderId}
+              onChange={(e) => {
+                setOrderId(e.target.value);
+                setError(null);
+              }}
+              placeholder="9BA42876"
+              autoComplete="off"
+            />
+          </Field>
+
+          {/* Only the short code needs a second factor; a full id does not. */}
+          {!UUID_RE.test(orderId.trim()) && (
+            <Field
+              label="Mobile number"
+              htmlFor="order-phone"
+              className="flex-1"
+              hint="The number you gave at checkout."
+            >
+              <Input
+                id="order-phone"
+                type="tel"
+                inputMode="numeric"
+                value={phone}
+                onChange={(e) => {
+                  setPhone(e.target.value);
+                  setError(null);
+                }}
+                placeholder="9789467448"
+                autoComplete="tel"
+                maxLength={14}
+              />
+            </Field>
+          )}
+        </div>
+
+        <Button type="submit" size="lg" disabled={loading} className="w-full sm:w-40">
           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Track'}
         </Button>
       </form>

@@ -9,6 +9,7 @@ import { AnimatedPage } from '@/components/shared/motion';
 import { getOrderWithItems } from '@/lib/orders';
 import { STORE } from '@/lib/config';
 import { formatDate, formatINR, shortOrderId } from '@/lib/utils';
+import { OrderIdCard } from '@/components/store/order-id-card';
 
 export const metadata: Metadata = {
   title: 'Order confirmed',
@@ -46,10 +47,14 @@ export default async function OrderSuccessPage({
             Thank you, {order.customer_name.split(' ')[0]}.
           </h1>
           <p className="font-body-md text-body-md text-on-surface-variant">
-            Your order <strong className="text-deep-maroon">#{shortOrderId(order.id)}</strong> was
-            placed on {formatDate(order.created_at)}. A confirmation is on its way to{' '}
-            {order.customer_email}.
+            Your order was placed on {formatDate(order.created_at)}. A confirmation is on its
+            way to {order.customer_email}.
           </p>
+
+          {/* The order ID is the customer's only handle on this purchase, so
+              give it room and make it trivial to keep rather than burying it
+              in a sentence they will scroll past. */}
+          <OrderIdCard shortId={shortOrderId(order.id)} fullId={order.id} />
         </div>
 
         <div className="rounded-lg border border-outline-variant/40 bg-surface-container-lowest p-6 md:p-8">

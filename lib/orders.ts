@@ -172,6 +172,57 @@ export async function getOrderByRazorpayOrderId(razorpayOrderId: string): Promis
   return (data as Order) ?? null;
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export function isFullOrderId(value: string): boolean {
+  return UUID_RE.test(value.trim());
+}
+
+/**
+ * Resolves the short code a customer can actually see — the `#9BA42876` on
+ * their invoice and confirmation — back to the full order id.
+ *
+ * The phone number is required, and that is the point. A short code is only
+ * eight hex characters, so on its own it would be guessable by brute force,
+ * and a hit would expose a stranger's name, city and purchases. The full
+ * UUID is 122 bits and safe to use alone; this shorter path is deliberately
+ * gated on something only the buyer knows.
+ *
+ * Matching happens on the phone number first — an exact, indexed comparison —
+ * and the code is then checked against the id prefix in memory, so a wrong
+ * code cannot be used to enumerate orders belonging to that phone number.
+ */
+export async function findOrderIdByCode(
+  code: string,
+  phone: string,
+): Promise<string | null> {
+  const cleanCode = code.trim().replace(/[^0-9a-f]/gi, '').toLowerCase();
+  const cleanPhone = phone.replace(/\D/g, '').slice(-10);
+  if (cleanCode.length < 6 || cleanPhone.length !== 10) return null;
+
+  const supabase = createAdminSupabase();
+  if (!supabase) {
+    for (const [id, order] of memoryOrders) {
+      if (order.customer_phone === cleanPhone && id.toLowerCase().startsWith(cleanCode)) {
+        return id;
+      }
+    }
+    return null;
+  }
+
+  const { data } = await supabase
+    .from('orders')
+    .select('id')
+    .eq('customer_phone', cleanPhone)
+    .order('created_at', { ascending: false })
+    .limit(50);
+
+  const match = (data ?? []).find((row: { id: string }) =>
+    row.id.toLowerCase().startsWith(cleanCode),
+  );
+  return match?.id ?? null;
+}
+
 export async function getOrderWithItems(id: string): Promise<Order | null> {
   const supabase = createAdminSupabase();
   if (!supabase) {

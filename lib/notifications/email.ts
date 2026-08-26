@@ -140,7 +140,14 @@ export async function sendCustomerConfirmationEmail(
        Placed on ${formatDate(order.created_at)}
      </p>
      <a href="${invoiceLink}" style="display:inline-block;background:#4A0404;color:#ffe088;padding:12px 24px;text-decoration:none;font-size:12px;letter-spacing:1px;text-transform:uppercase;">Download invoice</a>
+     <a href="${appUrl(`/track?id=${order.id}`)}" style="display:inline-block;margin-left:8px;border:1px solid #4A0404;color:#4A0404;padding:11px 24px;text-decoration:none;font-size:12px;letter-spacing:1px;text-transform:uppercase;">Track this order</a>
      <p style="font-size:12px;color:#4d4635;margin:24px 0 0;line-height:1.6;">
+       Keep this email — the Track button above opens your order directly. You can also
+       track it any time at ${appUrl('/track')} using order ID
+       <strong>${shortOrderId(order.id)}</strong> and the mobile number
+       ${order.customer_phone ? `ending ${String(order.customer_phone).slice(-4)}` : 'you gave at checkout'}.
+     </p>
+     <p style="font-size:12px;color:#4d4635;margin:12px 0 0;line-height:1.6;">
        We will send your tracking details by WhatsApp and SMS as soon as the parcel is handed to the courier.
      </p>`,
   );
