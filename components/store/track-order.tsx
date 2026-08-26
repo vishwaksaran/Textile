@@ -97,10 +97,13 @@ export function TrackOrder() {
     }
   }, []);
 
-  // A link from the confirmation page carries the id, so look it up straight away.
+  // A link carrying a full id opens the order straight away. A link carrying
+  // only the short code — as the SMS does, to stay inside one segment and to
+  // avoid putting a working order link in a text message — prefills the field
+  // and waits for the phone number instead of failing on arrival.
   React.useEffect(() => {
     const fromUrl = params.get('id');
-    if (fromUrl) void lookup(fromUrl);
+    if (fromUrl && UUID_RE.test(fromUrl.trim())) void lookup(fromUrl);
   }, [params, lookup]);
 
   const stageIndex = order

@@ -3,6 +3,7 @@ import 'server-only';
 import { buildInvoicePdf, uploadInvoice } from '@/lib/invoice';
 import { sendAdminOrderEmail, sendCustomerConfirmationEmail } from '@/lib/notifications/email';
 import { sendWhatsAppOrderConfirmation } from '@/lib/notifications/whatsapp';
+import { sendSmsConfirmation } from '@/lib/notifications/sms';
 import { formatINR } from '@/lib/utils';
 import { shortOrderId } from '@/lib/utils';
 import { commitStock, getOrderWithItems, linesForOrder, updateOrder } from '@/lib/orders';
@@ -18,6 +19,7 @@ export interface FulfilmentReport {
   customerEmail: string;
   /** Per-channel outcome, so a silent failure cannot hide behind a paid order. */
   customerWhatsApp: string;
+  customerSms: string;
 }
 
 /**
@@ -43,6 +45,7 @@ export async function fulfilPaidOrder(
       adminEmail: 'skipped (already processed)',
       customerEmail: 'skipped (already processed)',
       customerWhatsApp: 'skipped (already processed)',
+      customerSms: 'skipped (already processed)',
     };
   }
 
@@ -84,7 +87,7 @@ export async function fulfilPaidOrder(
         ? `${items[0].products?.name ?? 'Handloom piece'} x${items[0].quantity}`
         : `${items[0].products?.name ?? 'Handloom piece'} and ${items.length - 1} more`;
 
-  const [adminResult, customerResult, whatsappResult] = await Promise.all([
+  const [adminResult, customerResult, whatsappResult, smsResult] = await Promise.all([
     sendAdminOrderEmail(withInvoice),
     sendCustomerConfirmationEmail(withInvoice, pdf),
     withInvoice.customer_phone
@@ -97,6 +100,16 @@ export async function fulfilPaidOrder(
           trackUrl: appUrl(`/track?id=${withInvoice.id}`),
         })
       : Promise.resolve({ sent: false, skipped: 'no phone number on the order' }),
+    withInvoice.customer_phone
+      ? sendSmsConfirmation({
+          phone: withInvoice.customer_phone,
+          orderId: shortOrderId(withInvoice.id),
+          total: formatINR(Number(withInvoice.total_amount)).replace(/₹/g, 'Rs. '),
+          // Short code, not the full id: keeps the text to one billable
+          // segment, and the link alone does not open the order.
+          trackUrl: appUrl(`/track?id=${shortOrderId(withInvoice.id)}`),
+        })
+      : Promise.resolve({ sent: false, skipped: 'no phone number on the order' }),
   ]);
 
   return {
@@ -107,6 +120,7 @@ export async function fulfilPaidOrder(
     adminEmail: describe(adminResult),
     customerEmail: describe(customerResult),
     customerWhatsApp: describe(whatsappResult),
+    customerSms: describe(smsResult),
   };
 }
 

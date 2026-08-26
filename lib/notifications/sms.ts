@@ -37,9 +37,41 @@ export function trackingSmsBody(p: SmsTrackingPayload): string {
  * Twilio takes precedence; Fast2SMS is the India-local fallback.
  */
 export async function sendSmsTracking(payload: SmsTrackingPayload): Promise<NotifyResult> {
+  return sendSms(payload.phone, trackingSmsBody(payload));
+}
+
+export interface SmsConfirmationPayload {
+  phone: string;
+  /** Short code, e.g. 9BA42876 — matches the invoice and the tracking page. */
+  orderId: string;
+  total: string;
+  trackUrl: string;
+}
+
+export function confirmationSmsBody(p: SmsConfirmationPayload): string {
+  // Kept under 160 characters so it bills as a single segment. That is why the
+  // link carries the short code rather than the full id — which also means a
+  // text message read off a lock screen is not a working order link on its own.
+  return `${STORE.name}: Order #${p.orderId} confirmed, ${p.total}. Track: ${p.trackUrl} We will text again when it ships.`;
+}
+
+/**
+ * Order receipt by SMS.
+ *
+ * Worth having even once WhatsApp works: SMS needs no template approval, no
+ * Meta business verification, and reaches a phone that has never opened
+ * WhatsApp. It is the channel that keeps working when the others are stuck.
+ */
+export async function sendSmsConfirmation(
+  payload: SmsConfirmationPayload,
+): Promise<NotifyResult> {
+  return sendSms(payload.phone, confirmationSmsBody(payload));
+}
+
+/** One send path for every message, so provider quirks live in one place. */
+async function sendSms(phone: string, body: string): Promise<NotifyResult> {
   const provider = smsProvider();
-  const digits = payload.phone.replace(/\D/g, '').slice(-10);
-  const body = trackingSmsBody(payload);
+  const digits = phone.replace(/\D/g, '').slice(-10);
 
   if (provider === 'none') {
     return { sent: false, skipped: 'No SMS provider configured (Twilio or Fast2SMS)' };

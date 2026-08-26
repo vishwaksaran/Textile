@@ -78,6 +78,7 @@ export async function POST(request: Request) {
         adminEmail: report.adminEmail,
         customerEmail: report.customerEmail,
         customerWhatsApp: report.customerWhatsApp,
+        customerSms: report.customerSms,
       },
     });
   } catch (err) {
