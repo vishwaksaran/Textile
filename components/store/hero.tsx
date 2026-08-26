@@ -128,19 +128,33 @@ export function Hero({ slides }: { slides: HeroSlide[] }) {
       </motion.div>
 
       {slides.length > 1 && (
-        <div className="absolute bottom-8 left-1/2 z-20 flex -translate-x-1/2 gap-3">
+        <div className="absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 items-center md:bottom-8">
           {slides.map((slide, i) => (
+            /*
+              The button is the touch target, the span is the dot. They have to
+              be separate: a global rule gives every button a 44px minimum
+              height on coarse pointers, which on a 12px round dot produces a
+              tall bar rather than a circle.
+            */
             <button
               key={slide.title}
               type="button"
               onClick={() => setIndex(i)}
               aria-label={`Show slide ${i + 1}: ${slide.title}`}
               aria-current={i === index}
-              className={cn(
-                'h-3 w-3 rounded-full border border-white/30 transition-all duration-300',
-                i === index ? 'bg-primary-container' : 'bg-white/40 hover:bg-primary-container/70',
-              )}
-            />
+              className="group flex h-11 w-8 items-center justify-center focus-visible:outline-none"
+            >
+              <span
+                className={cn(
+                  // Active is both wider and gold, so the current slide is not
+                  // signalled by colour alone.
+                  'block h-2.5 rounded-full border border-white/40 transition-all duration-300',
+                  i === index
+                    ? 'w-6 bg-primary-container'
+                    : 'w-2.5 bg-white/50 group-hover:bg-primary-container/70',
+                )}
+              />
+            </button>
           ))}
         </div>
       )}

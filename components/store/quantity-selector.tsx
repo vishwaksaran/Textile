@@ -25,7 +25,14 @@ export function QuantitySelector({
   label = 'Quantity',
   className,
 }: QuantitySelectorProps) {
-  const dim = size === 'sm' ? 'h-8 w-8' : 'h-11 w-11';
+  // Width tracks the coarse-pointer minimum height (44px) so these stay square
+  // on touch instead of being stretched into tall slabs. Same condition as the
+  // global touch-target rule in globals.css, not a width breakpoint — a narrow
+  // desktop window has a fine pointer and needs no enlarging.
+  const dim =
+    size === 'sm'
+      ? 'h-8 w-8 [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11'
+      : 'h-11 w-11';
   const willRemove = removeAtMin && value <= min + 1;
 
   return (
