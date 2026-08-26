@@ -125,6 +125,19 @@ There are three independent gates, and each one is checked on the server:
 On top of that, Row Level Security in the database means even a stolen `anon`
 key cannot read an order.
 
+## 1.5b Test that email works
+
+Once RESEND_API_KEY is set (Part 2, §5), prove it before a customer depends
+on it:
+
+```bash
+npm run email:test -- you@yourstore.com
+```
+
+It sends one real message through Resend and reports exactly why if the send
+is refused — the usual cause being a RESEND_FROM domain that is not verified
+yet.
+
 ## 1.6 Storage
 
 `0001_init.sql` already created three public buckets: `products`, `categories`
