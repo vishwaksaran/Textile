@@ -11,7 +11,8 @@
     "admin:create": "node scripts/create-admin.mjs",
     "admin:list": "node scripts/create-admin.mjs --list",
     "email:test": "node scripts/test-email.mjs",
-    "whatsapp:test": "node scripts/test-whatsapp.mjs"
+    "whatsapp:test": "node scripts/test-whatsapp.mjs",
+    "whatsapp:templates": "node scripts/whatsapp-templates.mjs"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.6",
