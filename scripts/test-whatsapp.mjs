@@ -66,7 +66,12 @@ const res = await fetch(`https://graph.facebook.com/${version}/${phoneId}/messag
         {
           type: 'body',
           parameters: [
-            'Test', 'TEST1234', 'Silk saree x1', 'Rs. 1', 'https://srilaxmisilks.com/track',
+            'Test',
+            'TEST1234',
+            'Silk saree x1',
+            'Rs. 1',
+            'https://srilaxmisilks.com/track',
+            'https://srilaxmisilks.com/api/invoice/test',
           ].map((text) => ({ type: 'text', text })),
         },
       ],

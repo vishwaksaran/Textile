@@ -98,6 +98,7 @@ export async function fulfilPaidOrder(
           itemSummary,
           total: formatINR(Number(withInvoice.total_amount)).replace(/₹/g, 'Rs. '),
           trackUrl: appUrl(`/track?id=${withInvoice.id}`),
+          invoiceUrl: resolvedInvoiceUrl,
         })
       : Promise.resolve({ sent: false, skipped: 'no phone number on the order' }),
     withInvoice.customer_phone

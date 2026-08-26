@@ -104,6 +104,8 @@ export interface WhatsAppConfirmationPayload {
   total: string;
   itemSummary: string;
   trackUrl: string;
+  /** Direct link to the invoice PDF. */
+  invoiceUrl: string;
 }
 
 /**
@@ -112,10 +114,13 @@ export interface WhatsAppConfirmationPayload {
  *
  * Body placeholders, in order:
  *   {{1}} customer name  {{2}} order id  {{3}} item summary
- *   {{4}} total          {{5}} track url
+ *   {{4}} total          {{5}} track url  {{6}} invoice url
  *
- * Meta requires this template to be approved before it will send, and
- * rejects newlines and tabs inside parameters, so values are flattened.
+ * The order matters: Meta matches parameters positionally, so a template
+ * whose placeholders are arranged differently will send the wrong values
+ * into the wrong slots without erroring. Meta also requires approval before
+ * it will send at all, and rejects newlines and tabs inside parameters, so
+ * values are flattened in sendTemplate.
  */
 export async function sendWhatsAppOrderConfirmation(
   payload: WhatsAppConfirmationPayload,
@@ -126,6 +131,7 @@ export async function sendWhatsAppOrderConfirmation(
     payload.itemSummary,
     payload.total,
     payload.trackUrl,
+    payload.invoiceUrl,
   ]);
 }
 
