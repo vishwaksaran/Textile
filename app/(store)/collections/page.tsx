@@ -3,8 +3,10 @@ import type { Metadata } from 'next';
 import { ListingView } from '@/components/store/listing-view';
 import { ProductGridSkeleton } from '@/components/shared/skeleton';
 import { Breadcrumbs } from '@/components/store/breadcrumbs';
+import { canonical } from '@/lib/seo';
 
 export const metadata: Metadata = {
+  alternates: { canonical: canonical('/collections') },
   title: 'All Collections',
   description:
     'Every weave in the house — Kanchipuram, Banarasi, khadi cotton, bridal silks and archival revivals.',

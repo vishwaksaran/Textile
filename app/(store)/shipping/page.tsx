@@ -2,8 +2,10 @@ import type { Metadata } from 'next';
 import { ProsePage } from '@/components/store/prose-page';
 import { COMMERCE } from '@/lib/config';
 import { formatINR } from '@/lib/utils';
+import { canonical } from '@/lib/seo';
 
 export const metadata: Metadata = {
+  alternates: { canonical: canonical('/shipping') },
   title: 'Shipping Policy',
   description: 'Dispatch times, courier partners, charges and delivery windows.',
 };

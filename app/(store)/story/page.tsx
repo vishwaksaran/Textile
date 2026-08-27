@@ -2,8 +2,10 @@ import Image from 'next/image';
 import type { Metadata } from 'next';
 import { ProsePage } from '@/components/store/prose-page';
 import { ARTISAN_IMAGE } from '@/lib/demo-data';
+import { canonical } from '@/lib/seo';
 
 export const metadata: Metadata = {
+  alternates: { canonical: canonical('/story') },
   title: 'Our Story',
   description:
     'How Sri Laxmi Silks works with weaving clusters across India — fair wages, named weavers, and slow fashion.',

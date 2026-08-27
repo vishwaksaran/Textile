@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import { ProsePage } from '@/components/store/prose-page';
 import { STORE } from '@/lib/config';
+import { canonical } from '@/lib/seo';
 
 export const metadata: Metadata = {
+  alternates: { canonical: canonical('/privacy') },
   title: 'Privacy Policy',
   description: 'What we collect, why, who we share it with, and how to have it deleted.',
 };

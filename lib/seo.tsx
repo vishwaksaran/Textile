@@ -1,0 +1,118 @@
+import { STORE, appUrl } from '@/lib/config';
+
+/**
+ * Shared SEO helpers.
+ *
+ * Nothing here invents facts. Structured data that misrepresents a business —
+ * opening hours nobody checked, coordinates for the wrong building, ratings
+ * that do not exist — is worse than omitting the field: Google treats it as
+ * spam and can suppress the rich result entirely. Anything unknown is left
+ * out until a real value is supplied in STORE.
+ */
+
+/**
+ * Absolute canonical URL for a path.
+ *
+ * Every page needs one. Without it, Google sees the www and non-www hosts, and
+ * every filter and pagination permutation of /collections, as separate pages
+ * competing with each other for the same terms.
+ */
+export function canonical(path = '/'): string {
+  return appUrl(path);
+}
+
+/** The shop itself — what local search ("saree shop Coimbatore") matches on. */
+export function storeJsonLd() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'ClothingStore',
+    '@id': `${appUrl()}#store`,
+    name: STORE.name,
+    legalName: STORE.legalName,
+    description: `Handloom silk sarees, Banarasi brocade and khadi cotton, woven by hand in India and shipped nationwide. ${STORE.tagline}.`,
+    url: appUrl(),
+    logo: appUrl('/icon.png'),
+    image: appUrl('/icon.png'),
+    telephone: STORE.phone,
+    email: STORE.email,
+    address: {
+      '@type': 'PostalAddress',
+      streetAddress: `${STORE.address.line1}, ${STORE.address.line2}`,
+      addressLocality: STORE.address.city,
+      addressRegion: STORE.address.state,
+      postalCode: STORE.address.pincode,
+      addressCountry: 'IN',
+    },
+    currenciesAccepted: 'INR',
+    paymentAccepted: 'Credit Card, Debit Card, UPI, Net Banking',
+    areaServed: { '@type': 'Country', name: 'India' },
+  };
+}
+
+/** Ties the brand name to the site, which helps Google resolve brand queries. */
+export function organizationJsonLd() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    '@id': `${appUrl()}#organization`,
+    name: STORE.name,
+    url: appUrl(),
+    logo: appUrl('/icon.png'),
+    contactPoint: {
+      '@type': 'ContactPoint',
+      telephone: STORE.phone,
+      contactType: 'customer service',
+      areaServed: 'IN',
+      availableLanguage: ['English', 'Tamil'],
+    },
+  };
+}
+
+/** Puts the trail into search results instead of a bare URL. */
+export function breadcrumbJsonLd(trail: { name: string; path: string }[]) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: trail.map((item, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      name: item.name,
+      item: appUrl(item.path),
+    })),
+  };
+}
+
+/** Lets Google surface the site's own search box under the brand result. */
+export function searchActionJsonLd() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    '@id': `${appUrl()}#website`,
+    url: appUrl(),
+    name: STORE.name,
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: {
+        '@type': 'EntryPoint',
+        urlTemplate: appUrl('/collections?q={search_term_string}'),
+      },
+      'query-input': 'required name=search_term_string',
+    },
+  };
+}
+
+/** Renders one or more JSON-LD blocks. */
+export function JsonLd({ data }: { data: object | object[] }) {
+  const blocks = Array.isArray(data) ? data : [data];
+  return (
+    <>
+      {blocks.map((block, i) => (
+        <script
+          key={i}
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(block) }}
+        />
+      ))}
+    </>
+  );
+}

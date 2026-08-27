@@ -120,4 +120,22 @@ for (const [file, size] of [
   console.log(`  ${GREEN('✓')} ${file.padEnd(24)} ${size}x${size}`);
 }
 
-console.log(DIM('\n  Next writes the favicon tags from app/icon.png and app/apple-icon.png.\n'));
+// -------------------------------------------------------- social share image
+// 1200x630 is what WhatsApp, Facebook and X expect. Saree links get shared on
+// WhatsApp constantly in this market, and without this they arrive as a bare
+// grey rectangle with no branding at all.
+const OG_W = 1200;
+const OG_H = 630;
+
+const emblem = await sharp(trimmed)
+  .resize({ height: Math.round(OG_H * 0.6), withoutEnlargement: true })
+  .toBuffer();
+
+await sharp({ create: { width: OG_W, height: OG_H, channels: 4, background: CREAM } })
+  .composite([{ input: emblem, gravity: 'centre' }])
+  .png({ compressionLevel: 9 })
+  .toFile('app/opengraph-image.png');
+
+console.log(`  ${GREEN('✓')} ${'app/opengraph-image.png'.padEnd(24)} ${OG_W}x${OG_H}`);
+
+console.log(DIM('\n  Next writes the favicon and share-image tags from the files in app/.\n'));

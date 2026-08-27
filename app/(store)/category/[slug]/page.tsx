@@ -6,6 +6,7 @@ import { ListingView } from '@/components/store/listing-view';
 import { Breadcrumbs } from '@/components/store/breadcrumbs';
 import { ProductGridSkeleton } from '@/components/shared/skeleton';
 import { getCategories, getCategoryBySlug } from '@/lib/data';
+import { JsonLd, breadcrumbJsonLd, canonical } from '@/lib/seo';
 
 export const revalidate = 300;
 
@@ -22,8 +23,16 @@ export async function generateMetadata({
   const category = await getCategoryBySlug(params.slug);
   if (!category) return { title: 'Collection not found' };
   return {
-    title: category.name,
-    description: category.description ?? undefined,
+    alternates: { canonical: canonical(`/category/${category.slug}`) },
+    title: `${category.name} Sarees`,
+    description:
+      category.description ??
+      `Handwoven ${category.name} sarees, shipped across India.`,
+    openGraph: {
+      title: `${category.name} Sarees`,
+      description: category.description ?? undefined,
+      images: category.image_url ? [category.image_url] : undefined,
+    },
   };
 }
 
@@ -39,6 +48,14 @@ export default async function CategoryPage({
 
   return (
     <>
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: 'Home', path: '/' },
+          { name: 'Collections', path: '/collections' },
+          { name: category.name, path: `/category/${category.slug}` },
+        ])}
+      />
+
       <div className="container-page pt-6">
         <Breadcrumbs
           trail={[

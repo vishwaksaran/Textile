@@ -1,7 +1,9 @@
 import type { Metadata } from 'next';
 import { ProsePage } from '@/components/store/prose-page';
+import { canonical } from '@/lib/seo';
 
 export const metadata: Metadata = {
+  alternates: { canonical: canonical('/authenticity') },
   title: 'Authenticity Guarantee',
   description: 'How we verify silk purity, zari content and handloom origin.',
 };

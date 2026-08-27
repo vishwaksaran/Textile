@@ -2,8 +2,10 @@ import type { Metadata } from 'next';
 import { Mail, MapPin, MessageCircle, Phone, type LucideIcon } from 'lucide-react';
 import { ProsePage } from '@/components/store/prose-page';
 import { STORE, whatsappUrl } from '@/lib/config';
+import { canonical } from '@/lib/seo';
 
 export const metadata: Metadata = {
+  alternates: { canonical: canonical('/contact') },
   title: 'Contact Us',
   description: `Reach ${STORE.name} in Coimbatore by phone, WhatsApp or email.`,
 };

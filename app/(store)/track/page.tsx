@@ -3,8 +3,10 @@ import { Suspense } from 'react';
 import { Breadcrumbs } from '@/components/store/breadcrumbs';
 import { TrackOrder } from '@/components/store/track-order';
 import { Skeleton } from '@/components/shared/skeleton';
+import { canonical } from '@/lib/seo';
 
 export const metadata: Metadata = {
+  alternates: { canonical: canonical('/track') },
   title: 'Track Your Order',
   description: 'Look up the status of a Sri Laxmi Silks order with your order ID.',
 };

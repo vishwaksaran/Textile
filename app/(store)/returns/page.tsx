@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import { ProsePage } from '@/components/store/prose-page';
 import { STORE } from '@/lib/config';
+import { canonical } from '@/lib/seo';
 
 export const metadata: Metadata = {
+  alternates: { canonical: canonical('/returns') },
   title: 'Returns & Exchanges',
   description: 'Our seven-day return window, what qualifies, and how refunds are made.',
 };

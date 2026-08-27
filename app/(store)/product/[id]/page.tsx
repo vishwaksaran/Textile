@@ -11,6 +11,7 @@ import { AnimatedPage } from '@/components/shared/motion';
 import { getProductById, getRelatedProducts } from '@/lib/data';
 import { COMMERCE, STORE } from '@/lib/config';
 import { discountPercent, effectivePrice, formatINR } from '@/lib/utils';
+import { breadcrumbJsonLd, canonical } from '@/lib/seo';
 
 export const revalidate = 120;
 
@@ -23,6 +24,7 @@ export async function generateMetadata({
   if (!product) return { title: 'Piece not found' };
 
   return {
+    alternates: { canonical: canonical(`/product/${product.id}`) },
     title: product.name,
     description: product.description?.slice(0, 160),
     openGraph: {
@@ -65,6 +67,27 @@ export default async function ProductPage({ params }: { params: { id: string } }
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(
+            breadcrumbJsonLd([
+              { name: 'Home', path: '/' },
+              { name: 'Collections', path: '/collections' },
+              ...(product.categories
+                ? [
+                    {
+                      name: product.categories.name,
+                      path: `/category/${product.categories.slug}`,
+                    },
+                  ]
+                : []),
+              { name: product.name, path: `/product/${product.id}` },
+            ]),
+          ),
+        }}
       />
 
       <div className="container-page pt-6">
