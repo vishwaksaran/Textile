@@ -13,3 +13,8 @@ tsconfig.tsbuildinfo
 
 # Machine-specific npm cache redirect
 .npmrc
+
+# Local scratch files
+.sm.xml
+.b.log
+.dev.log
