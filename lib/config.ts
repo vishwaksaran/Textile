@@ -28,6 +28,19 @@ export const STORE = {
   email: envOr(process.env.ADMIN_EMAIL, 'orders@srilaxmisilks.com'),
   phone: '+91 97894 67448',
   gstin: '33ABUPR0570R1ZT',
+
+  /**
+   * Opening hours, in schema.org's format, e.g.
+   *   ['Mo-Sa 10:00-21:00'] or ['Mo-Su 09:30-20:30'].
+   *
+   * Deliberately empty. "Normal working hours" is not specific enough to
+   * publish: structured data that names hours the shop does not keep sends a
+   * customer to a shut door, and Google treats inaccurate local data as a
+   * quality signal against the listing. Omitting the field costs very little,
+   * because the hours customers actually read come from the Google Business
+   * Profile, not from this markup. Fill this in and it appears automatically.
+   */
+  openingHours: [] as string[],
   address: {
     line1: 'No 42, Murugan Shopping Complex',
     line2: 'Big Bazaar Street, Uppukinar Lane',

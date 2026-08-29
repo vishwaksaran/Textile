@@ -45,6 +45,9 @@ export function storeJsonLd() {
       postalCode: STORE.address.pincode,
       addressCountry: 'IN',
     },
+    ...(STORE.openingHours.length
+      ? { openingHours: STORE.openingHours as unknown as string[] }
+      : {}),
     currenciesAccepted: 'INR',
     paymentAccepted: 'Credit Card, Debit Card, UPI, Net Banking',
     areaServed: [
