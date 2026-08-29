@@ -143,7 +143,7 @@ export function AdminSidebar({
           </Link>
         </div>
 
-        <p className="mt-4 truncate text-center font-body-md text-xs text-on-surface-variant/70">
+        <p className="mt-4 truncate text-center font-body-md text-xs text-on-surface-variant/80">
           {adminName}
         </p>
       </div>

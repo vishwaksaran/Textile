@@ -68,7 +68,7 @@ export function AdminTopbar({ onOpenMenu }: { onOpenMenu: () => void }) {
               onChange={(e) => setTerm(e.target.value)}
               placeholder={placeholder}
               aria-label={placeholder}
-              className="w-64 rounded-full border-none bg-surface-container-highest py-2 pl-10 pr-4 text-sm text-on-surface placeholder:text-on-surface-variant/70 focus:ring-1 focus:ring-primary-container"
+              className="w-64 rounded-full border-none bg-surface-container-highest py-2 pl-10 pr-4 text-sm text-on-surface placeholder:text-on-surface-variant/80 focus:ring-1 focus:ring-primary-container"
             />
           </form>
         )}

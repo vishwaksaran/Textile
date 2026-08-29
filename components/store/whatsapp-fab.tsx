@@ -28,10 +28,12 @@ export function WhatsAppFab() {
   const buyBarVisible = useUiStore((s) => s.buyBarVisible);
   const searchOpen = useUiStore((s) => s.searchOpen);
 
-  // Delay the entrance so it does not compete with the hero on first paint.
+  // A short delay so it does not compete with the hero for the first paint.
+  // Kept brief: anything appearing late counts against Speed Index, which
+  // measures how quickly the page reaches its final look.
   const [ready, setReady] = React.useState(false);
   React.useEffect(() => {
-    const timer = setTimeout(() => setReady(true), 900);
+    const timer = setTimeout(() => setReady(true), 350);
     return () => clearTimeout(timer);
   }, []);
 

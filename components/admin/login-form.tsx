@@ -84,7 +84,7 @@ export function AdminLogin() {
               placeholder="you@yourstore.in"
               autoFocus
               aria-invalid={Boolean(error)}
-              className="w-full border-0 border-b border-earthy-bronze bg-transparent px-0 py-2 text-on-surface transition-colors placeholder:text-on-surface-variant/50 focus:border-primary-container focus:outline-none focus:ring-0"
+              className="w-full border-0 border-b border-earthy-bronze bg-transparent px-0 py-2 text-on-surface transition-colors placeholder:text-on-surface-variant/80 focus:border-primary-container focus:outline-none focus:ring-0"
             />
           </div>
 
@@ -104,7 +104,7 @@ export function AdminLogin() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter vault key"
                 aria-invalid={Boolean(error)}
-                className="w-full border-0 border-b border-earthy-bronze bg-transparent px-0 py-2 pr-10 text-on-surface transition-colors placeholder:text-on-surface-variant/50 focus:border-primary-container focus:outline-none focus:ring-0"
+                className="w-full border-0 border-b border-earthy-bronze bg-transparent px-0 py-2 pr-10 text-on-surface transition-colors placeholder:text-on-surface-variant/80 focus:border-primary-container focus:outline-none focus:ring-0"
               />
               <button
                 type="button"

@@ -224,7 +224,7 @@ export default async function HomePage() {
             {TESTIMONIALS.map((t, i) => (
               <Reveal key={t.name} delay={i * 0.1}>
                 <figure className="flex h-full flex-col rounded-lg border border-outline-variant/40 bg-surface-container-lowest p-8">
-                  <span aria-hidden="true" className="mb-4 font-display-lg text-4xl leading-none text-primary-container">
+                  <span aria-hidden="true" className="mb-4 font-display-lg text-4xl leading-none text-earthy-bronze">
                     &ldquo;
                   </span>
                   <blockquote className="flex-1 font-body-md text-body-md italic leading-relaxed text-on-surface-variant">

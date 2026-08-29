@@ -122,7 +122,7 @@ export function CartView() {
                     <p className="mt-1 font-body-md text-body-md text-on-surface">
                       {formatINR(item.price)}
                       {item.originalPrice && (
-                        <span className="ml-2 text-sm text-on-surface-variant/70 line-through">
+                        <span className="ml-2 text-sm text-on-surface-variant/80 line-through">
                           {formatINR(item.originalPrice)}
                         </span>
                       )}

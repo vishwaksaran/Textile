@@ -6,7 +6,7 @@ import { cn } from '@/lib/utils';
 export type InputProps = React.InputHTMLAttributes<HTMLInputElement>;
 
 const baseField =
-  'w-full bg-transparent border-0 border-b border-outline-variant rounded-none px-0 py-2 font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant/50 transition-colors focus:outline-none focus:ring-0 focus:border-deep-maroon disabled:opacity-50';
+  'w-full bg-transparent border-0 border-b border-outline-variant rounded-none px-0 py-2 font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant/80 transition-colors focus:outline-none focus:ring-0 focus:border-deep-maroon disabled:opacity-50';
 
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, ...props }, ref) => (
@@ -60,7 +60,7 @@ export function Field({ label, htmlFor, error, hint, required, children, classNa
           {error}
         </p>
       ) : hint ? (
-        <p className="font-body-md text-xs text-on-surface-variant/70">{hint}</p>
+        <p className="font-body-md text-xs text-on-surface-variant/80">{hint}</p>
       ) : null}
     </div>
   );

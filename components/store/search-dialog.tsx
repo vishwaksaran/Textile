@@ -150,7 +150,7 @@ export function SearchDialog() {
                 placeholder="Search sarees, weaves, colours…"
                 aria-label="Search products"
                 autoComplete="off"
-                className="min-w-0 flex-1 border-0 bg-transparent p-0 font-body-lg text-body-lg text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-0"
+                className="min-w-0 flex-1 border-0 bg-transparent p-0 font-body-lg text-body-lg text-on-surface placeholder:text-on-surface-variant/80 focus:outline-none focus:ring-0"
               />
               {loading && (
                 <Loader2 className="h-4 w-4 flex-none animate-spin text-on-surface-variant" />

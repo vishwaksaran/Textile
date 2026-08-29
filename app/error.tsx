@@ -28,7 +28,7 @@ export default function GlobalError({
         and we will fix it.
       </p>
       {error.digest && (
-        <p className="font-body-md text-xs text-on-surface-variant/70">
+        <p className="font-body-md text-xs text-on-surface-variant/80">
           Reference: {error.digest}
         </p>
       )}

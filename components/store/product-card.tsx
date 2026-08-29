@@ -45,7 +45,7 @@ export function ProductCard({ product, priority = false, className }: ProductCar
                 className={cn('object-cover', soldOut && 'opacity-60 saturate-[0.7]')}
               />
             ) : (
-              <div className="flex h-full items-center justify-center font-body-md text-sm text-on-surface-variant/60">
+              <div className="flex h-full items-center justify-center font-body-md text-sm text-on-surface-variant/80">
                 No image
               </div>
             )}
@@ -74,7 +74,7 @@ export function ProductCard({ product, priority = false, className }: ProductCar
                 {formatINR(price)}
               </span>
               {off && (
-                <span className="font-body-md text-sm text-on-surface-variant/70 line-through">
+                <span className="font-body-md text-sm text-on-surface-variant/80 line-through">
                   {formatINR(product.price)}
                 </span>
               )}

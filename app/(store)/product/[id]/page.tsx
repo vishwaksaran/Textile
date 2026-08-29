@@ -123,7 +123,7 @@ export default async function ProductPage({ params }: { params: { id: string } }
               </span>
               {off && (
                 <>
-                  <span className="font-body-lg text-body-lg text-on-surface-variant/70 line-through">
+                  <span className="font-body-lg text-body-lg text-on-surface-variant/80 line-through">
                     {formatINR(product.price)}
                   </span>
                   <Badge variant="maroon">{off}% off</Badge>
