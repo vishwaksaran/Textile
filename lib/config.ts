@@ -40,7 +40,7 @@ export const STORE = {
    * because the hours customers actually read come from the Google Business
    * Profile, not from this markup. Fill this in and it appears automatically.
    */
-  openingHours: [] as string[],
+  openingHours: ['Mo-Sa 10:00-21:00'] as string[],
   address: {
     line1: 'No 42, Murugan Shopping Complex',
     line2: 'Big Bazaar Street, Uppukinar Lane',
@@ -106,6 +106,39 @@ export function generateCourierTrackingUrl(courier: string, trackingId: string):
 export function storeAddressLines(): string[] {
   const { line1, line2, landmark, city, state, pincode } = STORE.address;
   return [line1, line2, landmark, `${city}, ${state} ${pincode}`].filter(Boolean);
+}
+
+const DAY_NAMES: Record<string, string> = {
+  Mo: 'Monday',
+  Tu: 'Tuesday',
+  We: 'Wednesday',
+  Th: 'Thursday',
+  Fr: 'Friday',
+  Sa: 'Saturday',
+  Su: 'Sunday',
+};
+
+function to12Hour(hhmm: string): string {
+  const [h, m] = hhmm.split(':').map(Number);
+  const suffix = h < 12 ? 'am' : 'pm';
+  const hour = h % 12 === 0 ? 12 : h % 12;
+  return m === 0 ? `${hour}${suffix}` : `${hour}.${String(m).padStart(2, '0')}${suffix}`;
+}
+
+/**
+ * Opening hours as a sentence, rendered from the same array the structured
+ * data uses — so what a visitor reads and what Google is told cannot drift.
+ */
+export function storeHoursLines(): string[] {
+  return STORE.openingHours.map((entry) => {
+    const [days, range] = entry.split(' ');
+    const [from, to] = range.split('-');
+    const [dayFrom, dayTo] = days.split('-');
+    const label = dayTo
+      ? `${DAY_NAMES[dayFrom]} to ${DAY_NAMES[dayTo]}`
+      : DAY_NAMES[dayFrom];
+    return `${label}, ${to12Hour(from)} – ${to12Hour(to)}`;
+  });
 }
 
 /** The same address on one line, for the invoice header and email footer. */

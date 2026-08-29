@@ -3,7 +3,13 @@ import Link from 'next/link';
 import { MapPin, Phone, MessageCircle } from 'lucide-react';
 import { ProsePage } from '@/components/store/prose-page';
 import { Button } from '@/components/ui/button';
-import { STORE, storeAddressLines, storeAddressOneLine, whatsappUrl } from '@/lib/config';
+import {
+  STORE,
+  storeAddressLines,
+  storeAddressOneLine,
+  storeHoursLines,
+  whatsappUrl,
+} from '@/lib/config';
 import { JsonLd, canonical, storeJsonLd } from '@/lib/seo';
 
 export const metadata: Metadata = {
@@ -49,6 +55,14 @@ export default function VisitPage() {
           minutes from the Town Hall bus stop. Look for Murugan Shopping Complex; we are at
           number 42.
         </p>
+
+        <h2>When we are open</h2>
+        <ul>
+          {storeHoursLines().map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+          <li>Closed on Sunday.</li>
+        </ul>
 
         <div className="not-prose my-8 flex flex-wrap gap-3">
           <Button asChild>

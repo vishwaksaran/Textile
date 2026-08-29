@@ -4,7 +4,7 @@ import * as React from 'react';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
-import { STORE, storeAddressLines } from '@/lib/config';
+import { STORE, storeAddressLines, storeHoursLines } from '@/lib/config';
 import { isValidEmail } from '@/lib/utils';
 import { LogoMark } from '@/components/store/logo';
 import type { Category } from '@/types';
@@ -56,6 +56,9 @@ export function Footer({ categories = [] }: { categories?: Category[] }) {
               </span>
             ))}
           </address>
+          <p className="font-body-md text-sm text-warm-cream/80">
+            {storeHoursLines().join(' · ')}
+          </p>
         </div>
 
         <FooterColumn
