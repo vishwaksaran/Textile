@@ -118,7 +118,7 @@ export default async function ProductPage({ params }: { params: { id: string } }
             </h1>
 
             <div className="flex flex-wrap items-baseline gap-3">
-              <span className="font-headline-lg text-headline-lg text-on-surface">
+              <span className="font-body-lg text-[28px] font-bold leading-none tabular-nums text-deep-maroon">
                 {formatINR(price)}
               </span>
               {off && (

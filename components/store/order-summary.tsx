@@ -66,7 +66,7 @@ export function OrderSummary({ items, showItems = false, children }: OrderSummar
         </div>
         <div className="flex justify-between border-t border-outline-variant/40 pt-3">
           <dt className="font-headline-md text-[18px] text-deep-maroon">Total</dt>
-          <dd className="font-headline-md text-[18px] text-deep-maroon">{formatINR(total)}</dd>
+          <dd className="font-body-lg text-[18px] font-bold tabular-nums text-deep-maroon">{formatINR(total)}</dd>
         </div>
       </dl>
 

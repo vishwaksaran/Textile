@@ -220,7 +220,7 @@ export function SearchDialog() {
                               {soldOut && <span className="text-error"> · Sold out</span>}
                             </p>
                           </div>
-                          <span className="flex-none font-headline-md text-[16px] text-on-surface">
+                          <span className="flex-none font-body-md text-[16px] font-semibold tabular-nums text-deep-maroon">
                             {formatINR(price)}
                           </span>
                         </button>

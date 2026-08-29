@@ -124,7 +124,7 @@ export default async function AdminOrderPage({ params }: { params: { id: string 
               </div>
               <div className="flex justify-between border-t border-outline-variant/40 pt-2">
                 <dt className="font-headline-md text-[17px] text-deep-maroon">Total</dt>
-                <dd className="font-headline-md text-[17px] text-deep-maroon">
+                <dd className="font-body-lg text-[17px] font-bold tabular-nums text-deep-maroon">
                   {formatINR(Number(order.total_amount))}
                 </dd>
               </div>

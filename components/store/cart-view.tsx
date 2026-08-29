@@ -142,7 +142,7 @@ export function CartView() {
                       label={`Quantity for ${item.name}`}
                     />
                     <div className="flex items-center gap-4">
-                      <span className="font-headline-md text-[17px] text-deep-maroon">
+                      <span className="font-body-md text-[17px] font-semibold tabular-nums text-deep-maroon">
                         {formatINR(item.price * item.quantity)}
                       </span>
                       <button

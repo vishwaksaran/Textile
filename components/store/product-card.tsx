@@ -70,7 +70,7 @@ export function ProductCard({ product, priority = false, className }: ProductCar
               {product.name}
             </h3>
             <p className="flex flex-wrap items-baseline gap-2">
-              <span className="font-headline-md text-[17px] text-on-surface">
+              <span className="font-body-md text-[17px] font-semibold tabular-nums text-deep-maroon">
                 {formatINR(price)}
               </span>
               {off && (

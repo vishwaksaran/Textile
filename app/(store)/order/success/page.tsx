@@ -96,7 +96,7 @@ export default async function OrderSuccessPage({
 
           <div className="mt-4 flex justify-between border-t border-outline-variant/40 pt-4">
             <span className="font-headline-md text-[18px] text-deep-maroon">Total paid</span>
-            <span className="font-headline-md text-[18px] text-deep-maroon">
+            <span className="font-body-lg text-[18px] font-bold tabular-nums text-deep-maroon">
               {formatINR(Number(order.total_amount))}
             </span>
           </div>

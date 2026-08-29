@@ -186,23 +186,35 @@ function Toggle({
   return (
     <label className="flex cursor-pointer items-center justify-between gap-4">
       <span className="font-body-md text-sm text-on-surface">{label}</span>
+      {/*
+        The button is the touch target; the track and knob are spans inside it.
+        They have to be separate, because a global rule gives every button a
+        44px minimum height on coarse pointers — applied straight to a 24px
+        track it stretched the switch into a tall slab while the knob kept its
+        own offset, so the knob appeared to sit outside the control.
+      */}
       <button
         type="button"
         role="switch"
         aria-checked={checked}
         aria-label={label}
         onClick={() => onChange(!checked)}
-        className={cn(
-          'relative h-6 w-11 flex-none rounded-full transition-colors',
-          checked ? 'bg-deep-maroon' : 'bg-surface-variant',
-        )}
+        className="flex h-11 flex-none items-center justify-end focus-visible:outline-none"
       >
         <span
           className={cn(
-            'absolute top-0.5 h-5 w-5 rounded-full bg-warm-cream shadow transition-transform',
-            checked ? 'translate-x-[22px]' : 'translate-x-0.5',
+            'relative block h-6 w-11 rounded-full transition-colors duration-200',
+            checked ? 'bg-deep-maroon' : 'bg-surface-variant',
           )}
-        />
+        >
+          {/* 2px inset, 20px knob, 20px travel: 42px inside a 44px track. */}
+          <span
+            className={cn(
+              'absolute left-0.5 top-0.5 block h-5 w-5 rounded-full bg-warm-cream shadow-sm transition-transform duration-200',
+              checked && 'translate-x-5',
+            )}
+          />
+        </span>
       </button>
     </label>
   );

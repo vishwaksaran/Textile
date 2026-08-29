@@ -45,7 +45,7 @@ export function StickyBuyBar({ product }: { product: Product }) {
         >
           <div className="min-w-0 flex-1">
             <p className="truncate font-body-md text-xs text-on-surface-variant">{product.name}</p>
-            <p className="font-headline-md text-[17px] text-deep-maroon">
+            <p className="font-body-md text-[17px] font-semibold tabular-nums text-deep-maroon">
               {formatINR(effectivePrice(product))}
             </p>
           </div>

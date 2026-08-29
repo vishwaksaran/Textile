@@ -178,7 +178,7 @@ export function CartDrawer() {
                     />
                     <div className="!mt-3 flex justify-between border-t border-outline-variant/40 pt-3">
                       <dt className="font-headline-md text-[17px] text-deep-maroon">Total</dt>
-                      <dd className="font-headline-md text-[17px] text-deep-maroon">
+                      <dd className="font-body-lg text-[17px] font-bold tabular-nums text-deep-maroon">
                         {formatINR(total)}
                       </dd>
                     </div>
