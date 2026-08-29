@@ -7,9 +7,10 @@ import { canonical } from '@/lib/seo';
 
 export const metadata: Metadata = {
   alternates: { canonical: canonical('/collections') },
-  title: 'All Collections',
+  // "All Collections" matches nothing anyone types into Google.
+  title: 'Buy Handloom Sarees Online',
   description:
-    'Every weave in the house — Kanchipuram, Banarasi, khadi cotton, bridal silks and archival revivals.',
+    'Shop every handloom saree we carry — Kanchipuram silk, Banarasi brocade, khadi cotton and bridal weaves. Direct from the loom, shipped across India.',
 };
 
 export default function CollectionsPage({

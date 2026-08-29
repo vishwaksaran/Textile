@@ -26,21 +26,42 @@ const body = Libre_Franklin({
   display: 'swap',
 });
 
+/*
+  The default title leads with what people search for, not with the shop name.
+  Nobody is searching "Sri Laxmi Silks" yet — they search "handloom silk saree
+  online" or "silk saree shop Coimbatore" — so the brand sits after the terms
+  that can actually be matched. Every other page keeps brand-last through the
+  template. Both stay inside the ~60 characters Google shows before truncating.
+*/
 export const metadata: Metadata = {
   metadataBase: new URL(appUrl()),
   title: {
-    default: `${STORE.name} — ${STORE.tagline}`,
+    default: `Handloom Silk Sarees Online — ${STORE.name}, ${STORE.address.city}`,
     template: `%s | ${STORE.name}`,
   },
   description:
-    'Handloom silk sarees, Banarasi brocade and khadi cotton from Coimbatore. Woven narratives of timeless luxury, shipped across India.',
+    'Buy handloom silk sarees online — Kanchipuram, Banarasi, khadi cotton and bridal weaves. Direct from the loom in Coimbatore, shipped across India.',
+  keywords: [
+    'handloom sarees',
+    'Kanchipuram silk saree',
+    'Banarasi saree',
+    'khadi cotton saree',
+    'bridal silk saree',
+    'saree shop Coimbatore',
+  ],
   openGraph: {
-    title: `${STORE.name} — ${STORE.tagline}`,
+    title: `Handloom Silk Sarees Online — ${STORE.name}`,
     description:
-      'Handloom silk sarees, Banarasi brocade and khadi cotton, woven by hand and shipped across India.',
+      'Kanchipuram, Banarasi and khadi cotton sarees, woven by hand and shipped across India.',
     type: 'website',
     locale: 'en_IN',
+    siteName: STORE.name,
   },
+  // Search Console verification. Set GOOGLE_SITE_VERIFICATION once Google
+  // gives you the token; leaving it unset simply omits the tag.
+  ...(process.env.GOOGLE_SITE_VERIFICATION
+    ? { verification: { google: process.env.GOOGLE_SITE_VERIFICATION } }
+    : {}),
 };
 
 export const viewport: Viewport = {
