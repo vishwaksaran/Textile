@@ -2,7 +2,8 @@ import 'server-only';
 
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { STORE } from '@/lib/config';
+import { STORE, storeAddressLines } from '@/lib/config';
+import { INVOICE_LOGO_PNG } from '@/lib/logo-data';
 import { createAdminSupabase } from '@/lib/supabase/server';
 import { formatDate, invoiceNumber, shortOrderId } from '@/lib/utils';
 import type { Order } from '@/types';
@@ -23,35 +24,52 @@ export function buildInvoicePdf(order: Order): Uint8Array {
   const margin = 48;
 
   // ------------------------------------------------------------- letterhead
+  // Deep enough for the emblem plus three address lines without crowding.
+  const headerHeight = 118;
   doc.setFillColor(...MAROON);
-  doc.rect(0, 0, pageWidth, 96, 'F');
+  doc.rect(0, 0, pageWidth, headerHeight, 'F');
+
+  // The emblem sits in a cream roundel so the maroon artwork reads against
+  // the maroon band — inverting it would flatten the linework away.
+  const logoSize = 62;
+  const logoX = margin;
+  const logoY = (headerHeight - logoSize) / 2;
+  doc.setFillColor(255, 248, 240);
+  doc.circle(logoX + logoSize / 2, logoY + logoSize / 2, logoSize / 2 + 3, 'F');
+  doc.addImage(INVOICE_LOGO_PNG, 'PNG', logoX, logoY, logoSize, logoSize);
+
+  const textX = logoX + logoSize + 18;
 
   doc.setTextColor(255, 224, 136);
   doc.setFont('times', 'bold');
-  doc.setFontSize(22);
-  doc.text(STORE.name, margin, 44);
+  doc.setFontSize(21);
+  doc.text(STORE.name, textX, 40);
 
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
+  doc.setFontSize(8);
   doc.setTextColor(255, 253, 245);
-  doc.text(STORE.tagline, margin, 62);
-  doc.text(
-    `${STORE.address.line1}, ${STORE.address.line2}, ${STORE.address.city} - ${STORE.address.pincode}`,
-    margin,
-    76,
-  );
+  doc.text(STORE.tagline.toUpperCase(), textX, 54);
+
+  // Each address line on its own row, so a long street address stays legible
+  // rather than being squeezed onto one overflowing line.
+  doc.setFontSize(8.5);
+  storeAddressLines().forEach((line, i) => {
+    doc.text(line, textX, 70 + i * 11);
+  });
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(16);
+  doc.setFontSize(15);
   doc.setTextColor(255, 224, 136);
-  doc.text('TAX INVOICE', pageWidth - margin, 44, { align: 'right' });
+  doc.text('TAX INVOICE', pageWidth - margin, 40, { align: 'right' });
   doc.setFont('helvetica', 'normal');
-  doc.setFontSize(9);
+  doc.setFontSize(8.5);
   doc.setTextColor(255, 253, 245);
-  doc.text(`GSTIN: ${STORE.gstin}`, pageWidth - margin, 62, { align: 'right' });
+  doc.text(`GSTIN: ${STORE.gstin}`, pageWidth - margin, 56, { align: 'right' });
+  doc.text(STORE.phone, pageWidth - margin, 68, { align: 'right' });
+  doc.text(STORE.email, pageWidth - margin, 80, { align: 'right' });
 
   // ---------------------------------------------------------- invoice meta
-  let y = 130;
+  let y = headerHeight + 44;
   doc.setTextColor(...INK);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);

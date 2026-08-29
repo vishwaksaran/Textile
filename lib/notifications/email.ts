@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { Resend } from 'resend';
-import { STORE, appUrl, envOr } from '@/lib/config';
+import { STORE, appUrl, envOr, storeAddressOneLine } from '@/lib/config';
 import { formatDate, invoiceNumber, shortOrderId } from '@/lib/utils';
 import type { Order } from '@/types';
 
@@ -60,7 +60,7 @@ function shell(title: string, inner: string): string {
         <tr><td style="padding:32px;">${inner}</td></tr>
         <tr><td style="background:#fbf3e5;padding:20px 32px;border-top:1px solid #d4af37;">
           <div style="font-size:11px;color:#4d4635;line-height:1.6;">
-            ${STORE.address.line1}, ${STORE.address.line2}, ${STORE.address.city} - ${STORE.address.pincode}<br/>
+            ${storeAddressOneLine()}<br/>
             ${STORE.email} · ${STORE.phone}
           </div>
         </td></tr>

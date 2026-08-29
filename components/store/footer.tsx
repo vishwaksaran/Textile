@@ -4,7 +4,7 @@ import * as React from 'react';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
-import { STORE } from '@/lib/config';
+import { STORE, storeAddressLines } from '@/lib/config';
 import { isValidEmail } from '@/lib/utils';
 import { LogoMark } from '@/components/store/logo';
 import type { Category } from '@/types';
@@ -47,12 +47,12 @@ export function Footer({ categories = [] }: { categories?: Category[] }) {
             <span className="font-display-lg text-2xl">{STORE.name}</span>
           </div>
           <p className="font-body-md text-sm text-warm-cream/80">{STORE.tagline}</p>
-          <address className="font-body-md text-sm not-italic text-warm-cream/80">
-            {STORE.address.line1},
-            <br />
-            {STORE.address.line2},
-            <br />
-            {STORE.address.city} - {STORE.address.pincode}
+          <address className="font-body-md text-sm not-italic leading-relaxed text-warm-cream/80">
+            {storeAddressLines().map((line) => (
+              <span key={line} className="block">
+                {line}
+              </span>
+            ))}
           </address>
         </div>
 

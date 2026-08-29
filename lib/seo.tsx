@@ -37,7 +37,9 @@ export function storeJsonLd() {
     email: STORE.email,
     address: {
       '@type': 'PostalAddress',
-      streetAddress: `${STORE.address.line1}, ${STORE.address.line2}`,
+      streetAddress: [STORE.address.line1, STORE.address.line2, STORE.address.landmark]
+        .filter(Boolean)
+        .join(', '),
       addressLocality: STORE.address.city,
       addressRegion: STORE.address.state,
       postalCode: STORE.address.pincode,

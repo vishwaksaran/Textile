@@ -29,11 +29,12 @@ export const STORE = {
   phone: '+91 97894 67448',
   gstin: '33ABCDE1234F1Z5',
   address: {
-    line1: '123 Cross Cut Road',
-    line2: 'Gandhipuram',
+    line1: 'No 42, Murugan Shopping Complex',
+    line2: 'Big Bazaar Street, Uppukinar Lane',
+    landmark: 'Near Pothys, Town Hall',
     city: 'Coimbatore',
     state: 'Tamil Nadu',
-    pincode: '641012',
+    pincode: '641001',
   },
 } as const;
 
@@ -77,6 +78,23 @@ const COURIER_TRACKING_URLS: Record<string, (id: string) => string> = {
 export function generateCourierTrackingUrl(courier: string, trackingId: string): string {
   const build = COURIER_TRACKING_URLS[courier];
   return build ? build(encodeURIComponent(trackingId)) : `https://www.google.com/search?q=${encodeURIComponent(`${courier} ${trackingId}`)}`;
+}
+
+/**
+ * The postal address as separate display lines.
+ *
+ * One formatter for every surface — footer, contact page, invoice, order
+ * email and the structured data — so a shop that moves is a single edit and
+ * the address cannot end up written three different ways.
+ */
+export function storeAddressLines(): string[] {
+  const { line1, line2, landmark, city, state, pincode } = STORE.address;
+  return [line1, line2, landmark, `${city}, ${state} ${pincode}`].filter(Boolean);
+}
+
+/** The same address on one line, for the invoice header and email footer. */
+export function storeAddressOneLine(): string {
+  return storeAddressLines().join(', ');
 }
 
 /**

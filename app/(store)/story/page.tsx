@@ -16,7 +16,7 @@ export default function StoryPage() {
     <ProsePage
       eyebrow="The Artisan's Journey"
       title="Slow Fashion, Woven by Hand"
-      intro="We are a family store on Cross Cut Road in Coimbatore, and we buy the way our grandparents did — from the loom, from people we know by name."
+      intro="We are a family store on Big Bazaar Street in Coimbatore, and we buy the way our grandparents did — from the loom, from people we know by name."
     >
       <div className="relative aspect-[16/9] overflow-hidden rounded-lg">
         <Image

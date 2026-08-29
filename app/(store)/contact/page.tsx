@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Mail, MapPin, MessageCircle, Phone, type LucideIcon } from 'lucide-react';
 import { ProsePage } from '@/components/store/prose-page';
-import { STORE, whatsappUrl } from '@/lib/config';
+import { STORE, storeAddressLines, whatsappUrl } from '@/lib/config';
 import { canonical } from '@/lib/seo';
 
 export const metadata: Metadata = {
@@ -39,7 +39,7 @@ export default function ContactPage() {
         <ContactCard
           Icon={MapPin}
           label="Visit"
-          value={`${STORE.address.line1}, ${STORE.address.line2}`}
+          value={storeAddressLines().join(', ')}
         />
       </div>
 
