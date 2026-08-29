@@ -148,7 +148,7 @@ export default async function HomePage() {
             </Button>
           </Reveal>
 
-          <ProductGrid products={latest} priorityCount={4} />
+          <ProductGrid products={latest} />
         </div>
       </section>
 

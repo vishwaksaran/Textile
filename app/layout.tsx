@@ -4,9 +4,17 @@ import { STORE, appUrl } from '@/lib/config';
 import { Toaster } from '@/components/shared/toaster';
 import './globals.css';
 
+/*
+  No `weight` array: next/font resolves both families to their variable cut,
+  which covers every weight the type scale uses from one file per style.
+  Listing weights explicitly produced byte-identical output, so this is only
+  the simpler spelling — not a saving.
+
+  The italic face is a second file and is genuinely used, by the headline
+  italics on the home, collections and related-products headings.
+*/
 const display = Playfair_Display({
   subsets: ['latin'],
-  weight: ['600', '700'],
   style: ['normal', 'italic'],
   variable: '--font-display',
   display: 'swap',
@@ -14,7 +22,6 @@ const display = Playfair_Display({
 
 const body = Libre_Franklin({
   subsets: ['latin'],
-  weight: ['400', '600', '700'],
   variable: '--font-body',
   display: 'swap',
 });

@@ -17,9 +17,17 @@ export function LogoMark({
    * otherwise disappear into the background.
    */
   invert = false,
+  /**
+   * Off by default. Only the header copy is above the fold; marking every
+   * instance high-priority made the footer logo compete with the hero image
+   * for bandwidth during the initial load, which is exactly what priority is
+   * meant to prevent.
+   */
+  priority = false,
 }: {
   className?: string;
   invert?: boolean;
+  priority?: boolean;
 }) {
   return (
     <Image
@@ -27,7 +35,7 @@ export function LogoMark({
       alt={`${STORE.name} emblem`}
       width={512}
       height={512}
-      priority
+      priority={priority}
       className={cn(
         'h-10 w-auto object-contain',
         invert && 'brightness-0 invert',

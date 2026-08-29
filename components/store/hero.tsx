@@ -55,10 +55,20 @@ export function Hero({ slides }: { slides: HeroSlide[] }) {
         {STORE.name} — {STORE.tagline}
       </h1>
 
+      {/*
+        `willChange` promotes the track to its own compositor layer up front,
+        so the slide runs on the GPU instead of repainting three full-bleed
+        photographs on the main thread every frame.
+
+        The curve leaves quickly and settles gently — the previous ease spent
+        most of its time in a slow tail, which is what made the transition
+        feel sluggish even though it was only 0.7s.
+      */}
       <motion.div
         className="flex h-full w-full"
+        style={{ willChange: 'transform', backfaceVisibility: 'hidden' }}
         animate={{ x: `-${index * 100}%` }}
-        transition={reduce ? { duration: 0 } : { duration: 0.7, ease: [0.4, 0, 0.2, 1] }}
+        transition={reduce ? { duration: 0 } : { duration: 0.62, ease: [0.32, 0.72, 0, 1] }}
       >
         {slides.map((slide, i) => {
           const active = i === index;
@@ -68,12 +78,29 @@ export function Hero({ slides }: { slides: HeroSlide[] }) {
               className="relative h-full w-full flex-shrink-0"
               aria-hidden={!active}
             >
+              {/*
+                Only the first slide is `priority` — it is the LCP element.
+
+                The slide after the current one is promoted to `eager` while
+                the current one is on screen, so it is decoded and ready
+                before the track moves. That is the intermittent stutter:
+                the transition arriving at a half-painted photograph, not the
+                animation itself.
+
+                Loading all three up front would fix it too, but at ~113KB
+                each that is a quarter of a megabyte spent before anyone has
+                scrolled. This way each image is fetched during the five
+                seconds before it is needed, and costs nothing at first paint.
+              */}
               <Image
                 src={slide.image}
                 alt=""
                 fill
                 priority={i === 0}
-                quality={90}
+                loading={
+                  i === 0 ? undefined : i === (index + 1) % slides.length ? 'eager' : 'lazy'
+                }
+                quality={82}
                 sizes="100vw"
                 className="object-cover"
               />
@@ -97,7 +124,7 @@ export function Hero({ slides }: { slides: HeroSlide[] }) {
                   transition={
                     reduce
                       ? { duration: 0 }
-                      : { duration: 0.55, delay: active ? 0.2 : 0, ease: [0.4, 0, 0.2, 1] }
+                      : { duration: 0.45, delay: active ? 0.12 : 0, ease: [0.32, 0.72, 0, 1] }
                   }
                   className="flex flex-col items-center"
                 >

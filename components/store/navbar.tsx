@@ -56,7 +56,7 @@ export function Navbar({ categories }: { categories: Category[] }) {
             href="/"
             className="flex flex-none items-center gap-3 text-deep-maroon transition-opacity duration-300 hover:opacity-80"
           >
-            <LogoMark className="h-11" />
+            <LogoMark className="h-11" priority />
             <span className="font-display-lg text-headline-lg uppercase tracking-wider">
               {STORE.name}
             </span>
