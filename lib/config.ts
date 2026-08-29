@@ -27,7 +27,7 @@ export const STORE = {
   legalName: 'Sri Laxmi Silks Coimbatore',
   email: envOr(process.env.ADMIN_EMAIL, 'orders@srilaxmisilks.com'),
   phone: '+91 97894 67448',
-  gstin: '33ABCDE1234F1Z5',
+  gstin: '33ABUPR0570R1ZT',
   address: {
     line1: 'No 42, Murugan Shopping Complex',
     line2: 'Big Bazaar Street, Uppukinar Lane',

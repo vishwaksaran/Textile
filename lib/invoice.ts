@@ -64,9 +64,10 @@ export function buildInvoicePdf(order: Order): Uint8Array {
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
   doc.setTextColor(255, 253, 245);
-  doc.text(`GSTIN: ${STORE.gstin}`, pageWidth - margin, 56, { align: 'right' });
-  doc.text(STORE.phone, pageWidth - margin, 68, { align: 'right' });
-  doc.text(STORE.email, pageWidth - margin, 80, { align: 'right' });
+  // Phone only, no email: the store is reached by call, and printing an
+  // address nobody monitors on a tax document is worse than omitting it.
+  doc.text(`GSTIN: ${STORE.gstin}`, pageWidth - margin, 58, { align: 'right' });
+  doc.text(STORE.phone, pageWidth - margin, 72, { align: 'right' });
 
   // ---------------------------------------------------------- invoice meta
   let y = headerHeight + 44;
@@ -173,7 +174,7 @@ export function buildInvoicePdf(order: Order): Uint8Array {
     footerY,
   );
   doc.text(
-    `Questions? Write to ${STORE.email} or call ${STORE.phone}. This is a computer-generated invoice.`,
+    `Questions? Call ${STORE.phone}. This is a computer-generated invoice.`,
     margin,
     footerY + 12,
   );
