@@ -143,9 +143,13 @@ console.log(`  ${GREEN('✓')} ${'app/opengraph-image.png'.padEnd(24)} ${OG_W}x$
 // jsPDF cannot read the filesystem from inside a serverless function, so the
 // emblem is baked into a module as base64. Kept small and cream-backed: it is
 // embedded in every invoice PDF the store will ever issue.
+// Transparent, and deliberately small. jsPDF stores alpha PNGs essentially
+// uncompressed, so pixel dimensions here land almost 4x as bytes in every
+// invoice — a 320px mark alone costs ~400KB on an emailed attachment.
+// Transparency is kept because the letterhead draws a cream roundel behind
+// it; a flattened square would cover that circle up.
 const invoiceLogo = await sharp(squared)
-  .resize(320, 320, { fit: 'contain', background: CREAM })
-  .flatten({ background: CREAM })
+  .resize(150, 150, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
   .png({ compressionLevel: 9 })
   .toBuffer();
 
@@ -160,8 +164,50 @@ fs.writeFileSync(
   ].join('\n'),
 );
 
+// The invoice watermark.
+//
+// Two decisions here, both about file size — invoices are emailed as
+// attachments and linked over WhatsApp, so a heavy one is a real cost:
+//
+//  1. JPEG, not PNG. jsPDF passes JPEG bytes straight through as DCTDecode,
+//     but stores alpha PNGs near-uncompressed. The same mark as a PNG added
+//     4.4MB to every invoice; as a JPEG it costs a few tens of KB.
+//  2. The fade is composited onto white rather than carried in an alpha
+//     channel. The page is white anyway, so it looks identical, and it lets
+//     the JPEG have no transparency to store.
+const WATERMARK_ALPHA = 0.06;
+const wmWidthPx = 620;
+const faded = await sharp(trimmed)
+  .resize({ width: wmWidthPx })
+  .ensureAlpha()
+  .raw()
+  .toBuffer({ resolveWithObject: true });
+
+const wm = Buffer.from(faded.data);
+for (let i = 3; i < wm.length; i += 4) {
+  wm[i] = Math.round(wm[i] * WATERMARK_ALPHA);
+}
+
+const watermark = await sharp(wm, {
+  raw: { width: faded.info.width, height: faded.info.height, channels: 4 },
+})
+  .flatten({ background: { r: 255, g: 255, b: 255 } })
+  .jpeg({ quality: 82 })
+  .toBuffer();
+
+fs.appendFileSync(
+  'lib/logo-data.ts',
+  [
+    '',
+    '/** The emblem at 6% on white, for the invoice watermark. JPEG keeps it small. */',
+    'export const INVOICE_WATERMARK_JPG =',
+    `  'data:image/jpeg;base64,${watermark.toString('base64')}';`,
+    '',
+  ].join('\n'),
+);
+
 console.log(
-  `  ${GREEN('✓')} ${'lib/logo-data.ts'.padEnd(24)} ${(invoiceLogo.length / 1024).toFixed(0)} KB embedded`,
+  `  ${GREEN('✓')} ${'lib/logo-data.ts'.padEnd(24)} ${((invoiceLogo.length + watermark.length) / 1024).toFixed(0)} KB embedded (logo + watermark)`,
 );
 
 console.log(DIM('\n  Next writes the favicon and share-image tags from the files in app/.\n'));

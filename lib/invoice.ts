@@ -3,7 +3,7 @@ import 'server-only';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { STORE, storeAddressLines } from '@/lib/config';
-import { INVOICE_LOGO_PNG } from '@/lib/logo-data';
+import { INVOICE_LOGO_PNG, INVOICE_WATERMARK_JPG } from '@/lib/logo-data';
 import { createAdminSupabase } from '@/lib/supabase/server';
 import { formatDate, invoiceNumber, shortOrderId } from '@/lib/utils';
 import type { Order } from '@/types';
@@ -22,6 +22,21 @@ export function buildInvoicePdf(order: Order): Uint8Array {
   const doc = new jsPDF({ unit: 'pt', format: 'a4' });
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 48;
+
+  // -------------------------------------------------------------- watermark
+  // Drawn first so every later element paints over it. The emblem is portrait,
+  // so it is sized by width and centred in the body area below the letterhead.
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const wmWidth = 300;
+  const wmHeight = wmWidth * (512 / 370); // the emblem's own proportions
+  doc.addImage(
+    INVOICE_WATERMARK_JPG,
+    'JPEG',
+    (pageWidth - wmWidth) / 2,
+    (pageHeight - wmHeight) / 2 + 30,
+    wmWidth,
+    wmHeight,
+  );
 
   // ------------------------------------------------------------- letterhead
   // Deep enough for the emblem plus three address lines without crowding.
@@ -162,7 +177,7 @@ export function buildInvoicePdf(order: Order): Uint8Array {
   doc.line(labelX, cursor - 34, valueX, cursor - 34);
 
   // ---------------------------------------------------------------- footer
-  const footerY = doc.internal.pageSize.getHeight() - 70;
+  const footerY = pageHeight - 70;
   doc.setDrawColor(212, 175, 55);
   doc.line(margin, footerY - 18, pageWidth - margin, footerY - 18);
   doc.setFont('helvetica', 'normal');
