@@ -14,6 +14,7 @@ const EXPLORE = [
   { href: '/story', label: 'Our Story' },
   { href: '/contact', label: 'Contact Us' },
   { href: '/authenticity', label: 'Authenticity Guarantee' },
+  { href: '/faq', label: 'Questions, Answered' },
 ];
 
 const CARE = [

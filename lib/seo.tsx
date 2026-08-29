@@ -103,6 +103,24 @@ export function searchActionJsonLd() {
   };
 }
 
+/**
+ * FAQ rich result.
+ *
+ * Every answer must also appear as visible text on the page — Google checks,
+ * and markup that promises content the page does not show is treated as spam.
+ */
+export function faqJsonLd(items: { q: string; a: string }[]) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: items.map((item) => ({
+      '@type': 'Question',
+      name: item.q,
+      acceptedAnswer: { '@type': 'Answer', text: item.a },
+    })),
+  };
+}
+
 /** Renders one or more JSON-LD blocks. */
 export function JsonLd({ data }: { data: object | object[] }) {
   const blocks = Array.isArray(data) ? data : [data];
