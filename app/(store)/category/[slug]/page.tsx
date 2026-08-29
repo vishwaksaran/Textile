@@ -7,6 +7,7 @@ import { Breadcrumbs } from '@/components/store/breadcrumbs';
 import { ProductGridSkeleton } from '@/components/shared/skeleton';
 import { getCategories, getCategoryBySlug } from '@/lib/data';
 import { JsonLd, breadcrumbJsonLd, canonical } from '@/lib/seo';
+import { STORE } from '@/lib/config';
 
 export const revalidate = 300;
 
@@ -24,10 +25,10 @@ export async function generateMetadata({
   if (!category) return { title: 'Collection not found' };
   return {
     alternates: { canonical: canonical(`/category/${category.slug}`) },
-    title: `${category.name} Sarees`,
+    title: `${category.name} Sarees in ${STORE.address.city}`,
     description:
       category.description ??
-      `Handwoven ${category.name} sarees, shipped across India.`,
+      `Handwoven ${category.name} sarees at our ${STORE.address.area}, ${STORE.address.city} showroom, and shipped across India.`,
     openGraph: {
       title: `${category.name} Sarees`,
       description: category.description ?? undefined,

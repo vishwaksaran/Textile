@@ -29,7 +29,7 @@ export function storeJsonLd() {
     '@id': `${appUrl()}#store`,
     name: STORE.name,
     legalName: STORE.legalName,
-    description: `Handloom silk sarees, Banarasi brocade and khadi cotton, woven by hand in India and shipped nationwide. ${STORE.tagline}.`,
+    description: `Retail saree showroom on Big Bazaar Street, ${STORE.address.area}, ${STORE.address.city}. Handloom silk sarees sourced from weaving clusters across India — Kanchipuram, Banarasi, khadi cotton and bridal weaves — sold in store and shipped nationwide.`,
     url: appUrl(),
     logo: appUrl('/icon.png'),
     image: appUrl('/icon.png'),
@@ -47,7 +47,11 @@ export function storeJsonLd() {
     },
     currenciesAccepted: 'INR',
     paymentAccepted: 'Credit Card, Debit Card, UPI, Net Banking',
-    areaServed: { '@type': 'Country', name: 'India' },
+    areaServed: [
+      { '@type': 'City', name: STORE.address.city },
+      { '@type': 'Country', name: 'India' },
+    ],
+    // The neighbourhood, stated plainly for local search.
   };
 }
 

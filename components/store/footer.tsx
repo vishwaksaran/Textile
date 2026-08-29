@@ -13,6 +13,7 @@ const EXPLORE = [
   { href: '/collections', label: 'All Collections' },
   { href: '/story', label: 'Our Story' },
   { href: '/contact', label: 'Contact Us' },
+  { href: '/visit', label: 'Visit the Shop' },
   { href: '/authenticity', label: 'Authenticity Guarantee' },
   { href: '/faq', label: 'Questions, Answered' },
 ];

@@ -32,6 +32,9 @@ export const STORE = {
     line1: 'No 42, Murugan Shopping Complex',
     line2: 'Big Bazaar Street, Uppukinar Lane',
     landmark: 'Near Pothys, Town Hall',
+    // The neighbourhood local search matches on — not Gandhipuram, which is
+    // where the competing showrooms are.
+    area: 'Town Hall',
     city: 'Coimbatore',
     state: 'Tamil Nadu',
     pincode: '641001',
