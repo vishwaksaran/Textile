@@ -10,13 +10,26 @@ interface ListingViewProps {
   searchParams: Record<string, string | string[] | undefined>;
   /** Locks the listing to one weave (category route); omit on /collections. */
   lockedCategory?: Category;
+  /**
+   * How many product images to load eagerly.
+   *
+   * Four is right when the grid is the first thing on the page. Behind a
+   * full-height hero none of them are above the fold, and eager-loading four
+   * large images there only takes bandwidth from the hero, which is then the
+   * LCP element — so the category route passes 0.
+   */
+  priorityCount?: number;
 }
 
 /**
  * The shared grid + filters view behind /collections and /category/[slug].
  * Server-rendered so filtered URLs are crawlable and shareable.
  */
-export async function ListingView({ searchParams, lockedCategory }: ListingViewProps) {
+export async function ListingView({
+  searchParams,
+  lockedCategory,
+  priorityCount = 4,
+}: ListingViewProps) {
   const parsed = parseListParams(searchParams);
   const categorySlug = lockedCategory?.slug ?? parsed.categorySlug;
 
@@ -83,7 +96,7 @@ export async function ListingView({ searchParams, lockedCategory }: ListingViewP
           {total} {total === 1 ? 'piece' : 'pieces'}
         </p>
 
-        <ProductGrid products={products} priorityCount={4} />
+        <ProductGrid products={products} priorityCount={priorityCount} />
 
         {hasMore && (
           <div className="flex justify-center pt-6">

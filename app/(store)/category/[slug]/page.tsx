@@ -1,9 +1,8 @@
 import { Suspense } from 'react';
-import Image from 'next/image';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { ListingView } from '@/components/store/listing-view';
-import { Breadcrumbs } from '@/components/store/breadcrumbs';
+import { CategoryHero } from '@/components/store/category-hero';
 import { ProductGridSkeleton } from '@/components/shared/skeleton';
 import { getCategories, getCategoryBySlug } from '@/lib/data';
 import { JsonLd, breadcrumbJsonLd, canonical } from '@/lib/seo';
@@ -66,59 +65,14 @@ export default async function CategoryPage({
         ])}
       />
 
-      <div className="container-page pt-6">
-        <Breadcrumbs
-          trail={[
-            { label: 'Home', href: '/' },
-            { label: 'Collections', href: '/collections' },
-            { label: category.name },
-          ]}
-        />
-      </div>
-
-      <header className="container-page pt-6">
-        <div className="relative flex min-h-[340px] items-center justify-center overflow-hidden rounded-lg md:min-h-[440px]">
-          {category.image_url ? (
-            <>
-              <Image
-                src={category.image_url}
-                alt=""
-                fill
-                priority
-                sizes="100vw"
-                quality={90}
-                className="object-cover"
-              />
-              {/* Weighted to the bottom, where the text sits, so the image is
-                  still visible at the top. A flat wash over the whole frame
-                  dulls the cloth, which is the thing being sold. */}
-              <div
-                className="absolute inset-0 bg-gradient-to-t from-deep-maroon via-deep-maroon/70 to-deep-maroon/25"
-                aria-hidden="true"
-              />
-            </>
-          ) : (
-            // No cover image yet — a flat maroon field rather than a washed-out
-            // placeholder, so the page still looks deliberate.
-            <div className="absolute inset-0 bg-deep-maroon" aria-hidden="true" />
-          )}
-
-          <div className="relative mx-auto max-w-3xl px-6 py-12 text-center md:px-12">
-            <h1 className="font-display-lg text-[34px] leading-tight text-warm-cream drop-shadow-[0_2px_8px_rgba(0,0,0,0.45)] md:text-[52px]">
-              {category.name}
-            </h1>
-            {category.description && (
-              <p className="mx-auto mt-4 max-w-2xl font-body-lg text-body-md text-warm-cream/90 drop-shadow-[0_1px_6px_rgba(0,0,0,0.5)] md:text-body-lg">
-                {category.description}
-              </p>
-            )}
-            <span
-              aria-hidden="true"
-              className="mx-auto mt-8 block h-px w-24 bg-gradient-to-r from-transparent via-primary-container to-transparent"
-            />
-          </div>
-        </div>
-      </header>
+      {/* Full-bleed: the breadcrumb moves inside the header rather than
+          sitting in a container above it, so nothing interrupts the image
+          between the nav bar and the grid. */}
+      <CategoryHero
+        name={category.name}
+        description={category.description}
+        imageUrl={category.image_url}
+      />
 
       <Suspense
         key={JSON.stringify(searchParams)}
@@ -128,7 +82,9 @@ export default async function CategoryPage({
           </div>
         }
       >
-        <ListingView searchParams={searchParams} lockedCategory={category} />
+        {/* The hero owns the LCP on this route, so nothing in the grid
+            competes with it for the first bytes. */}
+        <ListingView searchParams={searchParams} lockedCategory={category} priorityCount={0} />
       </Suspense>
     </>
   );
