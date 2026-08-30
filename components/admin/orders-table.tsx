@@ -127,7 +127,7 @@ export function OrdersTable({ orders }: { orders: Order[] }) {
                   <td className="px-4 py-3">
                     <Link
                       href={`/admin/orders/${order.id}`}
-                      className="font-body-md text-sm font-semibold text-deep-maroon hover:underline"
+                      className="font-body-md text-sm font-semibold tabular-nums tracking-wide text-deep-maroon hover:underline"
                     >
                       #{shortOrderId(order.id)}
                     </Link>
@@ -150,7 +150,7 @@ export function OrdersTable({ orders }: { orders: Order[] }) {
                   <td className="px-4 py-3">
                     <OrderStatusBadge status={order.order_status} />
                   </td>
-                  <td className="px-4 py-3 font-body-md text-xs text-on-surface-variant">
+                  <td className="px-4 py-3 font-body-md text-xs tabular-nums text-on-surface-variant">
                     {order.tracking_id ? (
                       <>
                         {order.tracking_id}

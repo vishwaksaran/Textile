@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Field, Input } from '@/components/ui/input';
 import { formatDate, formatINR } from '@/lib/utils';
+import { CodeText } from '@/components/ui/code-text';
 
 interface TrackedOrder {
   id: string;
@@ -177,7 +178,7 @@ export function TrackOrder() {
           <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
             <div>
               <h2 className="font-headline-md text-headline-md text-deep-maroon">
-                Order #{order.shortId}
+                Order <CodeText className="text-[22px]">#{order.shortId}</CodeText>
               </h2>
               <p className="font-body-md text-sm text-on-surface-variant">
                 Placed {formatDate(order.createdAt)} · {formatINR(order.totalAmount)}
@@ -234,7 +235,9 @@ export function TrackOrder() {
               <p className="font-body-md text-sm text-on-surface-variant">
                 {order.courierName} · Tracking ID
               </p>
-              <p className="font-headline-md text-[18px] text-deep-maroon">{order.trackingId}</p>
+              <CodeText className="block select-all text-[18px] text-deep-maroon">
+                {order.trackingId}
+              </CodeText>
               {order.trackingUrl && (
                 <a
                   href={order.trackingUrl}

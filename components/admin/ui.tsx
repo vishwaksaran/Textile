@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { LucideIcon } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { CodeText } from '@/components/ui/code-text';
 import { cn } from '@/lib/utils';
 import type { OrderStatus, PaymentStatus } from '@/types';
 
@@ -8,18 +9,36 @@ import type { OrderStatus, PaymentStatus } from '@/types';
 export function AdminHeader({
   title,
   subtitle,
+  code,
+  codeSecondary,
   action,
 }: {
   title: string;
   subtitle?: string;
+  /** An identifier shown beside the title — set in the legible body face. */
+  code?: string;
+  /** A second, quieter identifier, e.g. the invoice number. */
+  codeSecondary?: string;
   action?: React.ReactNode;
 }) {
   return (
     <div className="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
       <div>
-        <h1 className="font-headline-lg text-headline-lg text-deep-maroon">{title}</h1>
-        {subtitle && (
-          <p className="mt-1 font-body-md text-body-md text-on-surface-variant">{subtitle}</p>
+        <div className="flex flex-wrap items-baseline gap-3">
+          <h1 className="font-headline-lg text-headline-lg text-deep-maroon">{title}</h1>
+          {/* Deliberately outside the h1's display serif: a code is read back
+              over the phone or checked against a parcel, so it needs the body
+              face and fixed-width numerals. */}
+          {code && (
+            <CodeText className="select-all text-[20px] text-deep-maroon">{code}</CodeText>
+          )}
+        </div>
+        {(subtitle || codeSecondary) && (
+          <p className="mt-1 font-body-md text-body-md text-on-surface-variant">
+            {subtitle}
+            {subtitle && codeSecondary && ' · '}
+            {codeSecondary && <CodeText className="font-normal">{codeSecondary}</CodeText>}
+          </p>
         )}
       </div>
       {action}

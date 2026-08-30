@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { Check, Copy } from 'lucide-react';
 import { toast } from 'sonner';
+import { CodeText } from '@/components/ui/code-text';
 
 /**
  * The order ID, presented as something to keep rather than a detail in prose.
@@ -37,9 +38,7 @@ export function OrderIdCard({ shortId, fullId }: { shortId: string; fullId: stri
       <span className="font-label-sm text-label-sm uppercase tracking-widest text-earthy-bronze">
         Your order ID
       </span>
-      <strong className="select-all font-headline-md text-[26px] tracking-wide text-deep-maroon">
-        #{shortId}
-      </strong>
+      <CodeText className="select-all text-[26px] text-deep-maroon">#{shortId}</CodeText>
       <button
         type="button"
         onClick={copy}

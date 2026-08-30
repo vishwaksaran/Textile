@@ -31,6 +31,7 @@ const waba = process.env.WHATSAPP_BUSINESS_ACCOUNT_ID?.trim();
 const version = (process.env.WHATSAPP_GRAPH_VERSION || 'v21.0').trim();
 const wanted = (process.env.WHATSAPP_CONFIRM_TEMPLATE_NAME || 'order_confirmation').trim();
 const shipped = (process.env.WHATSAPP_TEMPLATE_NAME || 'order_shipped_tracking').trim();
+const delivered = (process.env.WHATSAPP_DELIVERED_TEMPLATE_NAME || 'order_delivered').trim();
 
 if (!token || !waba) {
   console.error(`\n${RED('✗')} WHATSAPP_ACCESS_TOKEN and WHATSAPP_BUSINESS_ACCOUNT_ID must both be set.\n`);
@@ -66,16 +67,24 @@ for (const t of templates) {
   }
 }
 
-// The two this project actually sends.
+// The three this project actually sends, with the placeholder count each
+// call site passes — a template approved with the wrong number of
+// placeholders fails at send time, not at approval time.
+const EXPECTED = { [wanted]: 6, [shipped]: 6, [delivered]: 3 };
+
 console.log('');
-for (const [name, label] of [[wanted, 'order confirmation'], [shipped, 'shipping update']]) {
+for (const [name, label] of [
+  [wanted, 'order confirmation'],
+  [shipped, 'shipping update'],
+  [delivered, 'delivery notice'],
+]) {
   const found = templates.find((t) => t.name === name);
   if (!found) {
     console.log(`  ${RED('✗')} ${label}: no template named "${name}" — create it in WhatsApp Manager.`);
   } else if (found.status !== 'APPROVED') {
     console.log(`  ${YELLOW('•')} ${label}: "${name}" is ${found.status} — cannot send until APPROVED.`);
   } else {
-    const expected = name === wanted ? 6 : 6;
+    const expected = EXPECTED[name];
     const params = (found.components ?? [])
       .filter((c) => c.type === 'BODY')
       .flatMap((c) => (c.text ?? '').match(/\{\{\d+\}\}/g) ?? []).length;

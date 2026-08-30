@@ -131,7 +131,7 @@ export default async function AdminDashboardPage() {
                     <td className="px-5 py-3">
                       <Link
                         href={`/admin/orders/${order.id}`}
-                        className="font-body-md text-sm font-semibold text-deep-maroon hover:underline"
+                        className="font-body-md text-sm font-semibold tabular-nums tracking-wide text-deep-maroon hover:underline"
                       >
                         #{shortOrderId(order.id)}
                       </Link>

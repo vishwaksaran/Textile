@@ -9,6 +9,10 @@ const confirmTemplateName = envOr(
   process.env.WHATSAPP_CONFIRM_TEMPLATE_NAME,
   'order_confirmation',
 );
+const deliveredTemplateName = envOr(
+  process.env.WHATSAPP_DELIVERED_TEMPLATE_NAME,
+  'order_delivered',
+);
 const templateLang = envOr(process.env.WHATSAPP_TEMPLATE_LANG, 'en');
 const graphVersion = envOr(process.env.WHATSAPP_GRAPH_VERSION, 'v21.0');
 
@@ -188,4 +192,35 @@ async function sendTemplate(
   } catch (err) {
     return { sent: false, error: (err as Error).message };
   }
+}
+
+export interface WhatsAppDeliveredPayload {
+  /** 10-digit Indian number; the country code is added here. */
+  phone: string;
+  customerName: string;
+  orderId: string;
+  /** Direct link to the invoice PDF. */
+  invoiceUrl: string;
+}
+
+/**
+ * Sends the `order_delivered` template once a parcel has arrived.
+ *
+ * Body placeholders, in order:
+ *   {{1}} customer name  {{2}} order id  {{3}} invoice url
+ *
+ * Kept separate from the shipping template on purpose. Reusing that one
+ * told customers holding the parcel that it had just been despatched, which
+ * is the bug this replaced. Meta will not send a template it has not
+ * approved, so an unapproved or missing `order_delivered` fails this call
+ * alone and never blocks the status change.
+ */
+export async function sendWhatsAppDelivered(
+  payload: WhatsAppDeliveredPayload,
+): Promise<NotifyResult> {
+  return sendTemplate(
+    deliveredTemplateName,
+    payload.phone,
+    [payload.customerName, payload.orderId, payload.invoiceUrl],
+  );
 }

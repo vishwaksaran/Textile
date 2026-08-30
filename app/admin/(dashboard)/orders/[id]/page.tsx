@@ -3,6 +3,7 @@ import Link from 'next/link';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { ArrowLeft, Download, Mail, MapPin, Phone, Printer } from 'lucide-react';
+import { CodeText } from '@/components/ui/code-text';
 import { AdminHeader, AdminPage, OrderStatusBadge, PaymentStatusBadge } from '@/components/admin/ui';
 import { TrackingForm } from '@/components/admin/tracking-form';
 import { OrderStatusControl } from '@/components/admin/order-status-control';
@@ -37,8 +38,10 @@ export default async function AdminOrderPage({ params }: { params: { id: string 
       </Button>
 
       <AdminHeader
-        title={`Order #${shortOrderId(order.id)}`}
-        subtitle={`Placed ${formatDateTime(order.created_at)} · ${invoiceNumber(order.id, order.created_at)}`}
+        title="Order Detail"
+        subtitle={`Placed ${formatDateTime(order.created_at)}`}
+        code={`#${shortOrderId(order.id)}`}
+        codeSecondary={invoiceNumber(order.id, order.created_at)}
         action={
           <div className="flex flex-wrap gap-2">
             <Button asChild variant="outline" size="sm">
@@ -181,7 +184,9 @@ export default async function AdminOrderPage({ params }: { params: { id: string 
             {order.tracking_id && (
               <div className="space-y-1 border-t border-outline-variant/40 pt-4 font-body-md text-sm">
                 <p className="text-on-surface-variant">{order.courier_name}</p>
-                <p className="text-on-surface">{order.tracking_id}</p>
+                <CodeText className="block select-all text-on-surface">
+                  {order.tracking_id}
+                </CodeText>
                 <a
                   href={generateCourierTrackingUrl(order.courier_name!, order.tracking_id)}
                   target="_blank"

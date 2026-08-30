@@ -32,7 +32,22 @@ export function OrderStatusControl({ order }: { order: Order }) {
         return;
       }
 
-      toast.success(`Order marked ${next}.`);
+      // Marking an order delivered messages the customer, so say whether that
+      // actually went out — an unapproved template fails quietly otherwise.
+      const data = await res.json().catch(() => ({}));
+      const notice = data.notification as {
+        sent?: boolean;
+        error?: string;
+        skipped?: string;
+      } | null;
+
+      toast.success(`Order marked ${next}.`, {
+        description: notice
+          ? notice.sent
+            ? 'The customer was told on WhatsApp that it arrived.'
+            : `WhatsApp notice not sent: ${notice.error ?? notice.skipped ?? 'unknown reason'}`
+          : undefined,
+      });
       router.refresh();
     } catch {
       setStatus(previous);
