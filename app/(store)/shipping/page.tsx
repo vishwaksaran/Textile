@@ -31,7 +31,7 @@ export default function ShippingPage() {
       <h2>Dispatch</h2>
       <p>
         Orders placed before 4pm are usually packed the same day and handed to the courier within
-        two working days. During wedding season this can stretch to three.
+        three days. Delivery then takes 3 to 10 days depending on your location.
       </p>
 
       <h2>Courier partners</h2>

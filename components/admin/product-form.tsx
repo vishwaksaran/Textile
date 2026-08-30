@@ -3,6 +3,11 @@
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import {
+  PRODUCT_FABRICS,
+  PRODUCT_LENGTHS,
+  PRODUCT_WASH_CARE,
+} from '@/lib/product-options';
 import { Loader2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -23,6 +28,9 @@ interface FormState {
   price: string;
   discounted_price: string;
   stock_quantity: string;
+  length: string;
+  fabric: string;
+  wash_care: string;
   hsn_code: string;
   gst_rate: string;
   category_id: string;
@@ -40,6 +48,9 @@ export function ProductForm({ categories, product }: ProductFormProps) {
     price: product ? String(product.price) : '',
     discounted_price: product?.discounted_price ? String(product.discounted_price) : '',
     stock_quantity: product ? String(product.stock_quantity) : '0',
+    length: product?.length ?? '',
+    fabric: product?.fabric ?? '',
+    wash_care: product?.wash_care ?? '',
     hsn_code: product?.hsn_code ?? '',
     gst_rate: product?.gst_rate === null || product?.gst_rate === undefined ? '' : String(product.gst_rate),
     category_id: product?.category_id ?? '',
@@ -112,6 +123,9 @@ export function ProductForm({ categories, product }: ProductFormProps) {
             price: Number(form.price),
             discounted_price: form.discounted_price ? Number(form.discounted_price) : null,
             stock_quantity: Number(form.stock_quantity),
+            length: form.length || null,
+            fabric: form.fabric || null,
+            wash_care: form.wash_care || null,
             hsn_code: form.hsn_code || null,
             gst_rate: form.gst_rate ? Number(form.gst_rate) : null,
             category_id: form.category_id || null,
@@ -181,7 +195,7 @@ export function ProductForm({ categories, product }: ProductFormProps) {
             <Field
               label="Description"
               htmlFor="description"
-              hint="Weave, weight, border, blouse piece — what a customer would ask in the shop."
+              hint="The story of the piece — weave, border, motif. Length, fabric and wash care have their own fields below, so leave them out of here."
             >
               <Textarea
                 id="description"
@@ -190,6 +204,56 @@ export function ProductForm({ categories, product }: ProductFormProps) {
                 onChange={(e) => set('description', e.target.value)}
               />
             </Field>
+
+            {/* Chosen, never typed. The same care instruction typed by hand
+                arrives as three different strings, which reads as three
+                different things in a spec table and cannot be filtered. */}
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+              <Field label="Length" htmlFor="length">
+                <Select
+                  id="length"
+                  value={form.length}
+                  onChange={(e) => set('length', e.target.value)}
+                >
+                  <option value="">Not specified</option>
+                  {PRODUCT_LENGTHS.map((v) => (
+                    <option key={v} value={v}>
+                      {v}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+
+              <Field label="Fabric" htmlFor="fabric">
+                <Select
+                  id="fabric"
+                  value={form.fabric}
+                  onChange={(e) => set('fabric', e.target.value)}
+                >
+                  <option value="">Not specified</option>
+                  {PRODUCT_FABRICS.map((v) => (
+                    <option key={v} value={v}>
+                      {v}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+
+              <Field label="Wash care" htmlFor="wash_care">
+                <Select
+                  id="wash_care"
+                  value={form.wash_care}
+                  onChange={(e) => set('wash_care', e.target.value)}
+                >
+                  <option value="">Not specified</option>
+                  {PRODUCT_WASH_CARE.map((v) => (
+                    <option key={v} value={v}>
+                      {v}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            </div>
 
             <Field label="Collection" htmlFor="category_id">
               <Select

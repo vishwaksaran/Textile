@@ -20,7 +20,7 @@ const EXPLORE = [
 
 const CARE = [
   { href: '/shipping', label: 'Shipping Policy' },
-  { href: '/returns', label: 'Returns & Exchanges' },
+  { href: '/returns', label: 'Return & Exchange Policy' },
   { href: '/track', label: 'Track Your Order' },
   { href: '/privacy', label: 'Privacy Policy' },
 ];

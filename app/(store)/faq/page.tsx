@@ -36,11 +36,15 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: 'Do you deliver sarees across India?',
-    a: 'Yes. Orders are packed and handed to the courier, usually within two working days, and tracking reaches you by WhatsApp and SMS the moment the parcel ships.',
+    a: 'Yes. Orders are despatched within three days, and delivery then takes three to ten days depending on your location. Tracking reaches you by WhatsApp and SMS the moment the parcel ships.',
   },
   {
     q: 'Can I return a saree if it is not what I expected?',
-    a: 'Yes, within the return window, provided the piece is unworn and unwashed with its authenticity card. Separately and without any time limit: if a piece is ever shown not to match what we described, send it back and we refund in full, including what you paid to ship it.',
+    a: 'No — we do not accept returns for size, style or preference, because each piece is one of a kind. We exchange defective pieces only: message us on WhatsApp within three working days of delivery with your order ID and an unedited video of the parcel being opened, showing the fault. Ask us for extra photographs or a video before you order and we will send them, which is far better than an exchange afterwards.',
+  },
+  {
+    q: 'Why do you need a video to accept an exchange?',
+    a: 'A saree can be damaged in transit, and the unboxing video is the only thing that shows the condition it reached you in. Without it we cannot raise a claim with the courier. Start recording before you cut the packaging and keep filming in one take until the piece is unfolded and the fault is visible.',
   },
   {
     q: 'How do I track my order?',

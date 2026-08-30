@@ -283,6 +283,9 @@ export const DEMO_PRODUCTS: Product[] = SEED.map((s) => {
     // shop-wide default until real codes are entered in the admin screen.
     hsn_code: null,
     gst_rate: null,
+    length: null,
+    fabric: null,
+    wash_care: null,
     is_sold_out: s.stock <= 0,
     is_active: true,
     created_at: iso(s.age),

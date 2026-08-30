@@ -160,12 +160,28 @@ export default async function ProductPage({ params }: { params: { id: string } }
             </div>
           )}
 
+          {/* The spec a customer would otherwise have to ask for. Rendered
+              only when the shop has filled it in, so a half-described piece
+              shows nothing rather than a row of blanks. */}
+          {(product.length || product.fabric || product.wash_care) && (
+            <div className="space-y-3">
+              <h2 className="font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant">
+                Specifications
+              </h2>
+              <dl className="divide-y divide-outline-variant/30 border-y border-outline-variant/30">
+                {product.length && <Spec label="Length" value={product.length} />}
+                {product.fabric && <Spec label="Fabric" value={product.fabric} />}
+                {product.wash_care && <Spec label="Wash care" value={product.wash_care} />}
+              </dl>
+            </div>
+          )}
+
           <div id="buy-box" className="scroll-mt-32 pt-2">
             <AddToCart product={product} />
           </div>
 
           <ul className="grid grid-cols-1 gap-4 border-t border-outline-variant/40 pt-6 sm:grid-cols-3">
-            <Assurance Icon={Truck} title="Ships in 2 days" body="Insured courier, pan-India." />
+            <Assurance Icon={Truck} title="Ships in 3 days" body="Insured courier, pan-India." />
             <Assurance
               Icon={ShieldCheck}
               title="Authenticity card"
@@ -173,8 +189,8 @@ export default async function ProductPage({ params }: { params: { id: string } }
             />
             <Assurance
               Icon={RotateCcw}
-              title="7-day returns"
-              body="Unworn, with tags and card intact."
+              title="3-day exchange"
+              body="Defective pieces only, on WhatsApp."
             />
           </ul>
         </div>
@@ -190,6 +206,15 @@ export default async function ProductPage({ params }: { params: { id: string } }
 
       <StickyBuyBar product={product} />
     </AnimatedPage>
+  );
+}
+
+function Spec({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex gap-4 py-2.5">
+      <dt className="w-28 flex-none font-body-md text-sm text-on-surface-variant">{label}</dt>
+      <dd className="font-body-md text-sm text-on-surface">{value}</dd>
+    </div>
   );
 }
 

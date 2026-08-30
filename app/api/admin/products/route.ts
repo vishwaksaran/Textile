@@ -54,6 +54,9 @@ export async function POST(request: Request) {
         discounted_price: body.discounted_price ? Number(body.discounted_price) : null,
         stock_quantity: stock,
         category_id: body.category_id || null,
+        length: body.length || null,
+        fabric: body.fabric || null,
+        wash_care: body.wash_care || null,
         // Null means "fall back to the shop-wide default at invoice time".
         hsn_code: body.hsn_code ? String(body.hsn_code).trim() : null,
         gst_rate:

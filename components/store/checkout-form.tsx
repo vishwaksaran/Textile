@@ -13,6 +13,7 @@ import { Skeleton } from '@/components/shared/skeleton';
 import { useCartStore, cartTotals } from '@/stores/cart-store';
 import { STORE, appUrl } from '@/lib/config';
 import { INDIAN_STATES } from '@/lib/states';
+import { citiesForState } from '@/lib/cities';
 import {
   formatINR,
   isValidEmail,
@@ -65,6 +66,8 @@ export function CheckoutForm() {
   const [errors, setErrors] = React.useState<Errors>({});
   const [submitting, setSubmitting] = React.useState(false);
   const [scriptReady, setScriptReady] = React.useState(false);
+
+  const cityOptions = React.useMemo(() => citiesForState(details.state), [details.state]);
 
   // The form survives a failed payment or an accidental reload.
   React.useEffect(() => {
@@ -359,25 +362,23 @@ export function CheckoutForm() {
                 />
               </Field>
 
+              {/* State comes first now, because the city suggestions depend on
+                  it — asking for the city before knowing the state would offer
+                  nothing useful. */}
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-                <Field label="City" htmlFor="city" error={errors.city} required>
-                  <Input
-                    id="city"
-                    name="city"
-                    autoComplete="address-level2"
-                    value={details.city}
-                    onChange={(e) => set('city', e.target.value)}
-                    aria-invalid={Boolean(errors.city)}
-                  />
-                </Field>
-
                 <Field label="State" htmlFor="state" error={errors.state} required>
                   <Select
                     id="state"
                     name="state"
                     autoComplete="address-level1"
                     value={details.state}
-                    onChange={(e) => set('state', e.target.value)}
+                    onChange={(e) => {
+                      set('state', e.target.value);
+                      // A city from the previous state is almost certainly
+                      // wrong for the new one, and a stale value here would be
+                      // posted to the courier without anyone noticing.
+                      if (details.city) set('city', '');
+                    }}
                     aria-invalid={Boolean(errors.state)}
                   >
                     <option value="">Select</option>
@@ -387,6 +388,41 @@ export function CheckoutForm() {
                       </option>
                     ))}
                   </Select>
+                </Field>
+
+                {/* Suggestions, not a whitelist: the list covers the cities we
+                    post to most, and anywhere else can still be typed. A strict
+                    dropdown would lose the sale of a customer whose town is not
+                    on a hand-kept list — and the pincode is what routes the
+                    parcel anyway. */}
+                <Field
+                  label="City"
+                  htmlFor="city"
+                  error={errors.city}
+                  hint={
+                    details.state
+                      ? cityOptions.length > 0
+                        ? 'Pick from the list, or type your town.'
+                        : undefined
+                      : 'Choose a state first for suggestions.'
+                  }
+                  required
+                >
+                  <Input
+                    id="city"
+                    name="city"
+                    list="city-options"
+                    autoComplete="address-level2"
+                    placeholder={cityOptions[0] ? `e.g. ${cityOptions[0]}` : undefined}
+                    value={details.city}
+                    onChange={(e) => set('city', e.target.value)}
+                    aria-invalid={Boolean(errors.city)}
+                  />
+                  <datalist id="city-options">
+                    {cityOptions.map((c) => (
+                      <option key={c} value={c} />
+                    ))}
+                  </datalist>
                 </Field>
 
                 <Field label="Pincode" htmlFor="pincode" error={errors.pincode} required>
