@@ -41,6 +41,7 @@ export function TrackingForm({ order }: { order: Order }) {
   const [trackingId, setTrackingId] = React.useState(order.tracking_id ?? '');
   const [courier, setCourier] = React.useState(order.courier_name ?? COURIERS[0]);
   const [notify, setNotify] = React.useState(true);
+  const alreadyDelivered = order.order_status === 'delivered';
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [result, setResult] = React.useState<TrackingResponse | null>(null);
@@ -59,7 +60,11 @@ export function TrackingForm({ order }: { order: Order }) {
       const res = await fetch(`/api/admin/orders/${order.id}/tracking`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ trackingId: trackingId.trim(), courierName: courier, notify }),
+        body: JSON.stringify({
+          trackingId: trackingId.trim(),
+          courierName: courier,
+          notify: notify && !alreadyDelivered,
+        }),
       });
 
       const data = await res.json();
@@ -70,9 +75,11 @@ export function TrackingForm({ order }: { order: Order }) {
 
       setResult(data);
       toast.success('Tracking saved', {
-        description: notify
-          ? 'The customer has been notified on every channel that is configured.'
-          : 'Notifications were skipped.',
+        description: alreadyDelivered
+          ? 'The order is already delivered, so no despatch message was sent.'
+          : notify
+            ? 'The customer has been notified on every channel that is configured.'
+            : 'Notifications were skipped.',
       });
       router.refresh();
     } catch {
@@ -93,9 +100,11 @@ export function TrackingForm({ order }: { order: Order }) {
         {alreadySent ? 'Tracking' : 'Add tracking'}
       </h2>
       <p className="mb-6 font-body-md text-sm text-on-surface-variant">
-        {alreadySent
-          ? 'Saved. Updating the ID re-sends the notification.'
-          : 'Enter the docket number the courier gave you. The customer is notified immediately.'}
+        {alreadyDelivered
+          ? 'Saved. This order is delivered, so edits here are record-keeping only.'
+          : alreadySent
+            ? 'Saved. Updating the ID re-sends the notification.'
+            : 'Enter the docket number the courier gave you. The customer is notified immediately.'}
       </p>
 
       <form onSubmit={submit} noValidate className="space-y-5">
@@ -127,21 +136,36 @@ export function TrackingForm({ order }: { order: Order }) {
         <label className="flex cursor-pointer items-center gap-3">
           <input
             type="checkbox"
-            checked={notify}
+            checked={notify && !alreadyDelivered}
+            disabled={alreadyDelivered}
             onChange={(e) => setNotify(e.target.checked)}
-            className="h-4 w-4 rounded-none border-outline-variant text-deep-maroon focus:ring-primary-container"
+            className="h-4 w-4 rounded-none border-outline-variant text-deep-maroon focus:ring-primary-container disabled:opacity-50"
           />
-          <span className="font-body-md text-sm text-on-surface">
+          <span
+            className={`font-body-md text-sm ${
+              alreadyDelivered ? 'text-on-surface-variant' : 'text-on-surface'
+            }`}
+          >
             Notify the customer on WhatsApp, SMS and email
           </span>
         </label>
+
+        {/* Every notification here announces a despatch, so there is nothing
+            truthful to send once the parcel has arrived. Saying so up front
+            beats letting the admin tick a box that will be ignored. */}
+        {alreadyDelivered && (
+          <p className="font-body-md text-sm text-on-surface-variant">
+            This order is marked delivered, so no despatch message will be sent. The
+            tracking details are still saved.
+          </p>
+        )}
 
         <Button type="submit" size="lg" disabled={busy} shine className="w-full sm:w-auto">
           {busy ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" /> Saving & notifying…
             </>
-          ) : notify ? (
+          ) : notify && !alreadyDelivered ? (
             'Update & notify customer'
           ) : (
             'Save tracking ID'

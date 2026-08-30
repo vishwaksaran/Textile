@@ -38,10 +38,12 @@ export async function POST(request: Request, { params }: { params: { id: string 
     const existing = await getOrderWithItems(params.id);
     if (!existing) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
 
+    const nextStatus = existing.order_status === 'delivered' ? 'delivered' : 'shipped';
+
     await updateOrder(params.id, {
       tracking_id: trackingId,
       courier_name: courierName,
-      order_status: existing.order_status === 'delivered' ? 'delivered' : 'shipped',
+      order_status: nextStatus,
     });
 
     const order = (await getOrderWithItems(params.id))!;
@@ -52,6 +54,20 @@ export async function POST(request: Request, { params }: { params: { id: string 
         success: true,
         trackingUrl,
         notifications: { whatsapp: { sent: false, skipped: 'notify disabled' } },
+      });
+    }
+
+    // Every channel here says the order has shipped, so none of them may fire
+    // once it is already delivered — the customer has the parcel in hand, and
+    // being told it is on its way is worse than being told nothing. Editing a
+    // courier reference after delivery is a correction to our own records,
+    // not news. The tracking id is still saved; only the message is withheld.
+    if (nextStatus !== 'shipped') {
+      const skipped = { sent: false, skipped: `order is already ${nextStatus}` };
+      return NextResponse.json({
+        success: true,
+        trackingUrl,
+        notifications: { whatsapp: skipped, sms: skipped, email: skipped },
       });
     }
 

@@ -21,6 +21,9 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       );
     }
 
+    // Deliberately silent. There is no approved "delivered" template, and the
+    // shipped one would tell a customer holding the parcel that it is on its
+    // way. Changing status is an internal bookkeeping action.
     const order = await updateOrder(params.id, { order_status: status });
     if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
 
