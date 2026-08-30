@@ -3,13 +3,17 @@ import 'server-only';
 import { randomUUID } from 'crypto';
 import { createAdminSupabase } from '@/lib/supabase/server';
 import { DEMO_PRODUCTS } from '@/lib/demo-data';
-import { shippingFor } from '@/lib/config';
+import { STORE, shippingFor } from '@/lib/config';
+import { stateCodeFor, stateCodeFromGstin } from '@/lib/tax';
 import { effectivePrice } from '@/lib/utils';
 import type { CheckoutDetails, Order, OrderItem } from '@/types';
 
 export interface PricedLine {
   productId: string;
   name: string;
+  /** Frozen onto the order line so a later rate change cannot rewrite it. */
+  hsn: string | null;
+  gstRate: number | null;
   quantity: number;
   unitPrice: number;
   lineTotal: number;
@@ -48,7 +52,7 @@ export async function priceCart(
     ? ((
         await supabase
           .from('products')
-          .select('id, name, price, discounted_price, stock_quantity, is_active')
+          .select('id, name, price, discounted_price, stock_quantity, is_active, hsn_code, gst_rate')
           .in('id', ids)
       ).data ?? [])
     : DEMO_PRODUCTS.filter((p) => ids.includes(p.id));
@@ -67,12 +71,20 @@ export async function priceCart(
     }
 
     const unitPrice = effectivePrice(product as never);
+    const taxable = product as { hsn_code?: string | null; gst_rate?: number | null };
     return {
       productId: item.productId,
       name: product.name as string,
       quantity: item.quantity,
       unitPrice,
       lineTotal: unitPrice * item.quantity,
+      // Null here means "use the shop-wide default at render time", which is
+      // the right answer for a product that has not been given its own code.
+      hsn: taxable.hsn_code ?? null,
+      gstRate:
+        taxable.gst_rate === null || taxable.gst_rate === undefined
+          ? null
+          : Number(taxable.gst_rate),
     };
   });
 
@@ -111,6 +123,11 @@ export async function createPendingOrder(input: {
     total_amount: input.cart.total,
     payment_status: 'pending' as const,
     order_status: 'processing' as const,
+    // Frozen now, for the same reason as price_at_time: if the shop later
+    // registers in another state, historic invoices must keep the split that
+    // actually applied when the sale happened.
+    is_intra_state: stateCodeFor(input.customer.state) === stateCodeFromGstin(STORE.gstin),
+    place_of_supply: input.customer.state ?? null,
   };
 
   if (!supabase) {
@@ -135,6 +152,8 @@ export async function createPendingOrder(input: {
         product_id: l.productId,
         quantity: l.quantity,
         price_at_time: l.unitPrice,
+        hsn_at_time: l.hsn,
+        gst_rate_at_time: l.gstRate,
       })),
     );
     return order;
@@ -149,6 +168,8 @@ export async function createPendingOrder(input: {
       product_id: l.productId,
       quantity: l.quantity,
       price_at_time: l.unitPrice,
+      hsn_at_time: l.hsn,
+      gst_rate_at_time: l.gstRate,
     })),
   );
   if (itemsError) throw new Error(itemsError.message);
@@ -232,7 +253,9 @@ export async function getOrderWithItems(id: string): Promise<Order | null> {
       ...item,
       products: (() => {
         const p = DEMO_PRODUCTS.find((d) => d.id === item.product_id);
-        return p ? { id: p.id, name: p.name, images: p.images } : null;
+        return p
+          ? { id: p.id, name: p.name, images: p.images, hsn_code: p.hsn_code, gst_rate: p.gst_rate }
+          : null;
       })(),
     }));
     return { ...order, order_items: items };
@@ -240,7 +263,7 @@ export async function getOrderWithItems(id: string): Promise<Order | null> {
 
   const { data } = await supabase
     .from('orders')
-    .select('*, order_items (*, products:product_id (id, name, images))')
+    .select('*, order_items (*, products:product_id (id, name, images, hsn_code, gst_rate))')
     .eq('id', id)
     .maybeSingle();
   return (data as Order) ?? null;
@@ -309,5 +332,10 @@ export async function linesForOrder(orderId: string): Promise<PricedLine[]> {
     quantity: item.quantity,
     unitPrice: Number(item.price_at_time),
     lineTotal: Number(item.price_at_time) * item.quantity,
+    hsn: item.hsn_at_time ?? item.products?.hsn_code ?? null,
+    gstRate:
+      item.gst_rate_at_time === null || item.gst_rate_at_time === undefined
+        ? (item.products?.gst_rate ?? null)
+        : Number(item.gst_rate_at_time),
   }));
 }

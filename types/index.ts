@@ -21,6 +21,10 @@ export interface Product {
   images: string[];
   is_sold_out: boolean;
   is_active: boolean;
+  /** HSN classification for the tax invoice. Null falls back to the default. */
+  hsn_code: string | null;
+  /** Per-product GST override. Null falls back to the shop-wide rate. */
+  gst_rate: number | null;
   created_at: string;
   updated_at: string;
   /** Populated by joins on read. */
@@ -33,8 +37,11 @@ export interface OrderItem {
   product_id: string | null;
   quantity: number;
   price_at_time: number;
+  /** Frozen at the sale, like price_at_time — rates and codes change. */
+  hsn_at_time: string | null;
+  gst_rate_at_time: number | null;
   /** Populated by joins on read. */
-  products?: Pick<Product, 'id' | 'name' | 'images'> | null;
+  products?: Pick<Product, 'id' | 'name' | 'images' | 'hsn_code' | 'gst_rate'> | null;
 }
 
 export interface Order {
@@ -54,6 +61,9 @@ export interface Order {
   tracking_id: string | null;
   courier_name: string | null;
   invoice_url: string | null;
+  /** Frozen at the sale so a later change of registration cannot rewrite it. */
+  is_intra_state: boolean | null;
+  place_of_supply: string | null;
   notified_whatsapp_at: string | null;
   notified_sms_at: string | null;
   created_at: string;
@@ -88,4 +98,13 @@ export interface CheckoutDetails {
   city: string;
   state: string;
   pincode: string;
+}
+
+export interface TaxSettingsRow {
+  id: number;
+  gst_rate: number;
+  default_hsn: string | null;
+  prices_include_tax: boolean;
+  show_tax_breakdown: boolean;
+  updated_at: string;
 }

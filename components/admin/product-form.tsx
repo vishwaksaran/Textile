@@ -23,6 +23,8 @@ interface FormState {
   price: string;
   discounted_price: string;
   stock_quantity: string;
+  hsn_code: string;
+  gst_rate: string;
   category_id: string;
   images: string[];
   is_active: boolean;
@@ -38,6 +40,8 @@ export function ProductForm({ categories, product }: ProductFormProps) {
     price: product ? String(product.price) : '',
     discounted_price: product?.discounted_price ? String(product.discounted_price) : '',
     stock_quantity: product ? String(product.stock_quantity) : '0',
+    hsn_code: product?.hsn_code ?? '',
+    gst_rate: product?.gst_rate === null || product?.gst_rate === undefined ? '' : String(product.gst_rate),
     category_id: product?.category_id ?? '',
     images: product?.images ?? [],
     is_active: product?.is_active ?? true,
@@ -65,6 +69,17 @@ export function ProductForm({ categories, product }: ProductFormProps) {
         next.discounted_price = 'Enter a valid amount.';
       } else if (discounted >= price) {
         next.discounted_price = 'Must be lower than the price.';
+      }
+    }
+
+    if (form.hsn_code && !/^\d{4}(\d{2})?(\d{2})?$/.test(form.hsn_code)) {
+      next.hsn_code = 'HSN codes are 4, 6 or 8 digits.';
+    }
+
+    if (form.gst_rate) {
+      const rate = Number(form.gst_rate);
+      if (!Number.isFinite(rate) || rate < 0 || rate > 100) {
+        next.gst_rate = 'Enter a percentage between 0 and 100.';
       }
     }
 
@@ -97,6 +112,8 @@ export function ProductForm({ categories, product }: ProductFormProps) {
             price: Number(form.price),
             discounted_price: form.discounted_price ? Number(form.discounted_price) : null,
             stock_quantity: Number(form.stock_quantity),
+            hsn_code: form.hsn_code || null,
+            gst_rate: form.gst_rate ? Number(form.gst_rate) : null,
             category_id: form.category_id || null,
             images: form.images,
             is_active: form.is_active,
@@ -188,6 +205,51 @@ export function ProductForm({ categories, product }: ProductFormProps) {
                 ))}
               </Select>
             </Field>
+          </section>
+
+          <section className="space-y-5 rounded-lg border border-outline-variant/40 bg-surface-container-lowest p-6">
+            <div>
+              <h2 className="font-headline-md text-headline-md text-deep-maroon">Tax</h2>
+              <p className="mt-1 font-body-md text-sm text-on-surface-variant">
+                Both optional. Left blank, this piece uses the shop-wide defaults from{' '}
+                <Link href="/admin/settings/tax" className="text-deep-maroon underline">
+                  Tax Settings
+                </Link>
+                .
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <Field
+                label="HSN code"
+                htmlFor="hsn_code"
+                error={errors.hsn_code}
+                hint="4, 6 or 8 digits."
+              >
+                <Input
+                  id="hsn_code"
+                  inputMode="numeric"
+                  placeholder="e.g. 5007"
+                  value={form.hsn_code}
+                  onChange={(e) => set('hsn_code', e.target.value.replace(/\D/g, ''))}
+                />
+              </Field>
+
+              <Field
+                label="GST rate (%)"
+                htmlFor="gst_rate"
+                error={errors.gst_rate}
+                hint="Only if it differs from the default."
+              >
+                <Input
+                  id="gst_rate"
+                  inputMode="decimal"
+                  placeholder="default"
+                  value={form.gst_rate}
+                  onChange={(e) => set('gst_rate', e.target.value.replace(/[^\d.]/g, ''))}
+                />
+              </Field>
+            </div>
           </section>
 
           <section className="rounded-lg border border-outline-variant/40 bg-surface-container-lowest p-6">

@@ -14,7 +14,9 @@
     "whatsapp:test": "node scripts/test-whatsapp.mjs",
     "whatsapp:templates": "node scripts/whatsapp-templates.mjs",
     "icons": "node scripts/make-icons.mjs",
-    "razorpay:test": "node scripts/test-razorpay.mjs"
+    "razorpay:test": "node scripts/test-razorpay.mjs",
+    "tax:check": "npx tsx scripts/tax-check.mts",
+    "invoice:preview": "npx tsx --tsconfig scripts/tsconfig.json scripts/invoice-preview.mts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.6",

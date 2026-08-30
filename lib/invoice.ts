@@ -6,6 +6,7 @@ import { STORE, storeAddressLines } from '@/lib/config';
 import { INVOICE_LOGO_PNG, INVOICE_WATERMARK_JPG } from '@/lib/logo-data';
 import { createAdminSupabase } from '@/lib/supabase/server';
 import { formatDate, invoiceNumber, shortOrderId } from '@/lib/utils';
+import type { TaxSummary } from '@/lib/tax';
 import type { Order } from '@/types';
 
 const MAROON: [number, number, number] = [74, 4, 4];
@@ -17,8 +18,16 @@ function money(amount: number): string {
   return `Rs. ${amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
-/** Renders a branded A4 tax invoice and returns the raw PDF bytes. */
-export function buildInvoicePdf(order: Order): Uint8Array {
+/**
+ * Renders a branded A4 tax invoice and returns the raw PDF bytes.
+ *
+ * `tax` is optional. Pass it and the invoice prints a compliant GST
+ * breakdown — HSN codes, taxable value, and CGST+SGST or IGST. Omit it (or
+ * switch the breakdown off in the admin screen) and it falls back to the
+ * plain subtotal/shipping/total layout, which is what a shop that is not yet
+ * GST-registered should be sending.
+ */
+export function buildInvoicePdf(order: Order, tax?: TaxSummary | null): Uint8Array {
   const doc = new jsPDF({ unit: 'pt', format: 'a4' });
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 48;
@@ -96,6 +105,15 @@ export function buildInvoicePdf(order: Order): Uint8Array {
   if (order.razorpay_payment_id) {
     doc.text(`Payment ID: ${order.razorpay_payment_id}`, margin, y + 45);
   }
+  // Place of supply decides whether the tax splits into CGST+SGST or falls
+  // to IGST, so a GST invoice has to state it alongside the tax itself.
+  if (tax) {
+    doc.text(
+      `Place of Supply: ${tax.placeOfSupply}${tax.buyerStateCode ? ` (${tax.buyerStateCode})` : ''}`,
+      margin,
+      y + (order.razorpay_payment_id ? 60 : 45),
+    );
+  }
 
   // --------------------------------------------------------------- bill to
   const rightX = pageWidth / 2 + 20;
@@ -122,27 +140,64 @@ export function buildInvoicePdf(order: Order): Uint8Array {
 
   // ----------------------------------------------------------- items table
   const items = order.order_items ?? [];
-  autoTable(doc, {
-    startY: y,
-    head: [['#', 'Item', 'Qty', 'Unit Price', 'Amount']],
-    body: items.map((item, i) => [
-      String(i + 1),
-      item.products?.name ?? 'Handloom piece',
-      String(item.quantity),
-      money(Number(item.price_at_time)),
-      money(Number(item.price_at_time) * item.quantity),
-    ]),
-    margin: { left: margin, right: margin },
-    styles: { font: 'helvetica', fontSize: 9, cellPadding: 8, textColor: INK },
-    headStyles: { fillColor: MAROON, textColor: [255, 224, 136], fontStyle: 'bold' },
-    alternateRowStyles: { fillColor: [251, 243, 229] },
-    columnStyles: {
-      0: { cellWidth: 28, halign: 'center' },
-      2: { cellWidth: 44, halign: 'center' },
-      3: { cellWidth: 88, halign: 'right' },
-      4: { cellWidth: 92, halign: 'right' },
-    },
-  });
+
+  // With a tax summary the table carries the columns a GST invoice needs —
+  // HSN and taxable value per line. Without one it stays the simpler receipt.
+  // `tax.lines` may hold a trailing shipping line that has no order_item, so
+  // the goods lines are matched by index and shipping is left to the totals.
+  const showTax = Boolean(tax);
+
+  if (showTax && tax) {
+    autoTable(doc, {
+      startY: y,
+      head: [['#', 'Item', 'HSN', 'Qty', 'Rate', 'Taxable', 'GST', 'Amount']],
+      body: tax.lines.map((line, i) => [
+        String(i + 1),
+        line.description,
+        line.hsn || '—',
+        String(line.quantity),
+        money(line.gross / Math.max(line.quantity, 1)),
+        money(line.taxable),
+        `${line.rate}%`,
+        money(line.gross),
+      ]),
+      margin: { left: margin, right: margin },
+      styles: { font: 'helvetica', fontSize: 8, cellPadding: 6, textColor: INK },
+      headStyles: { fillColor: MAROON, textColor: [255, 224, 136], fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [251, 243, 229] },
+      columnStyles: {
+        0: { cellWidth: 20, halign: 'center' },
+        2: { cellWidth: 46, halign: 'center' },
+        3: { cellWidth: 26, halign: 'center' },
+        4: { cellWidth: 68, halign: 'right' },
+        5: { cellWidth: 68, halign: 'right' },
+        6: { cellWidth: 32, halign: 'center' },
+        7: { cellWidth: 72, halign: 'right' },
+      },
+    });
+  } else {
+    autoTable(doc, {
+      startY: y,
+      head: [['#', 'Item', 'Qty', 'Unit Price', 'Amount']],
+      body: items.map((item, i) => [
+        String(i + 1),
+        item.products?.name ?? 'Handloom piece',
+        String(item.quantity),
+        money(Number(item.price_at_time)),
+        money(Number(item.price_at_time) * item.quantity),
+      ]),
+      margin: { left: margin, right: margin },
+      styles: { font: 'helvetica', fontSize: 9, cellPadding: 8, textColor: INK },
+      headStyles: { fillColor: MAROON, textColor: [255, 224, 136], fontStyle: 'bold' },
+      alternateRowStyles: { fillColor: [251, 243, 229] },
+      columnStyles: {
+        0: { cellWidth: 28, halign: 'center' },
+        2: { cellWidth: 44, halign: 'center' },
+        3: { cellWidth: 88, halign: 'right' },
+        4: { cellWidth: 92, halign: 'right' },
+      },
+    });
+  }
 
   // ---------------------------------------------------------------- totals
   const subtotal = items.reduce(
@@ -158,11 +213,29 @@ export function buildInvoicePdf(order: Order): Uint8Array {
   const labelX = pageWidth - margin - 180;
   const valueX = pageWidth - margin;
 
-  const rows: [string, string, boolean?][] = [
-    ['Subtotal', money(subtotal)],
-    ['Shipping', shipping === 0 ? 'Free' : money(shipping)],
-    ['Total Paid', money(total), true],
-  ];
+  // With a tax summary the totals show the statutory build-up: taxable value,
+  // then the tax split by place of supply, then the amount actually charged.
+  // The final figure is always `total` — the sum Razorpay captured — because
+  // tax is extracted from a tax-inclusive price rather than added to it.
+  const rows: [string, string, boolean?][] = tax
+    ? [
+        ['Taxable Value', money(tax.totals.taxable)],
+        ...(tax.intraState
+          ? tax.byRate.flatMap<[string, string, boolean?]>((b) => [
+              [`CGST @ ${b.rate / 2}%`, money(b.cgst)],
+              [`SGST @ ${b.rate / 2}%`, money(b.sgst)],
+            ])
+          : tax.byRate.map<[string, string, boolean?]>((b) => [
+              `IGST @ ${b.rate}%`,
+              money(b.igst),
+            ])),
+        ['Total Paid', money(total), true],
+      ]
+    : [
+        ['Subtotal', money(subtotal)],
+        ['Shipping', shipping === 0 ? 'Free' : money(shipping)],
+        ['Total Paid', money(total), true],
+      ];
 
   rows.forEach(([label, value, emphasis]) => {
     doc.setFont('helvetica', emphasis ? 'bold' : 'normal');

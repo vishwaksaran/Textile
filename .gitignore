@@ -18,3 +18,6 @@ tsconfig.tsbuildinfo
 .sm.xml
 .b.log
 .dev.log
+
+# Local invoice previews from scripts/invoice-preview.mts
+invoice-preview-*.pdf

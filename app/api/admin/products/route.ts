@@ -53,6 +53,12 @@ export async function POST(request: Request) {
         discounted_price: body.discounted_price ? Number(body.discounted_price) : null,
         stock_quantity: stock,
         category_id: body.category_id || null,
+        // Null means "fall back to the shop-wide default at invoice time".
+        hsn_code: body.hsn_code ? String(body.hsn_code).trim() : null,
+        gst_rate:
+          body.gst_rate === null || body.gst_rate === undefined || body.gst_rate === ''
+            ? null
+            : Number(body.gst_rate),
         images: Array.isArray(body.images) ? body.images : [],
         is_sold_out: stock <= 0,
         is_active: body.is_active !== false,

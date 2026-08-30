@@ -1,4 +1,5 @@
 import { buildInvoicePdf } from '@/lib/invoice';
+import { taxForOrder } from '@/lib/tax-settings';
 import { getOrderWithItems } from '@/lib/orders';
 import { invoiceNumber } from '@/lib/utils';
 
@@ -18,7 +19,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
     return new Response('This order has no invoice yet.', { status: 409 });
   }
 
-  const pdf = buildInvoicePdf(order);
+  const pdf = buildInvoicePdf(order, await taxForOrder(order));
   const filename = `${invoiceNumber(order.id, order.created_at)}.pdf`;
 
   return new Response(Buffer.from(pdf), {
