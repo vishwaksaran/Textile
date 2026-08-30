@@ -21,7 +21,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
       <CartDrawer />
       <SearchDialog />
       <WhatsAppFab />
-      <MobileNav />
+      <MobileNav categories={categories} />
     </>
   );
 }

@@ -1,24 +1,52 @@
 'use client';
 
+import * as React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Search, Shirt, ShoppingBag, Truck } from 'lucide-react';
+import { Home, Layers, Shirt, ShoppingBag, Truck } from 'lucide-react';
 import { useCartStore, selectCount } from '@/stores/cart-store';
-import { useUiStore } from '@/stores/ui-store';
+import { splitNavCategories } from '@/lib/nav';
 import { cn } from '@/lib/utils';
+import type { Category } from '@/types';
 
 const tabClass =
   'flex flex-1 flex-col items-center justify-center gap-1 py-2 font-label-sm text-[10px] uppercase tracking-widest transition-colors';
 
-/** Bottom tab bar — mobile only, sits under the sticky add-to-cart bar. */
-export function MobileNav() {
+/**
+ * Bottom tab bar — mobile only, sits under the sticky add-to-cart bar.
+ *
+ * Search is deliberately not a tab. It is already an always-visible icon in
+ * the mobile top bar and an item in the overlay menu, and a bar with five
+ * slots is better spent on the two things people actually browse.
+ *
+ * The garment tab is driven by the same nav grouping as the desktop bar
+ * rather than a hardcoded slug, so a shop that renames Churidars, or leads
+ * with a different collection, gets the right tab without a code change.
+ *
+ * On the icons: `Shirt` is a stitched-top silhouette, which is right for a
+ * churidar and was wrong for a saree — a saree is an unstitched length of
+ * cloth, and it used to carry that T-shirt. `Layers` reads as folded cloth
+ * stacked on a shelf, which is how a saree shop actually presents them.
+ */
+export function MobileNav({ categories = [] }: { categories?: Category[] }) {
   const pathname = usePathname();
   const openCart = useCartStore((s) => s.open);
   const count = useCartStore(selectCount);
   const hydrated = useCartStore((s) => s.hydrated);
-  const openSearch = useUiStore((s) => s.openSearch);
 
-  const isSarees = pathname.startsWith('/category') || pathname === '/collections';
+  const { sarees, standalone } = React.useMemo(
+    () => splitNavCategories(categories),
+    [categories],
+  );
+
+  // Only one slot is going spare, so the first standalone collection takes it.
+  const garment = standalone[0];
+  const garmentHref = garment ? `/category/${garment.slug}` : null;
+
+  // Sarees is the dropdown's own weaves plus the all-collections view, so a
+  // standalone collection lights its own tab instead of both.
+  const onSarees =
+    pathname === '/collections' || sarees.some((c) => pathname === `/category/${c.slug}`);
 
   return (
     <nav
@@ -37,17 +65,26 @@ export function MobileNav() {
 
       <Link
         href="/collections"
-        aria-current={isSarees ? 'page' : undefined}
-        className={cn(tabClass, isSarees ? 'text-deep-maroon' : 'text-on-surface-variant')}
+        aria-current={onSarees ? 'page' : undefined}
+        className={cn(tabClass, onSarees ? 'text-deep-maroon' : 'text-on-surface-variant')}
       >
-        <Shirt className="h-5 w-5" strokeWidth={1.5} />
+        <Layers className="h-5 w-5" strokeWidth={1.5} />
         Sarees
       </Link>
 
-      <button type="button" onClick={openSearch} className={cn(tabClass, 'text-on-surface-variant')}>
-        <Search className="h-5 w-5" strokeWidth={1.5} />
-        Search
-      </button>
+      {garmentHref && (
+        <Link
+          href={garmentHref}
+          aria-current={pathname === garmentHref ? 'page' : undefined}
+          className={cn(
+            tabClass,
+            pathname === garmentHref ? 'text-deep-maroon' : 'text-on-surface-variant',
+          )}
+        >
+          <Shirt className="h-5 w-5" strokeWidth={1.5} />
+          {garment.name}
+        </Link>
+      )}
 
       <Link
         href="/track"
