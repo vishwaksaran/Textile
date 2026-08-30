@@ -23,7 +23,7 @@ export function envOr(value: string | undefined, fallback: string): string {
 
 export const STORE = {
   name: 'Sri Laxmi Silks',
-  tagline: 'Celebrating Ancient Craftsmanship',
+  tagline: 'Quality. Value. Trust.',
   legalName: 'Sri Laxmi Silks Coimbatore',
   email: envOr(process.env.ADMIN_EMAIL, 'orders@srilaxmisilks.com'),
   phone: '+91 97894 67448',
@@ -55,17 +55,21 @@ export const STORE = {
 } as const;
 
 export const COMMERCE = {
-  /** Orders at or above this subtotal ship free. */
+  /**
+   * Fallback free-shipping threshold, used for copy on statically generated
+   * pages and when the shipping settings row cannot be read.
+   *
+   * The live figure lives in `shipping_settings` and is editable at
+   * /admin/settings/shipping. Delivery charges themselves are worked out by
+   * destination in lib/shipping.ts — there is deliberately no flat rate and
+   * no second implementation here, because a storefront that quotes one
+   * number while the server charges another is the worst kind of bug to have
+   * at a payment screen.
+   */
   freeShippingThreshold: 5000,
-  shippingFlatRate: 150,
   /** Guard rail so a single line item cannot run away. */
   maxQuantityPerItem: 10,
 } as const;
-
-export function shippingFor(subtotal: number): number {
-  if (subtotal <= 0) return 0;
-  return subtotal >= COMMERCE.freeShippingThreshold ? 0 : COMMERCE.shippingFlatRate;
-}
 
 export const COURIERS = [
   'Delhivery',

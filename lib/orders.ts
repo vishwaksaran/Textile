@@ -3,7 +3,9 @@ import 'server-only';
 import { randomUUID } from 'crypto';
 import { createAdminSupabase } from '@/lib/supabase/server';
 import { DEMO_PRODUCTS } from '@/lib/demo-data';
-import { STORE, shippingFor } from '@/lib/config';
+import { STORE } from '@/lib/config';
+import { shippingFor } from '@/lib/shipping';
+import { getShippingSettings } from '@/lib/shipping-settings';
 import { stateCodeFor, stateCodeFromGstin } from '@/lib/tax';
 import { effectivePrice } from '@/lib/utils';
 import type { CheckoutDetails, Order, OrderItem } from '@/types';
@@ -39,9 +41,15 @@ export class CartError extends Error {
 /**
  * Re-prices a cart from authoritative product rows. The browser never gets to
  * decide what anything costs — it only sends product ids and quantities.
+ *
+ * `state` is the destination, and it changes the delivery charge. It is read
+ * here rather than trusted from the request for the same reason the prices
+ * are: the browser quotes a figure to show the customer, this is the figure
+ * that gets charged, and only one of them is allowed to be authoritative.
  */
 export async function priceCart(
   requested: { productId: string; quantity: number }[],
+  state?: string | null,
 ): Promise<PricedCart> {
   if (requested.length === 0) throw new CartError('Your cart is empty.');
 
@@ -89,7 +97,7 @@ export async function priceCart(
   });
 
   const subtotal = lines.reduce((sum, l) => sum + l.lineTotal, 0);
-  const shipping = shippingFor(subtotal);
+  const shipping = shippingFor(subtotal, state, await getShippingSettings());
   return { lines, subtotal, shipping, total: subtotal + shipping };
 }
 

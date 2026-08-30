@@ -14,6 +14,7 @@ import { useCartStore, cartTotals } from '@/stores/cart-store';
 import { STORE, appUrl } from '@/lib/config';
 import { INDIAN_STATES } from '@/lib/states';
 import { citiesForState } from '@/lib/cities';
+import type { ShippingSettings } from '@/lib/shipping';
 import {
   formatINR,
   isValidEmail,
@@ -33,7 +34,11 @@ const EMPTY: CheckoutDetails = {
   phone: '',
   address: '',
   city: '',
-  state: '',
+  // Pre-selected because the shop is in Coimbatore and most orders stay in
+  // the state. It also lets the delivery charge be quoted correctly on first
+  // paint instead of showing a placeholder rate that changes under the
+  // customer once they pick a state.
+  state: 'Tamil Nadu',
   pincode: '',
 };
 
@@ -55,7 +60,7 @@ function validate(details: CheckoutDetails): Errors {
   return errors;
 }
 
-export function CheckoutForm() {
+export function CheckoutForm({ shippingSettings }: { shippingSettings: ShippingSettings }) {
   const router = useRouter();
   const items = useCartStore((s) => s.items);
   const hydrated = useCartStore((s) => s.hydrated);
@@ -87,7 +92,10 @@ export function CheckoutForm() {
     }
   }, [details]);
 
-  const totals = cartTotals(items);
+  // The destination is known here, so this is the real charge rather than an
+  // estimate — and it is the same number the server recomputes before it
+  // creates the Razorpay order.
+  const totals = cartTotals(items, details.state, shippingSettings);
 
   function set<K extends keyof CheckoutDetails>(key: K, value: CheckoutDetails[K]) {
     setDetails((d) => ({ ...d, [key]: value }));
@@ -448,7 +456,12 @@ export function CheckoutForm() {
         </div>
 
         <div className="lg:sticky lg:top-28 lg:h-fit">
-          <OrderSummary items={items} showItems>
+          <OrderSummary
+            items={items}
+            showItems
+            state={details.state}
+            shippingSettings={shippingSettings}
+          >
             <div className="space-y-4">
               <div className="lg:hidden">
                 <PayButton

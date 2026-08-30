@@ -23,7 +23,9 @@ export default function ShippingPage() {
           Free shipping on orders of {formatINR(COMMERCE.freeShippingThreshold)} and above.
         </li>
         <li>
-          A flat {formatINR(COMMERCE.shippingFlatRate)} on smaller orders, anywhere in India.
+          Below that, delivery is charged by distance — least within Tamil Nadu, most to the
+          north-east and the islands. The exact figure for your address appears at checkout,
+          before you pay.
         </li>
         <li>International orders are quoted individually — write to us before paying.</li>
       </ul>

@@ -2,7 +2,8 @@
 
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { COMMERCE, shippingFor } from '@/lib/config';
+import { COMMERCE } from '@/lib/config';
+import { quoteShipping, type ShippingSettings } from '@/lib/shipping';
 import type { CartItem } from '@/types';
 
 interface CartState {
@@ -144,12 +145,30 @@ export const selectSavings = (s: CartState) =>
     0,
   );
 
-export function cartTotals(items: CartItem[]) {
+/**
+ * Cart arithmetic for display.
+ *
+ * `state` and `settings` are optional because the drawer and the cart page
+ * genuinely cannot know the destination yet — they quote the default rate as
+ * an estimate. The checkout page passes both, and what it shows is then the
+ * same figure the server independently arrives at before charging.
+ */
+export function cartTotals(
+  items: CartItem[],
+  state?: string | null,
+  settings?: ShippingSettings,
+) {
   const subtotal = items.reduce((t, i) => t + i.price * i.quantity, 0);
   const savings = items.reduce(
     (t, i) => t + Math.max((i.originalPrice ?? i.price) - i.price, 0) * i.quantity,
     0,
   );
-  const shipping = shippingFor(subtotal);
-  return { subtotal, savings, shipping, total: subtotal + shipping };
+  const quote = quoteShipping(subtotal, state, settings);
+  return {
+    subtotal,
+    savings,
+    shipping: quote.amount,
+    shippingQuote: quote,
+    total: subtotal + quote.amount,
+  };
 }

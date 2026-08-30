@@ -6,6 +6,7 @@ import { ProductGrid } from '@/components/store/product-grid';
 import { Reveal } from '@/components/shared/motion';
 import { Button } from '@/components/ui/button';
 import { getCategories, getLatestProducts } from '@/lib/data';
+import { STORE } from '@/lib/config';
 import { ARTISAN_IMAGE, HERO_SLIDE_IMAGES } from '@/lib/demo-data';
 import { JsonLd, canonical, organizationJsonLd, searchActionJsonLd, storeJsonLd } from '@/lib/seo';
 import type { Metadata } from 'next';
@@ -43,7 +44,7 @@ export default async function HomePage() {
   const slides: HeroSlide[] = [
     {
       image: HERO_SLIDE_IMAGES.banarasi,
-      eyebrow: 'Celebrating Ancient Craftsmanship',
+      eyebrow: STORE.tagline,
       title: 'The Regal Banarasi',
       body: 'Woven with threads of gold, a testament to centuries of royal heritage.',
       ctaLabel: 'Shop Banarasi Collection',

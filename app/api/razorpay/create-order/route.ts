@@ -68,6 +68,7 @@ export async function POST(request: Request) {
         productId: String(i.productId),
         quantity: Math.max(1, Math.floor(Number(i.quantity) || 0)),
       })),
+      customer.state,
     );
   } catch (err) {
     if (err instanceof CartError) {

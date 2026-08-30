@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { cartTotals } from '@/stores/cart-store';
 import { COMMERCE } from '@/lib/config';
+import type { ShippingSettings } from '@/lib/shipping';
 import { formatINR } from '@/lib/utils';
 import type { CartItem } from '@/types';
 
@@ -10,12 +11,26 @@ interface OrderSummaryProps {
   items: CartItem[];
   /** Renders the line items above the totals (checkout sidebar). */
   showItems?: boolean;
+  /** Destination, once known. Absent means the rate shown is an estimate. */
+  state?: string | null;
+  shippingSettings?: ShippingSettings;
   children?: React.ReactNode;
 }
 
-export function OrderSummary({ items, showItems = false, children }: OrderSummaryProps) {
-  const { subtotal, savings, shipping, total } = cartTotals(items);
-  const away = Math.max(COMMERCE.freeShippingThreshold - subtotal, 0);
+export function OrderSummary({
+  items,
+  showItems = false,
+  state,
+  shippingSettings,
+  children,
+}: OrderSummaryProps) {
+  const { subtotal, savings, shipping, shippingQuote, total } = cartTotals(
+    items,
+    state,
+    shippingSettings,
+  );
+  const threshold = shippingSettings?.freeThreshold ?? COMMERCE.freeShippingThreshold;
+  const away = Math.max(threshold - subtotal, 0);
 
   return (
     <section
@@ -59,7 +74,18 @@ export function OrderSummary({ items, showItems = false, children }: OrderSummar
           </div>
         )}
         <div className="flex justify-between">
-          <dt className="text-on-surface-variant">Shipping</dt>
+          <dt className="text-on-surface-variant">
+            Shipping
+            {/* Named so the charge is explainable rather than arbitrary — a
+                delivery fee that appears without reason invites a refund
+                request. Absent until a state is chosen, since before that the
+                figure really is only an estimate. */}
+            {shippingQuote.zoneLabel && shipping > 0 && (
+              <span className="block text-xs text-on-surface-variant/80">
+                to {shippingQuote.zoneLabel}
+              </span>
+            )}
+          </dt>
           <dd className={shipping === 0 ? 'text-success' : 'text-on-surface'}>
             {shipping === 0 ? 'Free' : formatINR(shipping)}
           </dd>
