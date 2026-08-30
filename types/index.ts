@@ -62,6 +62,8 @@ export interface Order {
   courier_name: string | null;
   invoice_url: string | null;
   /** Frozen at the sale so a later change of registration cannot rewrite it. */
+  /** Item names a paid order could not reserve — a refund is owed. */
+  stock_shortfall: string[] | null;
   is_intra_state: boolean | null;
   place_of_supply: string | null;
   notified_whatsapp_at: string | null;

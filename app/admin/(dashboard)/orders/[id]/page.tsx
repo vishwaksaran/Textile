@@ -2,7 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { ArrowLeft, Download, Mail, MapPin, Phone, Printer } from 'lucide-react';
+import { ArrowLeft, Download, Mail, MapPin, Phone, Printer, TriangleAlert } from 'lucide-react';
 import { CodeText } from '@/components/ui/code-text';
 import { AdminHeader, AdminPage, OrderStatusBadge, PaymentStatusBadge } from '@/components/admin/ui';
 import { TrackingForm } from '@/components/admin/tracking-form';
@@ -69,6 +69,27 @@ export default async function AdminOrderPage({ params }: { params: { id: string 
           </span>
         )}
       </div>
+
+      {/* Money was taken for something that cannot be shipped, so this sits
+          above everything else on the page rather than in a status pill. */}
+      {order.stock_shortfall && order.stock_shortfall.length > 0 && (
+        <div className="mb-6 rounded-lg border-2 border-error bg-error-container/30 p-5">
+          <h2 className="mb-2 flex items-center gap-2 font-headline-md text-headline-md text-error">
+            <TriangleAlert className="h-5 w-5" strokeWidth={2} />
+            Paid, but out of stock
+          </h2>
+          <p className="font-body-md text-body-md text-on-surface">
+            This order was paid, but another customer took the last of{' '}
+            <strong>{order.stock_shortfall.join(', ')}</strong> first. Nothing was reserved
+            for it.
+          </p>
+          <p className="mt-2 font-body-md text-body-md text-on-surface">
+            Call {order.customer_name} on +91 {order.customer_phone} to offer a substitute
+            or a refund, then refund in the Razorpay dashboard if they want their money
+            back. Do not ship this order as it stands.
+          </p>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1fr_360px]">
         <div className="space-y-6">

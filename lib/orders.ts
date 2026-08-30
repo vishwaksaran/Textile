@@ -138,6 +138,7 @@ export async function createPendingOrder(input: {
       tracking_id: null,
       courier_name: null,
       invoice_url: null,
+      stock_shortfall: null,
       notified_whatsapp_at: null,
       notified_sms_at: null,
       created_at: now,

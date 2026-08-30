@@ -149,6 +149,14 @@ export function OrdersTable({ orders }: { orders: Order[] }) {
                   </td>
                   <td className="px-4 py-3">
                     <OrderStatusBadge status={order.order_status} />
+                    {order.stock_shortfall && order.stock_shortfall.length > 0 && (
+                      <span
+                        title={`Paid but out of stock: ${order.stock_shortfall.join(', ')}`}
+                        className="mt-1 block font-label-sm text-[10px] uppercase tracking-widest text-error"
+                      >
+                        Refund owed
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-3 font-body-md text-xs tabular-nums text-on-surface-variant">
                     {order.tracking_id ? (

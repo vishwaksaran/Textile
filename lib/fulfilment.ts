@@ -64,6 +64,16 @@ export async function fulfilPaidOrder(
   // revalidate window lasts.
   for (const line of lines) revalidateCatalogue({ productId: line.productId });
 
+  // decrement_stock is atomic, so of two buyers racing for the last piece
+  // exactly one wins — but the loser has already paid by the time we find
+  // out, because this runs after Razorpay captured. Record it on the order so
+  // the shop owner sees a refund is owed; previously this survived only as a
+  // field in the JSON response, which the browser threw away.
+  if (stockFailures.length > 0) {
+    console.error('[stock] paid order could not be fulfilled', { orderId, stockFailures });
+    await updateOrder(orderId, { stock_shortfall: stockFailures }).catch(() => null);
+  }
+
   // Re-read so the invoice and emails carry the payment id and joined items.
   const paid = (await getOrderWithItems(orderId))!;
 
