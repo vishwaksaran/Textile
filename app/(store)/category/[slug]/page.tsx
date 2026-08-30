@@ -23,14 +23,23 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const category = await getCategoryBySlug(params.slug);
   if (!category) return { title: 'Collection not found' };
+  // "Churidars Sarees in Coimbatore" is what the old unconditional suffix
+  // produced once a collection that is not a saree existed. A weave still
+  // wants the word — it is what people search — so it is appended only where
+  // it is true, which the nav grouping already records.
+  const isSarees = (category.nav_group ?? 'sarees') === 'sarees';
+  const title = isSarees
+    ? `${category.name} Sarees in ${STORE.address.city}`
+    : `${category.name} in ${STORE.address.city}`;
+
   return {
     alternates: { canonical: canonical(`/category/${category.slug}`) },
-    title: `${category.name} Sarees in ${STORE.address.city}`,
+    title,
     description:
       category.description ??
-      `Handwoven ${category.name} sarees at our ${STORE.address.area}, ${STORE.address.city} showroom, and shipped across India.`,
+      `Handwoven ${category.name}${isSarees ? ' sarees' : ''} at our ${STORE.address.area}, ${STORE.address.city} showroom, and shipped across India.`,
     openGraph: {
-      title: `${category.name} Sarees`,
+      title: isSarees ? `${category.name} Sarees` : category.name,
       description: category.description ?? undefined,
       images: category.image_url ? [category.image_url] : undefined,
     },
@@ -68,28 +77,45 @@ export default async function CategoryPage({
       </div>
 
       <header className="container-page pt-6">
-        <div className="relative flex min-h-[280px] items-center justify-center overflow-hidden rounded-lg md:min-h-[360px]">
-          {category.image_url && (
-            <Image
-              src={category.image_url}
-              alt=""
-              fill
-              priority
-              sizes="100vw"
-              quality={90}
-              className="object-cover"
-            />
+        <div className="relative flex min-h-[340px] items-center justify-center overflow-hidden rounded-lg md:min-h-[440px]">
+          {category.image_url ? (
+            <>
+              <Image
+                src={category.image_url}
+                alt=""
+                fill
+                priority
+                sizes="100vw"
+                quality={90}
+                className="object-cover"
+              />
+              {/* Weighted to the bottom, where the text sits, so the image is
+                  still visible at the top. A flat wash over the whole frame
+                  dulls the cloth, which is the thing being sold. */}
+              <div
+                className="absolute inset-0 bg-gradient-to-t from-deep-maroon via-deep-maroon/70 to-deep-maroon/25"
+                aria-hidden="true"
+              />
+            </>
+          ) : (
+            // No cover image yet — a flat maroon field rather than a washed-out
+            // placeholder, so the page still looks deliberate.
+            <div className="absolute inset-0 bg-deep-maroon" aria-hidden="true" />
           )}
-          <div className="absolute inset-0 bg-deep-maroon/25" aria-hidden="true" />
-          <div className="relative mx-6 max-w-2xl bg-warm-cream/90 px-6 py-8 text-center backdrop-blur-sm md:px-12 md:py-12">
-            <h1 className="mb-4 font-display-lg text-[34px] leading-tight text-deep-maroon md:text-[48px]">
+
+          <div className="relative mx-auto max-w-3xl px-6 py-12 text-center md:px-12">
+            <h1 className="font-display-lg text-[34px] leading-tight text-warm-cream drop-shadow-[0_2px_8px_rgba(0,0,0,0.45)] md:text-[52px]">
               {category.name}
             </h1>
             {category.description && (
-              <p className="font-body-md text-body-md text-on-surface-variant">
+              <p className="mx-auto mt-4 max-w-2xl font-body-lg text-body-md text-warm-cream/90 drop-shadow-[0_1px_6px_rgba(0,0,0,0.5)] md:text-body-lg">
                 {category.description}
               </p>
             )}
+            <span
+              aria-hidden="true"
+              className="mx-auto mt-8 block h-px w-24 bg-gradient-to-r from-transparent via-primary-container to-transparent"
+            />
           </div>
         </div>
       </header>

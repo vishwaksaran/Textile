@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { ProductGrid } from '@/components/store/product-grid';
 import { FilterPanel, SortControl } from '@/components/store/filter-panel';
 import { Button } from '@/components/ui/button';
-import { getCategories, getProducts } from '@/lib/data';
+import { getAvailableFabrics, getCategories, getProducts } from '@/lib/data';
 import { PER_PAGE, formatBand, parseListParams } from '@/lib/filters';
 import type { Category } from '@/types';
 
@@ -20,7 +20,7 @@ export async function ListingView({ searchParams, lockedCategory }: ListingViewP
   const parsed = parseListParams(searchParams);
   const categorySlug = lockedCategory?.slug ?? parsed.categorySlug;
 
-  const [{ products, total }, categories] = await Promise.all([
+  const [{ products, total }, categories, availableFabrics] = await Promise.all([
     getProducts({
       categorySlug,
       sort: parsed.sort,
@@ -29,9 +29,11 @@ export async function ListingView({ searchParams, lockedCategory }: ListingViewP
       inStockOnly: parsed.inStockOnly,
       discountedOnly: parsed.discountedOnly,
       search: parsed.search,
+      fabrics: parsed.fabrics,
       limit: parsed.limit,
     }),
     getCategories(),
+    getAvailableFabrics(categorySlug),
   ]);
 
   const hasMore = products.length < total;
@@ -50,6 +52,7 @@ export async function ListingView({ searchParams, lockedCategory }: ListingViewP
         categories={lockedCategory ? [] : categories}
         activeCategory={categorySlug}
         total={total}
+        availableFabrics={availableFabrics}
       />
 
       <div className="space-y-6">

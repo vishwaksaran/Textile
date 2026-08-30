@@ -1,4 +1,5 @@
 import { formatINR } from '@/lib/utils';
+import { PRODUCT_FABRICS } from '@/lib/product-options';
 import type { ProductSort } from '@/lib/data';
 
 /** Shared by the client filter UI and the server components that query. */
@@ -55,7 +56,25 @@ export function parseListParams(searchParams: Record<string, string | string[] |
     discountedOnly: get('discounted') === '1',
     categorySlug: get('category'),
     search: get('q'),
+    // Repeatable: ?fabric=Khadi+Cotton&fabric=Chanderi. Read from the raw
+    // params rather than `get`, which collapses to the first value only.
+    fabrics: parseFabrics(searchParams.fabric),
     ...priceBandFor(get('band')),
     limit: page * PER_PAGE,
   };
+}
+
+/**
+ * Only fabrics the shop actually offers reach the query.
+ *
+ * The value lands in a database `in (...)` clause and comes straight off the
+ * URL, so it is checked against the known list rather than passed through —
+ * an unknown fabric is dropped instead of being asked about.
+ */
+export function parseFabrics(value: string | string[] | undefined): string[] {
+  if (!value) return [];
+  const wanted = Array.isArray(value) ? value : [value];
+  return wanted.filter((v): v is string =>
+    (PRODUCT_FABRICS as readonly string[]).includes(v),
+  );
 }

@@ -11,13 +11,20 @@ interface FilterPanelProps {
   categories: { id: string; name: string; slug: string }[];
   activeCategory?: string;
   total: number;
+  /** Fabrics present in this listing, so the filter can never return nothing. */
+  availableFabrics?: string[];
 }
 
 /**
  * Filters live in the URL, so the server component re-renders with real data
  * and every filtered view is linkable and back-button friendly.
  */
-export function FilterPanel({ categories, activeCategory, total }: FilterPanelProps) {
+export function FilterPanel({
+  categories,
+  activeCategory,
+  total,
+  availableFabrics = [],
+}: FilterPanelProps) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -41,8 +48,27 @@ export function FilterPanel({ categories, activeCategory, total }: FilterPanelPr
     [params, pathname, router],
   );
 
+  const selectedFabrics = params.getAll('fabric');
+
   const activeCount =
-    (band ? 1 : 0) + (inStock ? 1 : 0) + (discounted ? 1 : 0) + (activeCategory ? 0 : 0);
+    (band ? 1 : 0) +
+    (inStock ? 1 : 0) +
+    (discounted ? 1 : 0) +
+    selectedFabrics.length +
+    (activeCategory ? 0 : 0);
+
+  /**
+   * Material is multi-select — a shopper may be happy with khadi or chanderi
+   * but not silk — so each fabric is its own repeated `fabric` param rather
+   * than a single value that would overwrite the last.
+   */
+  const toggleFabric = (fabric: string, checked: boolean) =>
+    update((n) => {
+      const remaining = n.getAll('fabric').filter((f) => f !== fabric);
+      n.delete('fabric');
+      for (const f of remaining) n.append('fabric', f);
+      if (checked) n.append('fabric', fabric);
+    });
 
   const body = (
     <div className="space-y-8">
@@ -51,7 +77,11 @@ export function FilterPanel({ categories, activeCategory, total }: FilterPanelPr
         {activeCount > 0 && (
           <button
             type="button"
-            onClick={() => update((n) => ['band', 'in_stock', 'discounted'].forEach((k) => n.delete(k)))}
+            onClick={() =>
+              update((n) =>
+                ['band', 'in_stock', 'discounted', 'fabric'].forEach((k) => n.delete(k)),
+              )
+            }
             className="font-label-sm text-label-sm uppercase tracking-widest text-earthy-bronze hover:text-deep-maroon"
           >
             Clear all
@@ -83,6 +113,30 @@ export function FilterPanel({ categories, activeCategory, total }: FilterPanelPr
           );
         })}
       </fieldset>
+
+      {/* Only fabrics that actually appear in this listing are offered. A
+          filter that can only ever return nothing is worse than no filter. */}
+      {availableFabrics.length > 0 && (
+        <fieldset className="space-y-3">
+          <legend className="mb-3 font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant">
+            Material
+          </legend>
+          {availableFabrics.map((fabric) => {
+            const checked = selectedFabrics.includes(fabric);
+            return (
+              <label key={fabric} className="flex cursor-pointer items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={(e) => toggleFabric(fabric, e.target.checked)}
+                  className="h-4 w-4 rounded-none border-outline-variant text-deep-maroon focus:ring-primary-container"
+                />
+                <span className="font-body-md text-sm text-on-surface">{fabric}</span>
+              </label>
+            );
+          })}
+        </fieldset>
+      )}
 
       {categories.length > 0 && (
         <fieldset className="space-y-3">
