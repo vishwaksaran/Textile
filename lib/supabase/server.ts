@@ -28,6 +28,28 @@ export const isSupabaseConfigured = Boolean(supabaseUrl && anonKey);
 export const isServiceRoleConfigured = Boolean(supabaseUrl && serviceKey);
 
 /**
+ * Supabase talks to PostgREST over `fetch`, and in the App Router that is
+ * Next's patched fetch, which caches GET responses in the server-side Data
+ * Cache. A query then keeps returning whatever it returned the first time,
+ * for every visitor, until something revalidates it.
+ *
+ * That is not theoretical: an order marked `shipped` in the admin kept
+ * reporting `processing` with a null tracking id on the public tracking page,
+ * long after the row had changed. The CDN was reporting a MISS every time —
+ * the staleness was upstream of it, in the Data Cache, so no amount of
+ * cache-busting on the request URL touched it. `dynamic = 'force-dynamic'` on
+ * the route did not save it either.
+ *
+ * Anything reading mutable state — orders, stock, admin screens — must
+ * therefore opt out explicitly. The public catalogue client deliberately does
+ * not: those rows change rarely, the storefront pages set their own
+ * `revalidate`, and checkout re-prices against the service-role client
+ * anyway, so stock can never be sold from a stale read.
+ */
+const uncachedFetch: typeof fetch = (input, init) =>
+  fetch(input, { ...init, cache: 'no-store' });
+
+/**
  * Cookie-free anon client for reading public catalogue data.
  *
  * The storefront's products and categories are public rows fetched with the
@@ -59,6 +81,8 @@ export function createServerSupabase() {
   const cookieStore = cookies();
 
   return createServerClient(supabaseUrl!, anonKey!, {
+    // Session and admin-membership checks must never come from a cache.
+    global: { fetch: uncachedFetch },
     cookies: {
       getAll() {
         return cookieStore.getAll();
@@ -84,6 +108,7 @@ export function createAdminSupabase(): SupabaseClient | null {
   if (!isServiceRoleConfigured) return null;
   return createSupabaseClient(supabaseUrl!, serviceKey!, {
     auth: { persistSession: false, autoRefreshToken: false },
+    global: { fetch: uncachedFetch },
   });
 }
 
