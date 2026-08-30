@@ -25,7 +25,7 @@ export default async function AdminOrderPage({ params }: { params: { id: string 
   const items = order.order_items ?? [];
   const subtotal = items.reduce((sum, i) => sum + Number(i.price_at_time) * i.quantity, 0);
   const shipping = Math.max(Number(order.total_amount ?? subtotal) - subtotal, 0);
-  const invoiceHref = order.invoice_url ?? `/api/invoice/${order.id}`;
+  const invoiceHref = `/api/invoice/${order.id}`;
 
   return (
     <AdminPage>

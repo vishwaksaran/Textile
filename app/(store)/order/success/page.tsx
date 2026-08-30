@@ -116,7 +116,7 @@ export default async function OrderSuccessPage({
           {paid && (
             <div className="mt-6 flex flex-col gap-3 sm:flex-row">
               <Button asChild variant="outline" className="flex-1">
-                <a href={order.invoice_url ?? `/api/invoice/${order.id}`} target="_blank" rel="noreferrer">
+                <a href={`/api/invoice/${order.id}`} target="_blank" rel="noreferrer">
                   <Download className="h-4 w-4" />
                   Download invoice
                 </a>

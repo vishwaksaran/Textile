@@ -42,7 +42,7 @@ export async function fulfilPaidOrder(
       order: existing,
       alreadyProcessed: true,
       stockFailures: [],
-      invoiceUrl: existing.invoice_url,
+      invoiceUrl: appUrl(`/api/invoice/${orderId}`),
       adminEmail: 'skipped (already processed)',
       customerEmail: 'skipped (already processed)',
       customerWhatsApp: 'skipped (already processed)',

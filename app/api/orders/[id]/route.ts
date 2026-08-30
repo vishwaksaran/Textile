@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getOrderWithItems } from '@/lib/orders';
-import { generateCourierTrackingUrl } from '@/lib/config';
+import { appUrl, generateCourierTrackingUrl } from '@/lib/config';
 import { shortOrderId } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
@@ -32,7 +32,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
           order.tracking_id && order.courier_name
             ? generateCourierTrackingUrl(order.courier_name, order.tracking_id)
             : null,
-        invoiceUrl: order.invoice_url,
+        invoiceUrl: appUrl(`/api/invoice/${order.id}`),
         createdAt: order.created_at,
         items: (order.order_items ?? []).map((item) => ({
           name: item.products?.name ?? 'Handloom piece',

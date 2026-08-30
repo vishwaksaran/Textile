@@ -117,7 +117,7 @@ export async function sendCustomerConfirmationEmail(
   const api = client();
   if (!api) return { sent: false, skipped: 'RESEND_API_KEY is not set' };
 
-  const invoiceLink = order.invoice_url ?? appUrl(`/api/invoice/${order.id}`);
+  const invoiceLink = appUrl(`/api/invoice/${order.id}`);
 
   const html = shell(
     'Order confirmed',

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { errorResponse } from '@/lib/admin-api';
 import { getOrderWithItems, updateOrder } from '@/lib/orders';
-import { generateCourierTrackingUrl } from '@/lib/config';
+import { appUrl, generateCourierTrackingUrl } from '@/lib/config';
 import { sendWhatsAppTracking } from '@/lib/notifications/whatsapp';
 import { sendSmsTracking } from '@/lib/notifications/sms';
 import { sendShippedEmail } from '@/lib/notifications/email';
@@ -63,7 +63,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
         trackingId,
         courierName,
         trackingUrl,
-        invoiceUrl: order.invoice_url,
+        invoiceUrl: appUrl(`/api/invoice/${order.id}`),
       }),
       sendSmsTracking({
         phone: order.customer_phone,
