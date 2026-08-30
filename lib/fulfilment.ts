@@ -1,6 +1,7 @@
 import 'server-only';
 
 import { buildInvoicePdf, uploadInvoice } from '@/lib/invoice';
+import { taxForOrder } from '@/lib/tax-settings';
 import { sendAdminOrderEmail, sendCustomerConfirmationEmail } from '@/lib/notifications/email';
 import { sendWhatsAppOrderConfirmation } from '@/lib/notifications/whatsapp';
 import { sendSmsConfirmation } from '@/lib/notifications/sms';
@@ -60,18 +61,23 @@ export async function fulfilPaidOrder(
   // Re-read so the invoice and emails carry the payment id and joined items.
   const paid = (await getOrderWithItems(orderId))!;
 
-  let invoiceUrl: string | null = null;
   let pdf: Uint8Array | undefined;
   try {
-    pdf = buildInvoicePdf(paid);
-    invoiceUrl = await uploadInvoice(paid, pdf);
+    pdf = buildInvoicePdf(paid, await taxForOrder(paid));
+    // Archive only. Nothing customer-facing points at the stored copy.
+    await uploadInvoice(paid, pdf);
   } catch {
     // A failed invoice must never lose a paid order; /api/invoice/[id]
     // regenerates it on demand.
   }
 
-  // Always store a working link, even when Storage is unavailable.
-  const resolvedInvoiceUrl = invoiceUrl ?? appUrl(`/api/invoice/${orderId}`);
+  // The link handed to customers is always the app route, never the Storage
+  // URL. A stored object can be deleted, moved or expire — and when that
+  // happened here, five orders were left pointing at a 400 while the invoice
+  // itself was still perfectly reproducible. The route re-renders from the
+  // order row, which outlives any file, and it always reflects the current
+  // tax settings rather than whatever was frozen into an old PDF.
+  const resolvedInvoiceUrl = appUrl(`/api/invoice/${orderId}`);
   await updateOrder(orderId, { invoice_url: resolvedInvoiceUrl });
 
   const withInvoice = { ...paid, invoice_url: resolvedInvoiceUrl };
