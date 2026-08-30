@@ -3,7 +3,8 @@
 import * as React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Home, Layers, Shirt, ShoppingBag, Truck } from 'lucide-react';
+import { Home, ShoppingBag, Truck } from 'lucide-react';
+import { ChuridarIcon, SareeIcon } from '@/components/store/garment-icons';
 import { useCartStore, selectCount } from '@/stores/cart-store';
 import { splitNavCategories } from '@/lib/nav';
 import { cn } from '@/lib/utils';
@@ -23,10 +24,8 @@ const tabClass =
  * rather than a hardcoded slug, so a shop that renames Churidars, or leads
  * with a different collection, gets the right tab without a code change.
  *
- * On the icons: `Shirt` is a stitched-top silhouette, which is right for a
- * churidar and was wrong for a saree — a saree is an unstitched length of
- * cloth, and it used to carry that T-shirt. `Layers` reads as folded cloth
- * stacked on a shelf, which is how a saree shop actually presents them.
+ * The garment icons are drawn in `garment-icons.tsx` rather than installed:
+ * no icon set has a saree, and the only ones that ship a "sari" are emoji.
  */
 export function MobileNav({ categories = [] }: { categories?: Category[] }) {
   const pathname = usePathname();
@@ -68,7 +67,7 @@ export function MobileNav({ categories = [] }: { categories?: Category[] }) {
         aria-current={onSarees ? 'page' : undefined}
         className={cn(tabClass, onSarees ? 'text-deep-maroon' : 'text-on-surface-variant')}
       >
-        <Layers className="h-5 w-5" strokeWidth={1.5} />
+        <SareeIcon />
         Sarees
       </Link>
 
@@ -81,7 +80,7 @@ export function MobileNav({ categories = [] }: { categories?: Category[] }) {
             pathname === garmentHref ? 'text-deep-maroon' : 'text-on-surface-variant',
           )}
         >
-          <Shirt className="h-5 w-5" strokeWidth={1.5} />
+          <ChuridarIcon />
           {garment.name}
         </Link>
       )}
