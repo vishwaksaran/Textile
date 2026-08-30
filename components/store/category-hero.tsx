@@ -55,7 +55,9 @@ export function CategoryHero({
       // reaches the top of the screen. Clamped so an over-scroll cannot push
       // the image past the headroom it has.
       const progress = Math.min(Math.max(-rect.top / rect.height, 0), 1);
-      image.style.transform = `translate3d(0, ${(progress * 12).toFixed(2)}%, 0)`;
+      // Travel stays inside the 8% headroom above and below, so the frame can
+      // never expose an edge.
+      image.style.transform = `translate3d(0, ${(progress * 7).toFixed(2)}%, 0)`;
     };
 
     const onScroll = () => {
@@ -82,9 +84,16 @@ export function CategoryHero({
         <>
           <div
             ref={imageRef}
-            // Taller than the frame and lifted, to give the parallax somewhere
-            // to travel. will-change keeps it on its own compositor layer.
-            className="absolute inset-x-0 -top-[15%] h-[130%] will-change-transform"
+            /*
+              Only 16% taller than the frame, not 30%.
+              `object-cover` scales the image to fill this box, so every extra
+              percent of headroom is a percent the picture is enlarged and
+              therefore cropped — at 130% the subject was being pushed out of
+              frame just to buy travel nobody asked for. 8% above and below is
+              enough for the movement to read, and keeps the crop close to
+              what the photograph actually is.
+            */
+            className="absolute inset-x-0 -top-[8%] h-[116%] will-change-transform"
           >
             <Image
               src={imageUrl}
@@ -93,7 +102,9 @@ export function CategoryHero({
               priority
               sizes="100vw"
               quality={90}
-              className="object-cover"
+              // True centre, both axes: with the over-scale gone this holds
+              // the middle of the photograph in the middle of the header.
+              className="object-cover object-center"
             />
           </div>
           {/* Graded, not a flat wash: the cloth stays readable at the top

@@ -40,11 +40,11 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: 'Can I return a saree if it is not what I expected?',
-    a: 'No — we do not accept returns for size, style or preference, because each piece is one of a kind. We exchange defective pieces only: message us on WhatsApp within three working days of delivery with your order ID and an unedited video of the parcel being opened, showing the fault. Ask us for extra photographs or a video before you order and we will send them, which is far better than an exchange afterwards.',
+    a: 'No — we do not accept returns for size, style or preference, because each piece is one of a kind. We exchange defective pieces only, and the exchange is done in person at our Town Hall shop: bring the piece within 3 days of delivery, with its tags, your order ID, and an unedited video of the parcel being opened showing the fault. Exchanges cannot be completed by post or online. Ask us for extra photographs or a video before you order and we will send them, which is far better than an exchange afterwards.',
   },
   {
     q: 'Why do you need a video to accept an exchange?',
-    a: 'A saree can be damaged in transit, and the unboxing video is the only thing that shows the condition it reached you in. Without it we cannot raise a claim with the courier. Start recording before you cut the packaging and keep filming in one take until the piece is unfolded and the fault is visible.',
+    a: 'A saree can be damaged in transit, and the unboxing video is the only thing that shows the condition it reached you in. Without it we cannot raise a claim with the courier. Start recording before you cut the packaging and keep filming in one take until the piece is unfolded and the fault is visible. The same video is required for a cancellation claim, so record it every time, even when nothing looks wrong.',
   },
   {
     q: 'How do I track my order?',

@@ -1,13 +1,13 @@
 import type { Metadata } from 'next';
 import { ProsePage } from '@/components/store/prose-page';
-import { STORE, whatsappUrl } from '@/lib/config';
+import { STORE, storeAddressOneLine, storeHoursLines, whatsappUrl } from '@/lib/config';
 import { canonical } from '@/lib/seo';
 
 export const metadata: Metadata = {
   alternates: { canonical: canonical('/returns') },
   title: 'Return & Exchange Policy',
   description:
-    'Exchanges for defective pieces only, raised on WhatsApp within 3 working days of delivery, with an unboxing video.',
+    'Exchanges for defective pieces only, brought to our Town Hall shop within 3 days of delivery, with an unboxing video.',
 };
 
 export default function ReturnsPage() {
@@ -62,26 +62,30 @@ export default function ReturnsPage() {
         have no way to raise a claim with the courier, and we cannot process the exchange.
       </p>
 
-      <h2>How to raise it — WhatsApp only</h2>
+      <h2>Exchanges are done at the shop</h2>
       <p>
         <strong>
-          Exchanges are handled entirely on <a href={whatsappUrl()}>WhatsApp</a>, on{' '}
-          {STORE.phone}.
+          An exchange has to be brought to us in person. It cannot be completed by post or
+          online.
         </strong>{' '}
-        Not by email, and not through a form on this site — so that a real person sees the
-        video and the piece, and can answer you the same day.
+        We need to see the cloth and the fault ourselves — a weaving fault is often
+        something you have to hold up to the light, and no photograph settles it.
       </p>
-      <p>Send us, in one message:</p>
+      <p>Bring with you:</p>
       <ul>
-        <li>Your order ID, from your invoice or the confirmation message.</li>
-        <li>The unboxing video, unedited.</li>
-        <li>A photograph of the fault in daylight.</li>
+        <li>The piece, unworn and unwashed, with its tags and authenticity card.</li>
+        <li>Your order ID, from the invoice or the confirmation message.</li>
+        <li>The unboxing video, unedited, on your phone.</li>
       </ul>
       <p>
-        We reply with a reverse pickup where the courier serves your pincode, and a prepaid
-        label everywhere else. Once the piece reaches us and the fault is confirmed, we send
-        the replacement, or refund through Razorpay to the method you paid with if no
-        replacement is available. Banks typically take five to seven working days after that.
+        We are at {storeAddressOneLine()}, {storeHoursLines().join(', ')}.{' '}
+        <a href={whatsappUrl()}>Message us on WhatsApp</a> or call {STORE.phone} first, so we
+        can have someone ready for you and confirm the piece is within the 3-day window.
+      </p>
+      <p>
+        Where the fault is confirmed and no replacement is available, we refund through
+        Razorpay to the method you paid with. Banks typically take five to seven working days
+        after that.
       </p>
 
       <h2>Handloom is not uniform</h2>

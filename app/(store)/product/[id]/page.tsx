@@ -4,6 +4,7 @@ import { Truck, ShieldCheck, RotateCcw, type LucideIcon } from 'lucide-react';
 import { Breadcrumbs } from '@/components/store/breadcrumbs';
 import { ImageGallery } from '@/components/store/image-gallery';
 import { AddToCart } from '@/components/store/add-to-cart';
+import { ProductPolicyNote } from '@/components/store/product-policy-note';
 import { StickyBuyBar } from '@/components/store/sticky-buy-bar';
 import { RelatedCarousel } from '@/components/store/related-carousel';
 import { Badge } from '@/components/ui/badge';
@@ -190,9 +191,11 @@ export default async function ProductPage({ params }: { params: { id: string } }
             <Assurance
               Icon={RotateCcw}
               title="3-day exchange"
-              body="Defective pieces only, on WhatsApp."
+              body="Defective pieces only, at the shop."
             />
           </ul>
+
+          <ProductPolicyNote />
         </div>
       </div>
 
