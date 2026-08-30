@@ -9,7 +9,22 @@ const apiKey = process.env.RESEND_API_KEY;
 export const isEmailConfigured = Boolean(apiKey);
 
 const FROM = envOr(process.env.RESEND_FROM, `${STORE.name} <onboarding@resend.dev>`);
-const ADMIN_TO = process.env.ADMIN_EMAIL;
+
+/**
+ * Where a "new order" alert goes. Private — this is never published.
+ *
+ * Accepts a comma-separated list so the shop and whoever packs the parcels
+ * can both be told without anyone having to forward anything.
+ *
+ * Falls back to ADMIN_EMAIL, which is what this used before the public and
+ * private addresses were split apart.
+ */
+const ORDER_ALERT_TO = envOr(process.env.ORDER_ALERT_EMAIL, envOr(process.env.ADMIN_EMAIL, ''))
+  .split(',')
+  .map((address) => address.trim())
+  .filter(Boolean);
+
+export const isOrderAlertConfigured = Boolean(apiKey) && ORDER_ALERT_TO.length > 0;
 
 let resend: Resend | null = null;
 function client(): Resend | null {
@@ -73,11 +88,29 @@ function shell(title: string, inner: string): string {
 export async function sendAdminOrderEmail(order: Order): Promise<EmailResult> {
   const api = client();
   if (!api) return { sent: false, skipped: 'RESEND_API_KEY is not set' };
-  if (!ADMIN_TO) return { sent: false, skipped: 'ADMIN_EMAIL is not set' };
+  if (ORDER_ALERT_TO.length === 0) {
+    return { sent: false, skipped: 'ORDER_ALERT_EMAIL is not set' };
+  }
+
+  // The one thing that must not wait until someone opens the admin: money was
+  // taken for something that cannot be shipped, so it leads the email.
+  const shortfall = order.stock_shortfall ?? [];
+  const shortfallBanner =
+    shortfall.length === 0
+      ? ''
+      : `<div style="border:2px solid #b3261e;background:#fceeed;padding:16px;margin:0 0 20px;">
+           <p style="font-family:Georgia,serif;font-size:16px;color:#b3261e;margin:0 0 8px;">Paid, but out of stock</p>
+           <p style="font-size:13px;color:#1f1b13;line-height:1.6;margin:0;">
+             Another customer took the last of <strong>${shortfall.join(', ')}</strong> first.
+             Call ${order.customer_name} on ${order.customer_phone} to offer a substitute or a
+             refund. Do not ship this order as it stands.
+           </p>
+         </div>`;
 
   const html = shell(
-    'New order received',
-    `<h1 style="font-family:Georgia,serif;font-size:20px;color:#4A0404;margin:0 0 16px;">Order ${shortOrderId(order.id)}</h1>
+    shortfall.length > 0 ? 'Order needs attention' : 'New order received',
+    `${shortfallBanner}
+     <h1 style="font-family:Georgia,serif;font-size:20px;color:#4A0404;margin:0 0 16px;">Order ${shortOrderId(order.id)}</h1>
      <p style="font-size:14px;color:#4d4635;line-height:1.6;margin:0 0 20px;">
        <strong style="color:#1f1b13;">${order.customer_name}</strong><br/>
        ${order.customer_phone} · ${order.customer_email}<br/>
@@ -98,8 +131,13 @@ export async function sendAdminOrderEmail(order: Order): Promise<EmailResult> {
   try {
     const { data, error } = await api.emails.send({
       from: FROM,
-      to: ADMIN_TO,
-      subject: `New order received — #${shortOrderId(order.id)} · ${money(Number(order.total_amount))}`,
+      to: ORDER_ALERT_TO,
+      // Everything needed to triage from a phone lock screen: what, how much,
+      // and where it is going.
+      subject:
+        shortfall.length > 0
+          ? `ACTION NEEDED — order #${shortOrderId(order.id)} paid but out of stock`
+          : `New order #${shortOrderId(order.id)} — ${money(Number(order.total_amount))} to ${order.customer_city ?? order.customer_state ?? 'India'}`,
       html,
     });
     if (error) return { sent: false, error: error.message };

@@ -29,7 +29,16 @@ const DIM = (s) => `\x1b[2m${s}\x1b[0m`;
 
 const apiKey = process.env.RESEND_API_KEY?.trim();
 const from = process.env.RESEND_FROM?.trim();
-const to = (process.argv[2] ?? process.env.ADMIN_EMAIL ?? '').trim();
+// Same resolution order the app uses, so a passing test means the real
+// alerts will land in the same inbox.
+const to = (
+  process.argv[2] ??
+  process.env.ORDER_ALERT_EMAIL ??
+  process.env.ADMIN_EMAIL ??
+  ''
+)
+  .split(',')[0]
+  .trim();
 
 if (!apiKey) {
   console.error(`\n${RED('✗')} RESEND_API_KEY is not set in .env.local.`);
@@ -42,7 +51,7 @@ if (!from) {
   process.exit(1);
 }
 if (!to) {
-  console.error(`\n${RED('✗')} No recipient. Pass one, or set ADMIN_EMAIL.`);
+  console.error(`\n${RED('✗')} No recipient. Pass one, or set ORDER_ALERT_EMAIL.`);
   console.error(DIM('  npm run email:test -- you@yourstore.com\n'));
   process.exit(1);
 }

@@ -25,7 +25,16 @@ export const STORE = {
   name: 'Sri Laxmi Silks',
   tagline: 'Quality. Value. Trust.',
   legalName: 'Sri Laxmi Silks Coimbatore',
-  email: envOr(process.env.ADMIN_EMAIL, 'orders@srilaxmisilks.com'),
+  /**
+   * The shop's PUBLIC address — printed in email footers and published in the
+   * Organization structured data that Google reads.
+   *
+   * Deliberately not ADMIN_EMAIL, which it used to read. That variable is the
+   * private inbox where order alerts land, so pointing it at a personal
+   * mailbox to receive notifications also published that mailbox on the site
+   * and in structured data. Two different jobs, two different variables.
+   */
+  email: envOr(process.env.STORE_PUBLIC_EMAIL, 'orders@srilaxmisilks.com'),
   phone: '+91 97894 67448',
   gstin: '33ABUPR0570R1ZT',
 
