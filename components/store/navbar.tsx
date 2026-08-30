@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronDown, Menu, Package, Search, Sparkles, X } from 'lucide-react';
 import { STORE } from '@/lib/config';
+import { splitNavCategories } from '@/lib/nav';
 import { cn } from '@/lib/utils';
 import { LogoMark } from '@/components/store/logo';
 import { CartButton } from '@/components/store/cart-button';
@@ -40,7 +41,16 @@ export function Navbar({ categories }: { categories: Category[] }) {
     };
   }, [mobileOpen]);
 
-  const onSarees = pathname.startsWith('/category') || pathname === '/collections';
+  const { sarees, standalone } = React.useMemo(
+    () => splitNavCategories(categories),
+    [categories],
+  );
+
+  // The dropdown highlights for its own weaves only — a standalone collection
+  // lights its own item instead, so two things are never active at once.
+  const onSarees =
+    pathname === '/collections' ||
+    sarees.some((c) => pathname === `/category/${c.slug}`);
 
   return (
     <>
@@ -63,7 +73,30 @@ export function Navbar({ categories }: { categories: Category[] }) {
           </Link>
 
           <nav aria-label="Primary" className="flex items-center gap-7">
-            <SareesMenu categories={categories} active={onSarees} />
+            <SareesMenu categories={sarees} active={onSarees} />
+
+            {/* Collections that are not sarees get their own item. Listing a
+                churidar inside a "Sarees" menu is not somewhere a customer
+                would think to look. */}
+            {standalone.map((category) => {
+              const href = `/category/${category.slug}`;
+              const isActive = pathname === href;
+              return (
+                <Link
+                  key={category.id}
+                  href={href}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={cn(
+                    navItemClass,
+                    isActive
+                      ? 'border-primary-container font-bold text-deep-maroon'
+                      : 'border-transparent text-on-surface-variant hover:text-deep-maroon',
+                  )}
+                >
+                  {category.name}
+                </Link>
+              );
+            })}
 
             <button
               type="button"
@@ -158,7 +191,18 @@ export function Navbar({ categories }: { categories: Category[] }) {
             </div>
 
             <nav className="px-margin-mobile pb-16 pt-4" aria-label="Mobile">
-              <MobileSarees categories={categories} />
+              <MobileSarees categories={sarees} />
+
+              {/* Peers of the Sarees group, not children of it. */}
+              {standalone.map((category) => (
+                <Link
+                  key={category.id}
+                  href={`/category/${category.slug}`}
+                  className="flex items-center justify-between border-b border-outline-variant/40 py-4 font-headline-md text-headline-md text-deep-maroon"
+                >
+                  {category.name}
+                </Link>
+              ))}
 
               <ul className="mt-2 space-y-1">
                 <li>

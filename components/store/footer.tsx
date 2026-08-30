@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { STORE, storeAddressLines, storeHoursLines } from '@/lib/config';
+import { splitNavCategories } from '@/lib/nav';
 import { isValidEmail } from '@/lib/utils';
 import { LogoMark } from '@/components/store/logo';
 import type { Category } from '@/types';
@@ -27,6 +28,10 @@ const CARE = [
 
 export function Footer({ categories = [] }: { categories?: Category[] }) {
   const [email, setEmail] = React.useState('');
+  const { sarees, standalone } = React.useMemo(
+    () => splitNavCategories(categories),
+    [categories],
+  );
 
   function subscribe(e: React.FormEvent) {
     e.preventDefault();
@@ -61,10 +66,14 @@ export function Footer({ categories = [] }: { categories?: Category[] }) {
           </p>
         </div>
 
+        {/* Weaves and other garments are listed apart here for the same reason
+            they are in the nav: "Shop by Weave" is not where anyone looks for
+            unstitched churidar material. */}
         <FooterColumn
           title="Shop by Weave"
           links={[
-            ...categories.map((c) => ({ href: `/category/${c.slug}`, label: c.name })),
+            ...sarees.map((c) => ({ href: `/category/${c.slug}`, label: c.name })),
+            ...standalone.map((c) => ({ href: `/category/${c.slug}`, label: c.name })),
             { href: '/collections', label: 'All Collections' },
           ]}
         />

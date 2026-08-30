@@ -7,7 +7,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Field, Input, Textarea } from '@/components/ui/input';
+import { Field, Input, Select, Textarea } from '@/components/ui/input';
+import type { CategoryNavGroup } from '@/types';
 import {
   Dialog,
   DialogContent,
@@ -29,11 +30,19 @@ interface Draft {
   slug: string;
   description: string;
   image_url: string | null;
+  nav_group: CategoryNavGroup;
   /** Set once the slug is edited by hand, so it stops tracking the name. */
   slugTouched: boolean;
 }
 
-const BLANK: Draft = { name: '', slug: '', description: '', image_url: null, slugTouched: false };
+const BLANK: Draft = {
+  name: '',
+  slug: '',
+  description: '',
+  image_url: null,
+  nav_group: 'sarees',
+  slugTouched: false,
+};
 const PER_PAGE = 8;
 
 export function CategoriesManager({ categories }: { categories: CategoryRow[] }) {
@@ -96,6 +105,7 @@ export function CategoriesManager({ categories }: { categories: CategoryRow[] })
       slug: category.slug,
       description: category.description ?? '',
       image_url: category.image_url,
+      nav_group: category.nav_group ?? 'sarees',
       slugTouched: true,
     });
   }
@@ -120,6 +130,7 @@ export function CategoriesManager({ categories }: { categories: CategoryRow[] })
             slug: draft.slug || slugify(draft.name),
             description: draft.description.trim() || null,
             image_url: draft.image_url,
+            nav_group: draft.nav_group,
           }),
         },
       );
@@ -390,6 +401,30 @@ export function CategoriesManager({ categories }: { categories: CategoryRow[] })
                   value={draft.description}
                   onChange={(e) => setDraft({ ...draft, description: e.target.value })}
                 />
+              </Field>
+
+              <Field
+                label="Where it appears in the menu"
+                htmlFor="category-nav-group"
+                hint={
+                  draft.nav_group === 'sarees'
+                    ? 'Inside the Sarees dropdown — right for a weave.'
+                    : draft.nav_group === 'standalone'
+                      ? 'Its own item in the top menu — right for a different garment, like churidars.'
+                      : 'Not in the menu. Still reachable by its link and by search.'
+                }
+              >
+                <Select
+                  id="category-nav-group"
+                  value={draft.nav_group}
+                  onChange={(e) =>
+                    setDraft({ ...draft, nav_group: e.target.value as CategoryNavGroup })
+                  }
+                >
+                  <option value="sarees">Under Sarees</option>
+                  <option value="standalone">Its own menu item</option>
+                  <option value="hidden">Hidden from the menu</option>
+                </Select>
               </Field>
 
               <ImageUploader

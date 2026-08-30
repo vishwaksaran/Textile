@@ -34,6 +34,11 @@ export async function POST(request: Request) {
       slug: slugify(String(body.slug || body.name || '')),
       description: body.description ?? null,
       image_url: body.image_url ?? null,
+      // Only the three known placements; anything else falls back to the
+      // dropdown, which is where a weave belongs.
+      nav_group: ['sarees', 'standalone', 'hidden'].includes(body.nav_group)
+        ? body.nav_group
+        : 'sarees',
     };
 
     const validation = validateCategory(payload);

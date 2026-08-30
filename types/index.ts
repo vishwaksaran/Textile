@@ -1,12 +1,18 @@
 export type PaymentStatus = 'pending' | 'paid' | 'failed';
 export type OrderStatus = 'processing' | 'shipped' | 'delivered' | 'cancelled';
 
+export type CategoryNavGroup = 'sarees' | 'standalone' | 'hidden';
+
 export interface Category {
   id: string;
   name: string;
   slug: string;
   description: string | null;
   image_url: string | null;
+  /** Where this collection appears in the main navigation. */
+  nav_group: CategoryNavGroup;
+  /** Lower sorts first within its nav group; ties fall back to name. */
+  sort_order: number;
   created_at: string;
 }
 
