@@ -8,6 +8,7 @@ import { sendSmsConfirmation } from '@/lib/notifications/sms';
 import { formatINR } from '@/lib/utils';
 import { shortOrderId } from '@/lib/utils';
 import { commitStock, getOrderWithItems, linesForOrder, updateOrder } from '@/lib/orders';
+import { revalidateCatalogue } from '@/lib/revalidate';
 import { appUrl } from '@/lib/config';
 import type { Order } from '@/types';
 
@@ -57,6 +58,11 @@ export async function fulfilPaidOrder(
 
   const lines = await linesForOrder(orderId);
   const stockFailures = await commitStock(lines);
+
+  // A sale is the other way stock moves. Without this the listing keeps
+  // offering a piece that has just been bought, for as long as the page's
+  // revalidate window lasts.
+  for (const line of lines) revalidateCatalogue({ productId: line.productId });
 
   // Re-read so the invoice and emails carry the payment id and joined items.
   const paid = (await getOrderWithItems(orderId))!;

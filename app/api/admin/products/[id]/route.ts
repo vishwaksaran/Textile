@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
+import { revalidateCatalogue } from '@/lib/revalidate';
 import { errorResponse, validateProduct } from '@/lib/admin-api';
 import { requireAdminSupabase } from '@/lib/supabase/server';
 
@@ -19,6 +20,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
 
     if (error) throw new Error(error.message);
     if (!data) return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+
     return NextResponse.json({ product: data });
   } catch (err) {
     return errorResponse(err);
@@ -60,6 +62,11 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       .single();
 
     if (error) throw new Error(error.message);
+    revalidateCatalogue({
+      productId: params.id,
+      categorySlug: (data as { categories?: { slug?: string } })?.categories?.slug,
+    });
+
     return NextResponse.json({ product: data });
   } catch (err) {
     return errorResponse(err);
@@ -84,11 +91,13 @@ export async function DELETE(_request: Request, { params }: { params: { id: stri
         .update({ is_active: false })
         .eq('id', params.id);
       if (error) throw new Error(error.message);
+      revalidateCatalogue({ productId: params.id });
       return NextResponse.json({ deleted: false, deactivated: true });
     }
 
     const { error } = await supabase.from('products').delete().eq('id', params.id);
     if (error) throw new Error(error.message);
+    revalidateCatalogue({ productId: params.id });
     return NextResponse.json({ deleted: true });
   } catch (err) {
     return errorResponse(err);

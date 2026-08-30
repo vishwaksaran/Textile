@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
+import { revalidateCatalogue } from '@/lib/revalidate';
 import { errorResponse, validateCategory } from '@/lib/admin-api';
 import { requireAdminSupabase } from '@/lib/supabase/server';
 import { slugify } from '@/lib/utils';
@@ -33,6 +34,9 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       const message = error.code === '23505' ? 'That slug is already in use.' : error.message;
       return NextResponse.json({ error: message }, { status: 400 });
     }
+    // Categories drive the storefront nav and the collection listings.
+    revalidateCatalogue();
+
     return NextResponse.json({ category: data });
   } catch (err) {
     return errorResponse(err);

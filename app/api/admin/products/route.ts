@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
+import { revalidateCatalogue } from '@/lib/revalidate';
 import { errorResponse, validateProduct } from '@/lib/admin-api';
 import { requireAdminSupabase } from '@/lib/supabase/server';
 
@@ -67,6 +68,13 @@ export async function POST(request: Request) {
       .single();
 
     if (error) throw new Error(error.message);
+    // The storefront caches for minutes; clear it so a new piece is visible
+    // the moment it is saved rather than whenever the window happens to lapse.
+    revalidateCatalogue({
+      productId: data?.id,
+      categorySlug: (data as { categories?: { slug?: string } })?.categories?.slug,
+    });
+
     return NextResponse.json({ product: data }, { status: 201 });
   } catch (err) {
     return errorResponse(err);
