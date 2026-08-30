@@ -1,5 +1,10 @@
 import { NextResponse } from 'next/server';
-import { isRazorpayConfigured, verifyPaymentSignature } from '@/lib/razorpay';
+import {
+  confirmPaymentCaptured,
+  isRazorpayConfigured,
+  toPaise,
+  verifyPaymentSignature,
+} from '@/lib/razorpay';
 import { getOrderByRazorpayOrderId, updateOrder } from '@/lib/orders';
 import { fulfilPaidOrder } from '@/lib/fulfilment';
 
@@ -61,6 +66,49 @@ export async function POST(request: Request) {
       console.error('[razorpay] signature mismatch', { rzpOrderId, paymentId });
       return NextResponse.json(
         { error: 'Payment could not be verified.' },
+        { status: 400 },
+      );
+    }
+  }
+
+  // The signature proves the response was not forged. It does not prove the
+  // money moved — a payment can carry a valid signature while sitting
+  // authorised, or after a retry that never completed. Ask Razorpay what
+  // actually happened before treating the shop as paid, because everything
+  // downstream is irreversible in the customer's eyes: stock is committed, an
+  // invoice is issued and a receipt goes out over WhatsApp.
+  if (!isDemo) {
+    const outcome = await confirmPaymentCaptured({
+      paymentId,
+      expectedOrderId: rzpOrderId,
+      expectedAmountPaise: toPaise(Number(order.total_amount)),
+    }).catch((err) => {
+      console.error('[razorpay] could not confirm payment state', err);
+      return null;
+    });
+
+    if (!outcome) {
+      // Reaching Razorpay failed. Do not fulfil on an assumption, and do not
+      // mark the order failed either — the payment may well be good.
+      return NextResponse.json(
+        {
+          error:
+            'We could not confirm that payment with the bank. Do not pay again — we will check and contact you.',
+        },
+        { status: 503 },
+      );
+    }
+
+    if (!outcome.captured) {
+      await updateOrder(order.id, { payment_status: 'failed' }).catch(() => null);
+      console.warn('[razorpay] payment not captured', {
+        rzpOrderId,
+        paymentId,
+        status: outcome.status,
+        reason: outcome.reason,
+      });
+      return NextResponse.json(
+        { error: 'That payment did not complete. Please try again.' },
         { status: 400 },
       );
     }

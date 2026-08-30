@@ -64,3 +64,76 @@ export function verifyWebhookSignature(rawBody: string, signature: string): bool
   const b = Buffer.from(signature, 'utf8');
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 }
+
+export interface CapturedPayment {
+  captured: true;
+  amountPaise: number;
+  method?: string;
+}
+
+export interface UncapturedPayment {
+  captured: false;
+  /** Razorpay's own status: created, authorized, failed, refunded… */
+  status: string;
+  reason: string;
+}
+
+/**
+ * Asks Razorpay what actually happened to a payment.
+ *
+ * The checkout signature proves the browser's response was not forged. It
+ * does NOT prove money moved: a payment can be signed and still sit in
+ * `authorized` without ever being captured, and a retry after a failure can
+ * leave a reference that verifies but was never paid. Confirming the state
+ * from the server, against the amount and order we expect, is the only thing
+ * that establishes the shop has actually been paid.
+ */
+export async function confirmPaymentCaptured({
+  paymentId,
+  expectedOrderId,
+  expectedAmountPaise,
+}: {
+  paymentId: string;
+  expectedOrderId: string;
+  expectedAmountPaise: number;
+}): Promise<CapturedPayment | UncapturedPayment> {
+  const payment = (await razorpay().payments.fetch(paymentId)) as unknown as {
+    status?: string;
+    amount?: number | string;
+    order_id?: string;
+    method?: string;
+    error_description?: string;
+  };
+
+  const status = String(payment.status ?? 'unknown');
+
+  if (payment.order_id !== expectedOrderId) {
+    return {
+      captured: false,
+      status,
+      reason: `Payment belongs to a different order (${payment.order_id ?? 'none'}).`,
+    };
+  }
+
+  if (status !== 'captured') {
+    return {
+      captured: false,
+      status,
+      reason:
+        status === 'authorized'
+          ? 'Payment is authorised but not captured, so no money has been taken.'
+          : payment.error_description ?? `Payment is in state "${status}".`,
+    };
+  }
+
+  const amountPaise = Number(payment.amount ?? 0);
+  if (amountPaise !== expectedAmountPaise) {
+    return {
+      captured: false,
+      status,
+      reason: `Amount paid (${amountPaise}) does not match the order (${expectedAmountPaise}).`,
+    };
+  }
+
+  return { captured: true, amountPaise, method: payment.method };
+}

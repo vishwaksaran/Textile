@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { verifyWebhookSignature } from '@/lib/razorpay';
+import { toPaise, verifyWebhookSignature } from '@/lib/razorpay';
 import { getOrderByRazorpayOrderId, updateOrder } from '@/lib/orders';
 import { fulfilPaidOrder } from '@/lib/fulfilment';
 
@@ -23,7 +23,17 @@ export async function POST(request: Request) {
 
   let event: {
     event?: string;
-    payload?: { payment?: { entity?: { id?: string; order_id?: string; error_description?: string } } };
+    payload?: {
+      payment?: {
+        entity?: {
+          id?: string;
+          order_id?: string;
+          status?: string;
+          amount?: number | string;
+          error_description?: string;
+        };
+      };
+    };
   };
   try {
     event = JSON.parse(raw);
@@ -47,6 +57,25 @@ export async function POST(request: Request) {
   }
 
   if (event.event === 'payment.captured' || event.event === 'order.paid') {
+    // Trust the event name for nothing. The payload states the payment's own
+    // status and amount, and both have to agree with the order before the
+    // shop treats itself as paid — the same bar the browser path has to clear.
+    const status = String(payment.status ?? '');
+    if (status !== 'captured') {
+      return NextResponse.json({ received: true, ignored: `status ${status || 'unknown'}` });
+    }
+
+    const paid = Number(payment.amount ?? 0);
+    const expected = toPaise(Number(order.total_amount));
+    if (paid !== expected) {
+      console.error('[razorpay] webhook amount mismatch', {
+        orderId: order.id,
+        paid,
+        expected,
+      });
+      return NextResponse.json({ received: true, ignored: 'amount mismatch' });
+    }
+
     const report = await fulfilPaidOrder(order.id, payment.id);
     return NextResponse.json({
       received: true,
