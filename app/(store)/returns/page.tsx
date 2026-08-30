@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { ProsePage } from '@/components/store/prose-page';
-import { STORE } from '@/lib/config';
+import { STORE, whatsappUrl } from '@/lib/config';
 import { canonical } from '@/lib/seo';
 
 export const metadata: Metadata = {
@@ -39,8 +39,8 @@ export default function ReturnsPage() {
 
       <h2>How to start a return</h2>
       <p>
-        Write to <a href={`mailto:${STORE.email}`}>{STORE.email}</a> or WhatsApp us on{' '}
-        {STORE.phone} with your order ID and a photograph. We arrange a reverse pickup where the
+        <a href={whatsappUrl()}>WhatsApp us</a> on {STORE.phone}, or call, with your order ID and a
+        photograph. We arrange a reverse pickup where the
         courier serves your pincode, and share a prepaid label everywhere else.
       </p>
 

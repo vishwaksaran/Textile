@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AnimatedPage } from '@/components/shared/motion';
 import { getOrderWithItems } from '@/lib/orders';
-import { STORE } from '@/lib/config';
+import { STORE, whatsappUrl } from '@/lib/config';
 import { formatDate, formatINR, shortOrderId } from '@/lib/utils';
 import { OrderIdCard } from '@/components/store/order-id-card';
 
@@ -142,9 +142,9 @@ export default async function OrderSuccessPage({
             <Step n={3} text="Tracking details reach you by WhatsApp and SMS the moment it ships." />
           </ol>
           <p className="mt-6 font-body-md text-sm text-on-surface-variant">
-            Anything at all — write to{' '}
-            <a href={`mailto:${STORE.email}`} className="text-deep-maroon underline">
-              {STORE.email}
+            Anything at all — message us on{' '}
+            <a href={whatsappUrl()} className="text-deep-maroon underline">
+              WhatsApp
             </a>{' '}
             or call {STORE.phone}, quoting #{shortOrderId(order.id)}.
           </p>

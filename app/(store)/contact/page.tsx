@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { Mail, MapPin, MessageCircle, Phone, type LucideIcon } from 'lucide-react';
+import { MapPin, MessageCircle, Phone, type LucideIcon } from 'lucide-react';
 import { ProsePage } from '@/components/store/prose-page';
 import { STORE, storeAddressLines, whatsappUrl } from '@/lib/config';
 import { canonical } from '@/lib/seo';
@@ -7,7 +7,7 @@ import { canonical } from '@/lib/seo';
 export const metadata: Metadata = {
   alternates: { canonical: canonical('/contact') },
   title: 'Contact Us',
-  description: `Reach ${STORE.name} in Coimbatore by phone, WhatsApp or email.`,
+  description: `Reach ${STORE.name} at our Town Hall, Coimbatore shop — by phone or WhatsApp, or come and see the cloth.`,
 };
 
 export default function ContactPage() {
@@ -31,21 +31,15 @@ export default function ContactPage() {
           href={whatsappUrl()}
         />
         <ContactCard
-          Icon={Mail}
-          label="Email"
-          value={STORE.email}
-          href={`mailto:${STORE.email}`}
-        />
-        <ContactCard
           Icon={MapPin}
           label="Visit"
           value={storeAddressLines().join(', ')}
         />
       </div>
 
-      <h2>Before you write</h2>
+      <h2>Before you get in touch</h2>
       <p>
-        If your question is about an order, include the order ID from your confirmation email — it
+        If your question is about an order, send the order ID from your confirmation — it
         lets us pull up the exact piece, the weaver and the courier docket in one go.
       </p>
 

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { ProsePage } from '@/components/store/prose-page';
-import { STORE } from '@/lib/config';
+import { STORE, whatsappUrl } from '@/lib/config';
 import { canonical } from '@/lib/seo';
 
 export const metadata: Metadata = {
@@ -57,8 +57,8 @@ export default function PrivacyPage() {
 
       <h2>Your rights</h2>
       <p>
-        Write to <a href={`mailto:${STORE.email}`}>{STORE.email}</a> to see, correct or delete what
-        we hold about you. We reply within seven working days.
+        Message us on <a href={whatsappUrl()}>WhatsApp</a> or call {STORE.phone} to see, correct or
+        delete what we hold about you. We reply within seven working days.
       </p>
     </ProsePage>
   );

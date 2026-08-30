@@ -22,6 +22,8 @@ export interface RazorpayOptions {
   amount: number;
   currency: string;
   name: string;
+  /** Square logo shown in the checkout panel; Razorpay fetches it, so it must be a public URL. */
+  image?: string;
   description?: string;
   order_id: string;
   handler: (response: RazorpaySuccessResponse) => void;

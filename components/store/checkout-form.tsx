@@ -11,7 +11,7 @@ import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { OrderSummary } from '@/components/store/order-summary';
 import { Skeleton } from '@/components/shared/skeleton';
 import { useCartStore, cartTotals } from '@/stores/cart-store';
-import { STORE } from '@/lib/config';
+import { STORE, appUrl } from '@/lib/config';
 import { INDIAN_STATES } from '@/lib/states';
 import {
   formatINR,
@@ -155,6 +155,7 @@ export function CheckoutForm() {
         amount: data.amount,
         currency: data.currency,
         name: STORE.name,
+        image: appUrl('/icon.png'),
         description: `Order ${data.shortId ?? ''}`.trim(),
         order_id: data.razorpayOrderId,
         prefill: {
