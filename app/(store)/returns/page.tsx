@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   alternates: { canonical: canonical('/returns') },
   title: 'Return & Exchange Policy',
   description:
-    'Exchanges for defective pieces only, brought to our Town Hall shop within 3 days of delivery, with an unboxing video.',
+    'Exchanges for defective pieces only, brought to our Town Hall shop in person, with an unboxing video of the parcel.',
 };
 
 export default function ReturnsPage() {
@@ -15,7 +15,7 @@ export default function ReturnsPage() {
     <ProsePage
       eyebrow="Before you order"
       title="Return & Exchange Policy"
-      intro="Every piece is checked by hand before it is packed. If something is genuinely wrong with what arrives, tell us within three working days and we will put it right."
+      intro="Every piece is checked by hand before it is packed. If something is genuinely wrong with what arrives, tell us as soon as you open the parcel and we will put it right."
     >
       <h2>Delivery time</h2>
       <p>
@@ -31,8 +31,10 @@ export default function ReturnsPage() {
           damage in transit.
         </li>
         <li>
-          <strong>Raised within 3 working days</strong> of the delivery date. After that we
-          cannot take the piece back.
+          <strong>Told to us as soon as you open the parcel</strong>, with the video. We do
+          not put a deadline on the visit to the shop — a customer three states away cannot
+          be expected to reach Coimbatore in a few days — but the report has to be prompt,
+          because that is what lets us raise it with the courier.
         </li>
         <li>The piece unworn and unwashed, with its tags and authenticity card attached.</li>
       </ul>
@@ -80,7 +82,7 @@ export default function ReturnsPage() {
       <p>
         We are at {storeAddressOneLine()}, {storeHoursLines().join(', ')}.{' '}
         <a href={whatsappUrl()}>Message us on WhatsApp</a> or call {STORE.phone} first, so we
-        can have someone ready for you and confirm the piece is within the 3-day window.
+        can have someone ready for you and confirm the piece qualifies before you travel.
       </p>
       <p>
         Where the fault is confirmed and no replacement is available, we refund through

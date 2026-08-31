@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { createPortal } from 'react-dom';
 import { Info, X } from 'lucide-react';
 import { formatINR } from '@/lib/utils';
 import { SHIPPING_ZONES, type ShippingSettings } from '@/lib/shipping';
@@ -10,116 +11,161 @@ import { SHIPPING_ZONES, type ShippingSettings } from '@/lib/shipping';
  *
  * A charge that appears without explanation reads as padding, and a customer
  * who cannot see why theirs is higher than someone else's asks for it to be
- * removed. So the rates are simply shown — all of them, from the same
- * settings the checkout quotes with, so this panel cannot drift out of date
- * the way hand-written policy copy does.
+ * removed. So the rates are simply shown — all of them, read from the same
+ * settings the checkout quotes with, so this cannot drift out of date the way
+ * hand-written policy copy does.
  *
- * Built as a toggle rather than a hover tooltip: hover does not exist on a
- * phone, which is where most of these orders are placed. It closes on Escape
- * and on a click outside, and the trigger is a real button so it is reachable
- * by keyboard.
+ * A modal rather than a popover anchored to the icon. Anchored, it had
+ * nowhere good to go: above, it ran off the top of the screen; below, it
+ * covered the total it was explaining and needed its own scrollbar. A panel
+ * with six rows and three paragraphs is simply bigger than the space beside a
+ * summary line. Centred over a dimmed page it has room, and on a phone it is
+ * the difference between a readable table and a sliver.
+ *
+ * Rendered through a portal so no ancestor's overflow or stacking context can
+ * clip it, and the page behind is locked while it is open.
  */
 export function ShippingInfo({ settings }: { settings: ShippingSettings }) {
   const [open, setOpen] = React.useState(false);
-  const wrapRef = React.useRef<HTMLSpanElement>(null);
+  const [mounted, setMounted] = React.useState(false);
+  const closeRef = React.useRef<HTMLButtonElement>(null);
+
+  React.useEffect(() => setMounted(true), []);
 
   React.useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
-    const onClick = (e: MouseEvent) => {
-      if (!wrapRef.current?.contains(e.target as Node)) setOpen(false);
-    };
     document.addEventListener('keydown', onKey);
-    document.addEventListener('mousedown', onClick);
+    // Stop the page scrolling underneath the dialog.
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    // Move focus in, so a keyboard user is not left behind on the page.
+    closeRef.current?.focus();
     return () => {
       document.removeEventListener('keydown', onKey);
-      document.removeEventListener('mousedown', onClick);
+      document.body.style.overflow = previous;
     };
   }, [open]);
 
   return (
-    <span ref={wrapRef} className="relative inline-flex">
+    <>
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
+        onClick={() => setOpen(true)}
+        aria-haspopup="dialog"
         aria-label="How delivery charges are worked out"
         className="ml-1.5 inline-flex items-center text-on-surface-variant transition-colors hover:text-deep-maroon"
       >
         <Info className="h-3.5 w-3.5" strokeWidth={1.75} />
       </button>
 
-      {open && (
-        <span
-          role="dialog"
-          aria-label="Delivery charges"
-          /*
-            Opens downward. Anchored above, it ran off the top of the screen
-            and the first line was cut in half — the panel is taller than the
-            space between the summary and the header. Below it there is the
-            whole page.
-          */
-          className="absolute right-0 top-full z-50 mt-2 block max-h-[60vh] w-[min(20rem,calc(100vw-2rem))] overflow-y-auto overscroll-contain rounded-lg border border-outline-variant/60 bg-surface-container-lowest p-4 text-left shadow-[0_8px_28px_rgba(74,4,4,0.16)]"
-        >
-          <span className="mb-2 flex items-start justify-between gap-3">
-            <span className="font-label-sm text-label-sm uppercase tracking-widest text-earthy-bronze">
-              Delivery charges
-            </span>
+      {mounted &&
+        open &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delivery-charges-title"
+          >
+            {/* Clicking the dim closes it — the ordinary expectation. */}
             <button
               type="button"
-              onClick={() => setOpen(false)}
               aria-label="Close"
-              className="-mr-1 -mt-1 p-1 text-on-surface-variant hover:text-deep-maroon"
-            >
-              <X className="h-3.5 w-3.5" strokeWidth={1.75} />
-            </button>
-          </span>
+              tabIndex={-1}
+              onClick={() => setOpen(false)}
+              className="absolute inset-0 cursor-default bg-on-background/50 backdrop-blur-[2px]"
+            />
 
-          <span className="block font-body-md text-xs leading-relaxed text-on-surface-variant">
-            What it costs to send depends on how far the parcel travels — Tamil Nadu is the
-            least, the north-east and the islands the most.
-          </span>
-
-          <span className="mt-3 block">
-            <span className="flex justify-between gap-3 border-b border-outline-variant/40 pb-1 font-label-sm text-[10px] uppercase tracking-widest text-on-surface-variant">
-              <span>Destination</span>
-              <span className="flex gap-3">
-                <span className="w-14 text-right">1st</span>
-                <span className="w-14 text-right">Each more</span>
-              </span>
-            </span>
-            {SHIPPING_ZONES.map((zone) => {
-              const first = settings.zoneRates[zone.id] ?? settings.defaultRate;
-              const extra = settings.zoneExtraRates[zone.id] ?? settings.defaultExtraRate;
-              return (
-                <span
-                  key={zone.id}
-                  className="flex justify-between gap-3 py-1 font-body-md text-xs"
+            <div className="relative flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-lg border border-outline-variant/50 bg-surface-container-lowest shadow-[0_16px_48px_rgba(74,4,4,0.25)]">
+              <div className="flex items-start justify-between gap-4 border-b border-outline-variant/40 px-6 py-4">
+                <h2
+                  id="delivery-charges-title"
+                  className="font-headline-md text-headline-md text-deep-maroon"
                 >
-                  <span className="text-on-surface-variant">{zone.label}</span>
-                  <span className="flex gap-3 tabular-nums text-on-surface">
-                    <span className="w-14 text-right">{formatINR(first)}</span>
-                    <span className="w-14 text-right">{formatINR(extra)}</span>
-                  </span>
-                </span>
-              );
-            })}
-          </span>
+                  Delivery charges
+                </h2>
+                <button
+                  ref={closeRef}
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  aria-label="Close"
+                  className="-mr-2 -mt-1 rounded p-2 text-on-surface-variant transition-colors hover:text-deep-maroon"
+                >
+                  <X className="h-4 w-4" strokeWidth={1.75} />
+                </button>
+              </div>
 
-          {settings.freeThreshold > 0 && (
-            <span className="mt-3 block rounded bg-primary-container/15 px-2.5 py-2 font-body-md text-xs text-on-surface">
-              Free anywhere in India on orders of{' '}
-              <strong>{formatINR(settings.freeThreshold)}</strong> and above.
-            </span>
-          )}
+              <div className="overflow-y-auto px-6 py-5">
+                <p className="font-body-md text-body-md text-on-surface-variant">
+                  What it costs to send depends on how far the parcel travels — Tamil Nadu is
+                  the least, the north-east and the islands the most.
+                </p>
 
-          <span className="mt-3 block font-body-md text-[11px] leading-relaxed text-on-surface-variant">
-            Charged per piece: the first rate, then the second column for every saree after
-            it. Sarees fold flat and weigh little, so distance sets the price rather than
-            weight or size. Your exact figure appears above once the state is chosen.
-          </span>
-        </span>
-      )}
-    </span>
+                <table className="mt-5 w-full border-collapse">
+                  <thead>
+                    <tr className="border-b border-outline-variant/50">
+                      <th className="pb-2 text-left font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant">
+                        Destination
+                      </th>
+                      <th className="w-20 pb-2 text-right font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant">
+                        1st
+                      </th>
+                      <th className="w-24 pb-2 text-right font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant">
+                        Each more
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {SHIPPING_ZONES.map((zone) => {
+                      const first = settings.zoneRates[zone.id] ?? settings.defaultRate;
+                      const extra =
+                        settings.zoneExtraRates[zone.id] ?? settings.defaultExtraRate;
+                      return (
+                        <tr key={zone.id} className="border-b border-outline-variant/25">
+                          <td className="py-2.5 font-body-md text-sm text-on-surface">
+                            {zone.label}
+                          </td>
+                          <td className="py-2.5 text-right font-body-md text-sm tabular-nums text-on-surface">
+                            {formatINR(first)}
+                          </td>
+                          <td className="py-2.5 text-right font-body-md text-sm tabular-nums text-on-surface">
+                            {formatINR(extra)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+
+                {settings.freeThreshold > 0 && (
+                  <p className="mt-5 rounded bg-primary-container/15 px-4 py-3 font-body-md text-sm text-on-surface">
+                    Free anywhere in India on orders of{' '}
+                    <strong>{formatINR(settings.freeThreshold)}</strong> and above.
+                  </p>
+                )}
+
+                <p className="mt-4 font-body-md text-sm leading-relaxed text-on-surface-variant">
+                  Charged per piece: the first rate, then the second column for every saree
+                  after it. Sarees fold flat and weigh little, so distance sets the price
+                  rather than weight or size. Your exact figure is shown on the order summary
+                  once the state is chosen.
+                </p>
+              </div>
+
+              <div className="border-t border-outline-variant/40 px-6 py-4">
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="w-full rounded bg-deep-maroon px-4 py-2.5 font-label-lg text-label-lg uppercase tracking-widest text-primary-fixed transition-opacity hover:opacity-90"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body,
+        )}
+    </>
   );
 }

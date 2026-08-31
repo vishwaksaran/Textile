@@ -53,10 +53,12 @@ export function ProductPolicyNote() {
               Exchanges are handled at the shop
             </p>
             <p className="mt-0.5 font-body-md text-sm text-on-surface-variant">
-              Bring the piece to us at {STORE.address.landmark}, {STORE.address.city}, within{' '}
-              <strong>3 days of delivery</strong>, with the tags and authenticity card
-              attached and the video to hand. Exchanges cannot be completed by post or
-              online — we need to see the cloth and the fault ourselves.
+              Message us on WhatsApp as soon as you open the parcel, with the video and a
+              photograph of the fault — that part matters straight away, wherever you are.
+              Then bring the piece to us at {STORE.address.landmark}, {STORE.address.city},
+              with its tags and authenticity card, whenever you are next able to. Exchanges
+              cannot be completed by post or online: we need to see the cloth and the fault
+              ourselves.
             </p>
           </div>
         </li>

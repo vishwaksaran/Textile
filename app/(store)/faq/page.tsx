@@ -40,7 +40,7 @@ const FAQS: { q: string; a: string }[] = [
   },
   {
     q: 'Can I return a saree if it is not what I expected?',
-    a: 'No — we do not accept returns for size, style or preference, because each piece is one of a kind. We exchange defective pieces only, and the exchange is done in person at our Town Hall shop: bring the piece within 3 days of delivery, with its tags, your order ID, and an unedited video of the parcel being opened showing the fault. Exchanges cannot be completed by post or online. Ask us for extra photographs or a video before you order and we will send them, which is far better than an exchange afterwards.',
+    a: 'No — we do not accept returns for size, style or preference, because each piece is one of a kind. We exchange defective pieces only, and the exchange is done in person at our Town Hall shop. Message us on WhatsApp as soon as you open the parcel, with your order ID and an unedited video of it being opened showing the fault; then bring the piece in with its tags whenever you are able to. There is no deadline on the visit, but the report needs to be prompt, because that is what lets us raise it with the courier. Exchanges cannot be completed by post or online. Ask us for extra photographs or a video before you order — far better than an exchange afterwards.',
   },
   {
     q: 'Why do you need a video to accept an exchange?',

@@ -190,8 +190,8 @@ export default async function ProductPage({ params }: { params: { id: string } }
             />
             <Assurance
               Icon={RotateCcw}
-              title="3-day exchange"
-              body="Defective pieces only, at the shop."
+              title="Exchange in store"
+              body="Defective pieces only. Tell us first."
             />
           </ul>
 
