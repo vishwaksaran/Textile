@@ -11,9 +11,10 @@ import type { Product, ProductVariant } from '@/types';
  * The single add-to-cart code path, shared by the product page and the grid's
  * quick-add so the stock rules can never drift apart.
  *
- * A product with sizes is only addable once one is chosen: `variant` carries
- * it, and `needsSize` is how the grid's quick-add knows to send the shopper
- * to the product page instead of guessing which size they meant.
+ * A product with variants is only addable once every axis has an answer:
+ * `variant` carries the combination, and `needsChoice` is how the grid's
+ * quick-add knows to send the shopper to the product page rather than
+ * guessing which colour or size they meant.
  *
  * Stock is enforced in three places, deliberately:
  *   1. here, against a live server read, so a cached grid cannot oversell;
@@ -35,9 +36,8 @@ export function useAddToCart(product: Product, variant?: ProductVariant | null) 
   );
   const inCart = cartItem?.quantity ?? 0;
 
-  /** Has sizes, none chosen yet. Not an error — just not addable from here. */
-  const sizes = product.variants ?? [];
-  const needsSize = sizes.length > 0 && !variant;
+  /** Has combinations, none fully chosen. Not an error — just not addable. */
+  const needsChoice = (product.variants ?? []).length > 0 && !variant;
 
   const [pending, setPending] = React.useState(false);
   const [justAdded, setJustAdded] = React.useState(false);
@@ -46,9 +46,9 @@ export function useAddToCart(product: Product, variant?: ProductVariant | null) 
   React.useEffect(() => () => clearTimeout(timer.current), []);
 
   /*
-    A chosen size answers for itself; without one the product's own total
-    does, and that total is the sum of the sizes, so a churidar with every
-    size at zero still reads as sold out on the grid.
+    A chosen combination answers for itself; without one the product's own
+    total does, and that total is the sum of the combinations, so a churidar
+    with every one at zero still reads as sold out on the grid.
   */
   const shelf = variant ? variant.stock_quantity : product.stock_quantity;
   const soldOut = variant ? shelf <= 0 : product.is_sold_out || shelf <= 0;
@@ -75,8 +75,8 @@ export function useAddToCart(product: Product, variant?: ProductVariant | null) 
   const addToCart = React.useCallback(
     async (quantity = 1): Promise<boolean> => {
       if (soldOut || pending) return false;
-      if (needsSize) {
-        toast.error('Choose a size first');
+      if (needsChoice) {
+        toast.error('Choose an option first');
         return false;
       }
 
@@ -106,7 +106,7 @@ export function useAddToCart(product: Product, variant?: ProductVariant | null) 
         if (stock <= 0) {
           toast.error('Just sold out', {
             description: variant
-              ? `Size ${variant.label} was taken while you were browsing.`
+              ? `${variant.label} was taken while you were browsing.`
               : 'This piece was taken while you were browsing.',
           });
           return false;
@@ -152,7 +152,7 @@ export function useAddToCart(product: Product, variant?: ProductVariant | null) 
         setPending(false);
       }
     },
-    [add, openCart, pending, product, soldOut, needsSize, variant, variantId],
+    [add, openCart, pending, product, soldOut, needsChoice, variant, variantId],
   );
 
   return {
@@ -161,7 +161,7 @@ export function useAddToCart(product: Product, variant?: ProductVariant | null) 
     pending,
     justAdded,
     soldOut,
-    needsSize,
+    needsChoice,
     atLimit,
     inCart,
     ceiling,

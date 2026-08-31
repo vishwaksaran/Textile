@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Truck, ShieldCheck, RotateCcw, type LucideIcon } from 'lucide-react';
 import { Breadcrumbs } from '@/components/store/breadcrumbs';
-import { ImageGallery } from '@/components/store/image-gallery';
+import { ProductGallery } from '@/components/store/product-gallery';
 import { AddToCart } from '@/components/store/add-to-cart';
 import { ProductPolicyNote } from '@/components/store/product-policy-note';
 import { StickyBuyBar } from '@/components/store/sticky-buy-bar';
@@ -131,7 +131,7 @@ export default async function ProductPage({ params }: { params: { id: string } }
       </div>
 
       <div className="container-page grid grid-cols-1 gap-10 py-8 lg:grid-cols-2 lg:gap-16 lg:py-12">
-        <ImageGallery images={product.images ?? []} alt={product.name} dimmed={soldOut} />
+        <ProductGallery product={product} dimmed={soldOut} />
 
         <div className="space-y-6">
           <div className="space-y-3">

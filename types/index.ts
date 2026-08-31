@@ -17,8 +17,11 @@ export interface Category {
   thumbnail_url: string | null;
   seo_title: string | null;
   seo_description: string | null;
-  /** One-click sizes offered when adding variants to a product filed here. */
-  size_presets: string[] | null;
+  /**
+   * Attribute slugs whose values create variants for products here.
+   * Populated by joins on read; not a column on categories.
+   */
+  variantAttributes?: string[];
   /**
    * Superseded by is_visible and the tree. Kept until the column is dropped
    * so an older row still reads.
@@ -63,21 +66,46 @@ export interface Product {
    * stock_quantity is the sum of these, maintained by the database.
    */
   variants?: ProductVariant[];
+  /** Attached alongside variants: per-colour photographs, per-size figures. */
+  optionDetails?: Record<string, OptionDetail>;
+  /**
+   * The axes this product varies along, in the order the category lists them.
+   * Names travel with them so no client has to look an attribute up.
+   */
+  variantAxes?: { slug: string; name: string }[];
 }
 
 export interface ProductVariant {
   id: string;
   product_id: string;
-  /** 'M', '40', 'Free Size' — whatever the shop writes on the tag. */
+  /** What a shopper reads and the invoice prints: 'Green / M'. */
   label: string;
+  /** The combination, normalised: 'colour:green|size:m'. Unique per product. */
+  option_key: string;
+  /** Axis values by attribute slug: { colour: 'Green', size: 'M' }. */
+  options: Record<string, string>;
   sku: string | null;
   stock_quantity: number;
   /** Null means the product's own price, which is the usual case. */
   price: number | null;
-  /** Named by the shop: chest, length, sleeve. Rendered as the size table. */
-  measurements: Record<string, string>;
+  /** For the rare piece photographed per combination rather than per colour. */
+  images: string[];
   sort_order: number;
   is_active: boolean;
+}
+
+/**
+ * Photographs and measurements attached to one value of one axis.
+ *
+ * Green photographs are the same whether the piece is an M or an L, and an
+ * M's chest is the same in green or red — so both hang here rather than on
+ * every cell of the grid.
+ */
+export interface OptionDetail {
+  attributeSlug: string;
+  value: string;
+  images: string[];
+  measurements: Record<string, string>;
 }
 
 export interface OrderItem {

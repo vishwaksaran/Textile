@@ -2,7 +2,13 @@ import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { revalidateCatalogue } from '@/lib/revalidate';
 import { saveProductAttributeValues } from '@/lib/attributes';
-import { parseVariantDrafts, saveProductVariants } from '@/lib/variants';
+import {
+  getVariantAxes,
+  parseOptionDetails,
+  parseVariantDrafts,
+  saveOptionDetails,
+  saveProductVariants,
+} from '@/lib/variants';
 import { errorResponse, validateProduct } from '@/lib/admin-api';
 import { requireAdminSupabase } from '@/lib/supabase/server';
 
@@ -66,15 +72,26 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
     if (error) throw new Error(error.message);
     if (data?.id) {
-      await saveProductAttributeValues(data.id, body.attributeValues ?? {});
       /*
-        After the product update, and deliberately so: saving sizes fires the
-        trigger that writes stock_quantity back, and doing it first would let
-        the product update overwrite the sum with the figure the form was
-        showing.
+        The axes come from the category, never from the request: they decide
+        which slugs are real, and a browser must not be able to invent one.
       */
+      const axes = await getVariantAxes(
+        (data as { category_id?: string | null }).category_id ?? null,
+      );
+
+      // The axes are answered by the grid below, so they are held back from
+      // the descriptor save rather than being deleted as cleared.
+      await saveProductAttributeValues(
+        data.id,
+        body.attributeValues ?? {},
+        axes.map((a) => a.id),
+      );
+
       const drafts = parseVariantDrafts(body);
-      if (drafts) await saveProductVariants(data.id, drafts);
+      const details = parseOptionDetails(body);
+      if (drafts) await saveProductVariants(data.id, drafts, axes);
+      if (details) await saveOptionDetails(data.id, details, axes);
     }
 
     revalidateCatalogue({

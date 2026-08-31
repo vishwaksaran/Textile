@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { revalidateCatalogue } from '@/lib/revalidate';
-import { errorResponse, validateCategory } from '@/lib/admin-api';
+import { saveVariantAttributes, errorResponse, validateCategory } from '@/lib/admin-api';
 import { requireAdminSupabase } from '@/lib/supabase/server';
 import { slugify } from '@/lib/utils';
 
@@ -24,14 +24,6 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       thumbnail_url: body.thumbnail_url || null,
       seo_title: body.seo_title ? String(body.seo_title).trim() : null,
       seo_description: body.seo_description ? String(body.seo_description).trim() : null,
-      // Comma-separated in the form; an array in the column. Empty becomes
-      // null rather than [], so "no suggestions" is one value, not two.
-      size_presets: Array.isArray(body.size_presets)
-        ? (body.size_presets as unknown[])
-            .map((s) => String(s).trim())
-            .filter(Boolean)
-            .slice(0, 24)
-        : null,
       sort_order: Number.isFinite(Number(body.sort_order)) ? Number(body.sort_order) : 0,
 
       // Null makes it a top-level section. A row cannot be its own parent,
@@ -58,6 +50,8 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       return NextResponse.json({ error: message }, { status: 400 });
     }
     // Categories drive the storefront nav and the collection listings.
+    await saveVariantAttributes(params.id, body.variantAttributes);
+
     revalidateCatalogue();
 
     return NextResponse.json({ category: data });

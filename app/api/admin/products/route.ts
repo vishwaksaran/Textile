@@ -2,7 +2,13 @@ import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { revalidateCatalogue } from '@/lib/revalidate';
 import { saveProductAttributeValues } from '@/lib/attributes';
-import { parseVariantDrafts, saveProductVariants } from '@/lib/variants';
+import {
+  getVariantAxes,
+  parseOptionDetails,
+  parseVariantDrafts,
+  saveOptionDetails,
+  saveProductVariants,
+} from '@/lib/variants';
 import { errorResponse, validateProduct } from '@/lib/admin-api';
 import { requireAdminSupabase } from '@/lib/supabase/server';
 
@@ -75,10 +81,26 @@ export async function POST(request: Request) {
     // The storefront caches for minutes; clear it so a new piece is visible
     // the moment it is saved rather than whenever the window happens to lapse.
     if (data?.id) {
-      await saveProductAttributeValues(data.id, body.attributeValues ?? {});
-      // After the insert, so the rollup trigger has a product row to update.
+      /*
+        The axes come from the category, never from the request: they decide
+        which slugs are real, and a browser must not be able to invent one.
+      */
+      const axes = await getVariantAxes(
+        (data as { category_id?: string | null }).category_id ?? null,
+      );
+
+      // The axes are answered by the grid below, so they are held back from
+      // the descriptor save rather than being deleted as cleared.
+      await saveProductAttributeValues(
+        data.id,
+        body.attributeValues ?? {},
+        axes.map((a) => a.id),
+      );
+
       const drafts = parseVariantDrafts(body);
-      if (drafts) await saveProductVariants(data.id, drafts);
+      const details = parseOptionDetails(body);
+      if (drafts) await saveProductVariants(data.id, drafts, axes);
+      if (details) await saveOptionDetails(data.id, details, axes);
     }
 
     revalidateCatalogue({

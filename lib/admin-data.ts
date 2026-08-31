@@ -141,8 +141,27 @@ export async function listAdminCategories(): Promise<
     counts.set(row.category_id, (counts.get(row.category_id) ?? 0) + 1);
   }
 
+  /*
+    Which attributes vary here, as slugs. Read separately because it lives on
+    the join rather than on the category, and returned empty when the table
+    predates 0017 so the manager still renders.
+  */
+  const axes = new Map<string, string[]>();
+  const { data: axisRows } = await supabase
+    .from('category_attributes')
+    .select('category_id, attributes (slug)')
+    .eq('is_variant', true);
+
+  for (const row of (axisRows as unknown as
+    | { category_id: string; attributes: { slug: string } | null }[]
+    | null) ?? []) {
+    if (!row.attributes?.slug) continue;
+    axes.set(row.category_id, [...(axes.get(row.category_id) ?? []), row.attributes.slug]);
+  }
+
   return (categoriesRes.data ?? []).map((c) => ({
     ...(c as Category),
+    variantAttributes: axes.get(c.id) ?? [],
     productCount: counts.get(c.id) ?? 0,
   }));
 }

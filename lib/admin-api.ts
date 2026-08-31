@@ -1,4 +1,5 @@
 import 'server-only';
+import { requireAdminSupabase } from '@/lib/supabase/server';
 
 import { NextResponse } from 'next/server';
 import { UnauthorisedError } from '@/lib/auth';
@@ -38,4 +39,49 @@ export function validateCategory(body: Record<string, unknown>): string | null {
     return 'The slug may only contain lowercase letters, numbers and hyphens.';
   }
   return null;
+}
+
+/**
+ * Records which of a category's attributes create variants for it.
+ *
+ * Ticking Colour has to create the assignment as well as the flag: an
+ * attribute cannot vary a category that was never asked to describe it, and
+ * making the shop do both in two places is how one of them gets forgotten.
+ *
+ * Unticking clears the flag but keeps the assignment, so colour goes back to
+ * being a description rather than disappearing from the form altogether.
+ */
+export async function saveVariantAttributes(
+  categoryId: string,
+  slugs: unknown,
+): Promise<void> {
+  if (!Array.isArray(slugs)) return;
+
+  const supabase = requireAdminSupabase();
+  const wanted = new Set((slugs as unknown[]).map((s) => String(s)));
+
+  const { data: attributes } = await supabase.from('attributes').select('id, slug');
+  const rows = (attributes as { id: string; slug: string }[] | null) ?? [];
+  if (rows.length === 0) return;
+
+  const assign = rows.filter((a) => wanted.has(a.slug));
+  if (assign.length > 0) {
+    await supabase.from('category_attributes').upsert(
+      assign.map((a) => ({
+        category_id: categoryId,
+        attribute_id: a.id,
+        is_variant: true,
+      })),
+      { onConflict: 'category_id,attribute_id' },
+    );
+  }
+
+  const clear = rows.filter((a) => !wanted.has(a.slug)).map((a) => a.id);
+  if (clear.length > 0) {
+    await supabase
+      .from('category_attributes')
+      .update({ is_variant: false })
+      .eq('category_id', categoryId)
+      .in('attribute_id', clear);
+  }
 }

@@ -4,7 +4,7 @@ import * as React from 'react';
 import { Check, Loader2, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { QuantitySelector } from '@/components/store/quantity-selector';
-import { SizePicker } from '@/components/store/size-picker';
+import { VariantPicker, axesForProduct } from '@/components/store/variant-picker';
 import { useAddToCart } from '@/hooks/use-add-to-cart';
 import { useSelectedVariant } from '@/stores/variant-store';
 import { cn, effectivePrice, formatINR } from '@/lib/utils';
@@ -18,9 +18,24 @@ interface AddToCartProps {
 }
 
 export function AddToCart({ product, compact = false, className }: AddToCartProps) {
-  const variants = product.variants ?? [];
-  const variant = useSelectedVariant(product.id, variants);
-  const { addToCart, pending, justAdded, soldOut, needsSize, atLimit, inCart, ceiling, remaining } =
+  // Memoised together, because the fallback to an empty list is a fresh
+  // array on every render and would rebuild the axes each time.
+  const { variants, axes } = React.useMemo(() => {
+    const rows = product.variants ?? [];
+    return {
+      variants: rows,
+      // Derived from the variants themselves, so a piece stocked only in
+      // green offers only green — not the shop's whole colour list struck
+      // through.
+      axes: axesForProduct(rows, product.variantAxes ?? []),
+    };
+  }, [product.variants, product.variantAxes]);
+  const variant = useSelectedVariant(
+    product.id,
+    variants,
+    axes.map((a) => a.slug),
+  );
+  const { addToCart, pending, justAdded, soldOut, needsChoice, atLimit, inCart, ceiling, remaining } =
     useAddToCart(product, variant);
 
   const [quantity, setQuantity] = React.useState(1);
@@ -40,7 +55,7 @@ export function AddToCart({ product, compact = false, className }: AddToCartProp
   async function handleAdd() {
     // The compact bar has no room for the chips, so it sends the shopper up
     // to them instead of refusing with a message they cannot act on.
-    if (needsSize) {
+    if (needsChoice) {
       document.getElementById('buy-box')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
@@ -52,7 +67,7 @@ export function AddToCart({ product, compact = false, className }: AddToCartProp
     return (
       <Button
         onClick={handleAdd}
-        disabled={disabled && !needsSize}
+        disabled={disabled && !needsChoice}
         shine={!disabled}
         className={cn('w-full', className)}
         size="lg"
@@ -60,8 +75,8 @@ export function AddToCart({ product, compact = false, className }: AddToCartProp
       >
         {soldOut
           ? 'Sold Out'
-          : needsSize
-            ? 'Choose a size'
+          : needsChoice
+            ? `Choose ${axes[0]?.name.toLowerCase() ?? 'an option'}`
             : pending
               ? 'Adding…'
               : atLimit
@@ -73,15 +88,17 @@ export function AddToCart({ product, compact = false, className }: AddToCartProp
 
   return (
     <div className={cn('space-y-5', className)}>
-      {variants.length > 0 && (
-        <SizePicker
+      {axes.length > 0 && (
+        <VariantPicker
           productId={product.id}
+          axes={axes}
           variants={variants}
+          optionDetails={product.optionDetails ?? {}}
           basePrice={effectivePrice(product)}
         />
       )}
 
-      {!soldOut && !atLimit && !needsSize && (
+      {!soldOut && !atLimit && !needsChoice && (
         <div className="flex flex-wrap items-center gap-4">
           <span className="font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant">
             Quantity
@@ -101,16 +118,16 @@ export function AddToCart({ product, compact = false, className }: AddToCartProp
 
       <Button
         onClick={handleAdd}
-        disabled={disabled || needsSize}
-        shine={!disabled && !needsSize}
+        disabled={disabled || needsChoice}
+        shine={!disabled && !needsChoice}
         size="lg"
         className="w-full"
         aria-live="polite"
       >
         {soldOut ? (
           'Sold Out'
-        ) : needsSize ? (
-          'Select a size'
+        ) : needsChoice ? (
+          `Select ${axes.map((a) => a.name.toLowerCase()).join(' and ')}`
         ) : pending ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" /> Adding…
@@ -139,7 +156,7 @@ export function AddToCart({ product, compact = false, className }: AddToCartProp
       {soldOut && (
         <p className="text-center font-body-md text-sm text-on-surface-variant">
           {variants.length > 0
-            ? 'Every size is spoken for. Write to us and we will tell you when this is back.'
+            ? 'Every option is spoken for. Write to us and we will tell you when this is back.'
             : 'This weave is between looms. Write to us and we will tell you when the next one is ready.'}
         </p>
       )}

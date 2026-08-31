@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AddToCart } from '@/components/store/add-to-cart';
+import { axesForProduct } from '@/components/store/variant-picker';
 import { useSelectedVariant } from '@/stores/variant-store';
 import { effectivePrice, formatINR } from '@/lib/utils';
 import { useUiStore } from '@/stores/ui-store';
@@ -32,7 +33,15 @@ export function StickyBuyBar({ product }: { product: Product }) {
     return () => setBuyBarVisible(false);
   }, [visible, setBuyBarVisible]);
 
-  const variant = useSelectedVariant(product.id, product.variants);
+  // The same derivation the buy box makes, so the two agree about when a
+  // selection is complete. A category axis this piece does not use must not
+  // hold the bar back from ever resolving one.
+  const axes = axesForProduct(product.variants ?? [], product.variantAxes ?? []);
+  const variant = useSelectedVariant(
+    product.id,
+    product.variants,
+    axes.map((a) => a.slug),
+  );
   const soldOut = product.is_sold_out || product.stock_quantity <= 0;
 
   return (

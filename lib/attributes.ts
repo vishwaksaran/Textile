@@ -30,6 +30,12 @@ export interface Attribute {
   options: AttributeOption[];
   /** Set when read for a particular category. */
   is_required?: boolean;
+  /**
+   * Set when read for a particular category: this attribute forms variants
+   * there, so it is asked for once per combination rather than once per
+   * product. See lib/variants.
+   */
+  is_variant?: boolean;
 }
 
 export interface AttributeValue {
@@ -69,7 +75,7 @@ export async function getCategoryAttributes(categoryId: string | null): Promise<
 
   const { data, error } = await supabase
     .from('category_attributes')
-    .select('attribute_id, is_required, sort_order, attributes (*)')
+    .select('attribute_id, is_required, is_variant, sort_order, attributes (*)')
     .in('category_id', lineage)
     .order('sort_order', { ascending: true });
 
@@ -78,6 +84,7 @@ export async function getCategoryAttributes(categoryId: string | null): Promise<
   const rows = data as unknown as {
     attribute_id: string;
     is_required: boolean;
+    is_variant: boolean | null;
     sort_order: number;
     attributes: Omit<Attribute, 'options'> | null;
   }[];
@@ -90,6 +97,9 @@ export async function getCategoryAttributes(categoryId: string | null): Promise<
     byId.set(row.attribute_id, {
       ...row.attributes,
       is_required: row.is_required,
+      // Absent until 0017; false is the answer that leaves every existing
+      // form asking exactly what it asked before.
+      is_variant: row.is_variant === true,
       sort_order: row.sort_order,
       options: [],
     });
@@ -163,9 +173,25 @@ export async function getProductAttributeValues(
  * cleared in the form has to disappear from the spec table, and an upsert
  * alone would leave the old answer sitting there looking current.
  */
+/**
+ * @param preserve Attribute ids this call must not touch.
+ *
+ * Variant axes are answered by the grid, not by the descriptor form, so they
+ * never appear in `values` — and without this they would be deleted as
+ * "cleared" every time a product was saved, taking the colours a shopper
+ * filters by with them.
+ */
+/**
+ * @param preserve Attribute ids this call must not touch.
+ *
+ * Variant axes are answered by the grid, not by the descriptor form, so they
+ * never appear in `values` — and without this they would be deleted as
+ * "cleared" on every save, taking the colours a shopper filters by with them.
+ */
 export async function saveProductAttributeValues(
   productId: string,
   values: Record<string, { value?: string | null; values?: string[] | null }>,
+  preserve: string[] = [],
 ): Promise<void> {
   const supabase = createAdminSupabase();
   if (!supabase) return;
@@ -179,7 +205,7 @@ export async function saveProductAttributeValues(
     }))
     .filter((r) => r.value !== null || r.values !== null);
 
-  const keep = rows.map((r) => r.attribute_id);
+  const keep = [...new Set([...rows.map((r) => r.attribute_id), ...preserve])];
 
   let remove = supabase.from('product_attribute_values').delete().eq('product_id', productId);
   if (keep.length > 0) remove = remove.not('attribute_id', 'in', `(${keep.join(',')})`);

@@ -36,8 +36,8 @@ interface Draft {
   thumbnail_url: string | null;
   seo_title: string;
   seo_description: string;
-  /** Typed as one comma-separated line; stored as an array. */
-  size_presets: string;
+  /** Attribute slugs whose values create variants for products here. */
+  variantAttributes: string[];
   /** Set once the slug is edited by hand, so it stops tracking the name. */
   slugTouched: boolean;
 }
@@ -53,7 +53,7 @@ const BLANK: Draft = {
   thumbnail_url: null,
   seo_title: '',
   seo_description: '',
-  size_presets: '',
+  variantAttributes: [],
   slugTouched: false,
 };
 const PER_PAGE = 8;
@@ -70,6 +70,26 @@ export function CategoriesManager({ categories }: { categories: CategoryRow[] })
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
   const [page, setPage] = React.useState(1);
   const [moving, setMoving] = React.useState<string | null>(null);
+
+  /*
+    Every attribute the shop has defined, so the editor can offer them as
+    axes. Fetched once for the screen rather than per dialog — the list is
+    short and does not change while someone is renaming a collection.
+  */
+  const [allAttributes, setAllAttributes] = React.useState<
+    { slug: string; name: string }[]
+  >([]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    fetch('/api/admin/attributes')
+      .then((r) => (r.ok ? r.json() : { attributes: [] }))
+      .then((d) => !cancelled && setAllAttributes(d.attributes ?? []))
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   /**
    * Sections in order, each followed by its own children.
@@ -159,7 +179,7 @@ export function CategoriesManager({ categories }: { categories: CategoryRow[] })
       thumbnail_url: category.thumbnail_url ?? null,
       seo_title: category.seo_title ?? '',
       seo_description: category.seo_description ?? '',
-      size_presets: (category.size_presets ?? []).join(', '),
+      variantAttributes: category.variantAttributes ?? [],
       slugTouched: true,
     });
   }
@@ -190,10 +210,7 @@ export function CategoriesManager({ categories }: { categories: CategoryRow[] })
             thumbnail_url: draft.thumbnail_url,
             seo_title: draft.seo_title,
             seo_description: draft.seo_description,
-            size_presets: draft.size_presets
-              .split(',')
-              .map((s) => s.trim())
-              .filter(Boolean),
+            variantAttributes: draft.variantAttributes,
             id: draft.id,
           }),
         },
@@ -586,21 +603,55 @@ export function CategoriesManager({ categories }: { categories: CategoryRow[] })
                 </Select>
               </Field>
 
-              {/* Not a switch for "this collection has sizes": a product has
-                  sizes when it has sizes, and a flag here could disagree.
-                  These are only the chips the product form offers. */}
-              <Field
-                label="Suggested sizes"
-                htmlFor="category-sizes"
-                hint="Offered as one-click chips when adding sizes to a piece here. Comma separated — leave empty for sarees."
-              >
-                <Input
-                  id="category-sizes"
-                  value={draft.size_presets}
-                  placeholder="S, M, L, XL"
-                  onChange={(e) => setDraft({ ...draft, size_presets: e.target.value })}
-                />
-              </Field>
+              {/* Which questions get asked once per combination instead of
+                  once per piece. Ticking Colour here is what turns one
+                  listing into a green one and a red one, each with its own
+                  stock — and untick it and colour goes back to being a
+                  description. */}
+              {/* Not a Field: the control is a row of chips rather than one
+                  input, so there is nothing for a label to point at. */}
+              <fieldset className="space-y-2">
+                <legend className="font-label-lg text-label-lg uppercase tracking-wider text-on-surface-variant">
+                  Attributes that create variants
+                </legend>
+                <p className="font-body-md text-sm text-on-surface-variant">
+                  A piece here is then stocked per combination of these — Green / M — each with
+                  its own stock, SKU and price. Leave all unticked for anything sold as a single
+                  piece.
+                </p>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {allAttributes.length === 0 && (
+                    <span className="font-body-md text-sm text-on-surface-variant">
+                      No attributes defined yet.
+                    </span>
+                  )}
+                  {allAttributes.map((attribute) => {
+                    const active = draft.variantAttributes.includes(attribute.slug);
+                    return (
+                      <button
+                        key={attribute.slug}
+                        type="button"
+                        onClick={() =>
+                          setDraft({
+                            ...draft,
+                            variantAttributes: active
+                              ? draft.variantAttributes.filter((s) => s !== attribute.slug)
+                              : [...draft.variantAttributes, attribute.slug],
+                          })
+                        }
+                        className={cn(
+                          'border px-3 py-2 font-body-md text-sm transition-colors',
+                          active
+                            ? 'border-deep-maroon bg-deep-maroon text-primary-fixed'
+                            : 'border-outline-variant text-on-surface hover:border-deep-maroon',
+                        )}
+                      >
+                        {attribute.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </fieldset>
 
               {/* Two images because they are two different crops: the banner
                   runs wide across the top of the collection page, the card is

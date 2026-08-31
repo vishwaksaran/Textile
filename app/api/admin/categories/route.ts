@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { revalidateCatalogue } from '@/lib/revalidate';
-import { errorResponse, validateCategory } from '@/lib/admin-api';
+import { saveVariantAttributes, errorResponse, validateCategory } from '@/lib/admin-api';
 import { requireAdminSupabase } from '@/lib/supabase/server';
 import { slugify } from '@/lib/utils';
 
@@ -71,14 +71,6 @@ export async function POST(request: Request) {
       thumbnail_url: body.thumbnail_url || null,
       seo_title: body.seo_title ? String(body.seo_title).trim() : null,
       seo_description: body.seo_description ? String(body.seo_description).trim() : null,
-      // Comma-separated in the form; an array in the column. Empty becomes
-      // null rather than [], so "no suggestions" is one value, not two.
-      size_presets: Array.isArray(body.size_presets)
-        ? (body.size_presets as unknown[])
-            .map((s) => String(s).trim())
-            .filter(Boolean)
-            .slice(0, 24)
-        : null,
       sort_order: Number.isFinite(Number(body.sort_order))
         ? Number(body.sort_order)
         : await nextSortOrder(supabase, parentOf(body)),
@@ -100,6 +92,8 @@ export async function POST(request: Request) {
         error.code === '23505' ? 'That slug is already in use.' : error.message;
       return NextResponse.json({ error: message }, { status: 400 });
     }
+    if (data?.id) await saveVariantAttributes(data.id, body.variantAttributes);
+
     // Categories drive the storefront nav and the collection listings.
     revalidateCatalogue();
 

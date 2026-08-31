@@ -1,15 +1,16 @@
 /**
- * Checks that sizes did not change what a saree does.
+ * Checks that variants did not change what a saree does.
  *
  *   npm run variants:check
  *
- * Everything in stage 5 is additive, and the claim that makes it safe to
- * deploy to a shop taking live orders is that a product with no sizes takes
- * exactly the path it took before. This proves the two pure pieces that claim
- * rests on: how a cart line is identified, and how a cart saved before sizes
+ * The claim that makes this safe to deploy to a shop taking live orders is
+ * that a product with no variants takes exactly the path it took before. This
+ * proves the pure pieces that claim rests on: how a combination is
+ * identified, how a cart line is keyed, and how a cart saved before any of it
  * existed is read back.
  */
 import { lineKey } from '../stores/cart-store';
+import { optionKey, variantLabel } from '../lib/variant-key';
 import type { CartItem } from '../types';
 
 const GREEN = (s: string) => `\x1b[32m${s}\x1b[0m`;
@@ -25,19 +26,60 @@ const check = (name: string, ok: boolean, detail = '') => {
 const P = 'p0000000-0000-4000-8000-000000000001';
 const Q = 'p0000000-0000-4000-8000-000000000002';
 
+console.log('\nNaming a combination\n');
+
+/*
+  The browser resolves a shopper's selection to a variant by rebuilding the
+  key the server wrote. If the two ever disagreed, the first anyone would hear
+  of it is a shopper unable to add a size that is plainly in stock.
+*/
+check(
+  'a combination is one normalised string',
+  optionKey({ colour: 'Green', size: 'M' }) === 'colour:green|size:m',
+  optionKey({ colour: 'Green', size: 'M' }),
+);
+check(
+  'the order the form filled it in does not matter',
+  optionKey({ size: 'M', colour: 'Green' }) === optionKey({ colour: 'Green', size: 'M' }),
+);
+check(
+  'case and stray spaces do not make a second combination',
+  optionKey({ colour: ' green ', size: 'm' }) === optionKey({ colour: 'Green', size: 'M' }),
+);
+check(
+  'different combinations stay different',
+  optionKey({ colour: 'Green', size: 'M' }) !== optionKey({ colour: 'Green', size: 'L' }),
+);
+check('one axis still works', optionKey({ size: 'M' }) === 'size:m');
+check('no axes is the empty key', optionKey({}) === '');
+check(
+  'an empty value is not part of the combination',
+  optionKey({ colour: 'Green', size: '  ' }) === 'colour:green',
+);
+
+check(
+  'the label reads in the order the shop lists its axes',
+  variantLabel({ size: 'M', colour: 'Green' }, ['colour', 'size']) === 'Green / M',
+  variantLabel({ size: 'M', colour: 'Green' }, ['colour', 'size']),
+);
+check(
+  'an axis the piece does not use is left out',
+  variantLabel({ size: 'M' }, ['colour', 'size']) === 'M',
+);
+
 console.log('\nLine identity\n');
 
-check('a sizeless line keys on the product alone', lineKey(P, null) === P, lineKey(P, null));
+check('a variantless line keys on the product alone', lineKey(P, null) === P, lineKey(P, null));
 check('undefined is treated as null', lineKey(P, undefined) === P);
-check('a sized line keys on both', lineKey(P, 'v1') === `${P}:v1`, lineKey(P, 'v1'));
-check('two sizes of one piece are two lines', lineKey(P, 'v1') !== lineKey(P, 'v2'));
-check('one size of two pieces are two lines', lineKey(P, 'v1') !== lineKey(Q, 'v1'));
+check('a variant line keys on both', lineKey(P, 'v1') === `${P}:v1`);
+check('two combinations of one piece are two lines', lineKey(P, 'v1') !== lineKey(P, 'v2'));
+check('one combination of two pieces are two lines', lineKey(P, 'v1') !== lineKey(Q, 'v1'));
 check(
-  'a sized line never collides with a sizeless one',
+  'a variant line never collides with a variantless one',
   lineKey(P, 'v1') !== lineKey(P, null) && lineKey(P, 'v1') !== lineKey(Q, null),
 );
 
-console.log('\nCarts saved before sizes existed\n');
+console.log('\nCarts saved before variants existed\n');
 
 /*
   The store's own migrate function, which zustand runs on rehydrate when the
@@ -66,7 +108,7 @@ const migrated = migrate(old);
 
 check('every old line survives', migrated.items.length === 2);
 check(
-  'every old line gains a null size',
+  'every old line gains a null variant',
   migrated.items.every((i) => i.variantId === null && i.variantLabel === null),
 );
 check(
@@ -80,9 +122,9 @@ check('a missing cart migrates to an empty cart', migrate(undefined).items.lengt
 console.log('\nStock reconciliation keys\n');
 
 /*
-  getStockLevels emits one entry per product and one per size, keyed the way
-  the cart keys its lines. A cart holding an M and an L must find two
-  different shelves, not the same total twice.
+  getStockLevels emits one entry per product and one per variant, keyed the
+  way the cart keys its lines. A cart holding a Green M and a Red M must find
+  two different shelves, not the same total twice.
 */
 const levels: Record<string, { stock: number }> = {
   [P]: { stock: 5 },
@@ -90,17 +132,54 @@ const levels: Record<string, { stock: number }> = {
   [`${P}:v2`]: { stock: 3 },
 };
 
-check('a sizeless line reads the product total', levels[lineKey(P, null)]?.stock === 5);
-check('the M reads its own shelf', levels[lineKey(P, 'v1')]?.stock === 2);
-check('the L reads its own shelf', levels[lineKey(P, 'v2')]?.stock === 3);
+check('a variantless line reads the product total', levels[lineKey(P, null)]?.stock === 5);
+check('Green / M reads its own shelf', levels[lineKey(P, 'v1')]?.stock === 2);
+check('Red / M reads its own shelf', levels[lineKey(P, 'v2')]?.stock === 3);
 check(
-  'a size that has gone reads as absent, not as the total',
+  'a combination that has gone reads as absent, not as the total',
   levels[lineKey(P, 'v9')] === undefined,
+);
+
+console.log('\nWhich chips a shopper can still press\n');
+
+/*
+  The picker's reachability rule, which decides whether a chip is struck
+  through. Its own axis is excluded from the test, so clicking a sold-out
+  colour does not require first clearing the size.
+*/
+type Row = { options: Record<string, string>; stock: number };
+const stock: Row[] = [
+  { options: { colour: 'Green', size: 'M' }, stock: 2 },
+  { options: { colour: 'Green', size: 'L' }, stock: 0 },
+  { options: { colour: 'Red', size: 'M' }, stock: 0 },
+  { options: { colour: 'Red', size: 'L' }, stock: 4 },
+];
+const slugs = ['colour', 'size'];
+
+const reachable = (slug: string, value: string, selected: Record<string, string>) =>
+  stock.some(
+    (row) =>
+      row.stock > 0 &&
+      row.options[slug] === value &&
+      slugs.every(
+        (other) => other === slug || !selected[other] || row.options[other] === selected[other],
+      ),
+  );
+
+check('with nothing chosen, both colours are open', reachable('colour', 'Green', {}) && reachable('colour', 'Red', {}));
+check('with M chosen, Green is open', reachable('colour', 'Green', { size: 'M' }));
+check('with M chosen, Red is struck through', !reachable('colour', 'Red', { size: 'M' }));
+check('with Green chosen, L is struck through', !reachable('size', 'L', { colour: 'Green' }));
+check('with Red chosen, L is open again', reachable('size', 'L', { colour: 'Red' }));
+check(
+  'a colour is judged on its own merits, not the size already picked',
+  reachable('colour', 'Red', { colour: 'Green', size: 'M' }) === false &&
+    reachable('size', 'L', { colour: 'Red', size: 'M' }) === true,
 );
 
 console.log(
   failed === 0
-    ? `\n${GREEN('All checks passed.')} Sizeless lines behave exactly as before.\n`
+    ? `\n${GREEN('All checks passed.')} Variantless lines behave exactly as before.\n`
     : `\n${RED(`${failed} check(s) failed.`)}\n`,
 );
 

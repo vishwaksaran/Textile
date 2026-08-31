@@ -1,42 +1,87 @@
 'use client';
 
 import { create } from 'zustand';
-import type { ProductVariant } from '@/types';
+import { optionKey } from '@/lib/variant-key';
+import type { OptionDetail, Product, ProductVariant } from '@/types';
 
 /**
- * Which size the shopper has picked, per product.
+ * Which combination the shopper has picked, per product.
  *
- * A store rather than component state because two things on the product page
- * need the same answer — the buy box and the sticky mobile bar, which are
- * siblings with the page between them — and a size chosen in one that the
- * other did not know about is how a shopper ends up buying the wrong one.
+ * A store rather than component state because three things on the product
+ * page need the same answer — the picker, the gallery and the sticky mobile
+ * bar — and they are siblings with the whole page between them. A colour
+ * chosen in one that the others did not hear about is how someone ends up
+ * looking at green photographs while buying a red one.
  *
- * Not persisted. A size is a decision about this visit; stock moves, and a
- * remembered choice that has since sold out is worse than no choice at all.
+ * Not persisted. A choice belongs to this visit; stock moves, and a
+ * remembered selection that has since sold out is worse than none.
  */
 interface VariantState {
-  selected: Record<string, string | null>;
-  select: (productId: string, variantId: string | null) => void;
+  /** productId → attribute slug → value. */
+  selected: Record<string, Record<string, string>>;
+  select: (productId: string, slug: string, value: string | null) => void;
 }
+
+const EMPTY: Record<string, string> = {};
 
 export const useVariantStore = create<VariantState>()((set) => ({
   selected: {},
-  select: (productId, variantId) =>
-    set((s) => ({ selected: { ...s.selected, [productId]: variantId } })),
+  select: (productId, slug, value) =>
+    set((s) => {
+      const current = { ...(s.selected[productId] ?? {}) };
+      if (value === null) delete current[slug];
+      else current[slug] = value;
+      return { selected: { ...s.selected, [productId]: current } };
+    }),
 }));
 
+export function useSelectedOptions(productId: string): Record<string, string> {
+  return useVariantStore((s) => s.selected[productId]) ?? EMPTY;
+}
+
 /**
- * The chosen variant, or null.
+ * The variant the current selection names, or null while it is incomplete.
  *
- * Resolved against the list the page was rendered with rather than held as an
- * object, so a stale id — a size retired between two visits in one session —
- * simply reads as "nothing chosen" instead of a phantom selection.
+ * Matched on the same normalised key the database stores, built by shared
+ * code, so the browser and the server cannot disagree about which shelf a
+ * shopper is pointing at.
  */
 export function useSelectedVariant(
   productId: string,
   variants: ProductVariant[] | undefined,
+  axisSlugs: string[],
 ): ProductVariant | null {
-  const id = useVariantStore((s) => s.selected[productId]);
-  if (!id || !variants) return null;
-  return variants.find((v) => v.id === id) ?? null;
+  const selected = useSelectedOptions(productId);
+  if (!variants?.length || axisSlugs.length === 0) return null;
+  if (axisSlugs.some((slug) => !selected[slug])) return null;
+
+  const key = optionKey(
+    Object.fromEntries(axisSlugs.map((slug) => [slug, selected[slug]])),
+  );
+  return variants.find((v) => v.option_key === key) ?? null;
+}
+
+/**
+ * The photographs to show right now.
+ *
+ * An axis value may carry its own — colour almost always does — and the first
+ * chosen value that has any wins. Falling back to the product's own set is
+ * what makes an axis like size, which does not change how a piece looks,
+ * cost nothing here.
+ */
+export function useActiveImages(
+  product: Pick<Product, 'id' | 'images'>,
+  optionDetails: Record<string, OptionDetail> | undefined,
+  axisSlugs: string[],
+): string[] {
+  const selected = useSelectedOptions(product.id);
+  if (!optionDetails) return product.images ?? [];
+
+  for (const slug of axisSlugs) {
+    const value = selected[slug];
+    if (!value) continue;
+    const images = optionDetails[`${slug}:${value}`]?.images;
+    if (images?.length) return images;
+  }
+  return product.images ?? [];
 }

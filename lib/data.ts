@@ -2,7 +2,7 @@ import 'server-only';
 
 import { createPublicSupabase, isSupabaseConfigured } from '@/lib/supabase/server';
 import { DEMO_CATEGORIES, DEMO_PRODUCTS } from '@/lib/demo-data';
-import { getProductVariants } from '@/lib/variants';
+import { getOptionDetails, getProductVariants, getVariantAxes } from '@/lib/variants';
 import { effectivePrice } from '@/lib/utils';
 import { upgradeImageUrl, upgradeImageUrls } from '@/lib/images';
 import { productIdsMatchingAttributes } from '@/lib/attributes';
@@ -218,11 +218,24 @@ export async function getProductById(id: string): Promise<Product | null> {
     .maybeSingle();
   if (error || !data) return null;
 
-  // Only the detail page needs sizes — the grid reads the product's own
-  // total, which the database keeps as their sum — so this is the one read
-  // that pays for the second query.
+  /*
+    Only the detail page needs the combinations — the grid reads the
+    product's own total, which the database keeps as their sum — so this is
+    the one read that pays for the extra queries.
+  */
   const product = withHiResImages(data as unknown as Product);
-  return { ...product, variants: await getProductVariants(product.id) };
+  const [variants, optionDetails, axes] = await Promise.all([
+    getProductVariants(product.id),
+    getOptionDetails(product.id),
+    getVariantAxes(product.category_id),
+  ]);
+
+  return {
+    ...product,
+    variants,
+    optionDetails,
+    variantAxes: axes.map((a) => ({ slug: a.slug, name: a.name })),
+  };
 }
 
 export async function getRelatedProducts(product: Product, limit = 6): Promise<Product[]> {

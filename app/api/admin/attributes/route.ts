@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { errorResponse } from '@/lib/admin-api';
-import { getCategoryAttributes } from '@/lib/attributes';
+import { getAllAttributes, getCategoryAttributes } from '@/lib/attributes';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,7 +16,13 @@ export async function GET(request: Request) {
   try {
     await requireAdmin();
     const categoryId = new URL(request.url).searchParams.get('categoryId');
-    return NextResponse.json({ attributes: await getCategoryAttributes(categoryId) });
+    // No category named: the whole list, which is what the Category Manager
+    // needs to offer a choice of axes.
+    return NextResponse.json({
+      attributes: categoryId
+        ? await getCategoryAttributes(categoryId)
+        : await getAllAttributes(),
+    });
   } catch (err) {
     return errorResponse(err);
   }

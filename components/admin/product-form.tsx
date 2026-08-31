@@ -4,7 +4,12 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { AttributeFields, type AttributeDraft } from '@/components/admin/attribute-fields';
-import { VariantFields, type VariantDraftUI } from '@/components/admin/variant-fields';
+import {
+  VariantFields,
+  type OptionDetailUI,
+  type VariantDraftUI,
+} from '@/components/admin/variant-fields';
+import { optionKey } from '@/lib/variant-key';
 import type { Attribute } from '@/lib/attributes';
 import { Loader2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -51,42 +56,67 @@ export function ProductForm({ categories, product }: ProductFormProps) {
   });
 
   /*
-    Sizes.
+    Variants.
 
     Loaded rather than passed in, because the product row itself carries no
-    variants — the storefront reads them, the admin list does not, and paying
-    for that query on the products table would be paying for it forty times
-    to use it once.
+    combinations — the storefront reads them, the admin list does not, and
+    paying for those queries on the products table would be paying for them
+    forty times to use them once.
   */
   const [variants, setVariants] = React.useState<VariantDraftUI[]>([]);
+  const [chosen, setChosen] = React.useState<Record<string, string[]>>({});
+  const [optionDetails, setOptionDetails] = React.useState<Record<string, OptionDetailUI>>({});
   const [variantsLoaded, setVariantsLoaded] = React.useState(!product);
 
   React.useEffect(() => {
     if (!product) return;
     let cancelled = false;
     fetch(`/api/admin/products/${product.id}/variants`)
-      .then((r) => (r.ok ? r.json() : { variants: [] }))
+      .then((r) => (r.ok ? r.json() : { variants: [], optionDetails: {} }))
       .then((d) => {
         if (cancelled) return;
-        setVariants(
-          (d.variants ?? []).map(
-            (v: {
-              id: string;
-              label: string;
-              sku: string | null;
-              stock_quantity: number;
-              price: number | null;
-              measurements: Record<string, string>;
-              sold: boolean;
-            }) => ({
-              id: v.id,
-              label: v.label,
-              sku: v.sku ?? '',
-              stock: String(v.stock_quantity),
-              price: v.price == null ? '' : String(v.price),
-              measurements: v.measurements ?? {},
-              removable: !v.sold,
-            }),
+
+        const rows: VariantDraftUI[] = (d.variants ?? []).map(
+          (v: {
+            id: string;
+            options: Record<string, string>;
+            sku: string | null;
+            stock_quantity: number;
+            price: number | null;
+            sold: boolean;
+          }) => ({
+            id: v.id,
+            options: v.options ?? {},
+            sku: v.sku ?? '',
+            stock: String(v.stock_quantity),
+            price: v.price == null ? '' : String(v.price),
+            removable: !v.sold,
+          }),
+        );
+        setVariants(rows);
+
+        // The values in play are read back off the saved rows, so the chips
+        // come up already ticked without storing the same list twice.
+        const values: Record<string, string[]> = {};
+        for (const row of rows) {
+          for (const [slug, value] of Object.entries(row.options)) {
+            const list = values[slug] ?? [];
+            if (!list.includes(value)) values[slug] = [...list, value];
+          }
+        }
+        setChosen(values);
+
+        setOptionDetails(
+          Object.fromEntries(
+            Object.entries(
+              (d.optionDetails ?? {}) as Record<
+                string,
+                { images?: string[]; measurements?: Record<string, string> }
+              >,
+            ).map(([key, detail]) => [
+              key,
+              { images: detail.images ?? [], measurements: detail.measurements ?? {} },
+            ]),
           ),
         );
         setVariantsLoaded(true);
@@ -123,10 +153,18 @@ export function ProductForm({ categories, product }: ProductFormProps) {
     };
   }, [form.category_id]);
 
-  /** Size suggestions come from the collection the piece is filed under. */
-  const sizePresets = React.useMemo(
-    () => categories.find((c) => c.id === form.category_id)?.size_presets ?? [],
-    [categories, form.category_id],
+  /**
+   * The axes this piece may vary along, from the collection it is filed
+   * under. They arrive with the attributes, which are refetched whenever the
+   * collection changes, so moving a piece into Churidars offers colour and
+   * size straight away.
+   */
+  const axes = React.useMemo(
+    () =>
+      attributes
+        .filter((a) => a.is_variant)
+        .map((a) => ({ slug: a.slug, name: a.name, options: a.options.map((o) => o.value) })),
+    [attributes],
   );
 
   const [errors, setErrors] = React.useState<Partial<Record<keyof FormState, string>>>({});
@@ -173,15 +211,13 @@ export function ProductForm({ categories, product }: ProductFormProps) {
     setErrors(next);
     if (Object.keys(next).length > 0) return false;
 
-    // Reported as toasts rather than field errors: these belong to the sizes
-    // table, which has no single field to hang a message under.
-    const labels = variants.map((v) => v.label.trim().toLowerCase());
-    if (labels.some((l) => !l)) {
-      toast.error('Every size needs a label.');
-      return false;
-    }
-    if (new Set(labels).size !== labels.length) {
-      toast.error('Two sizes share a label.');
+    // Reported as a toast rather than a field error: this belongs to the
+    // grid, which has no single field to hang a message under. The grid is
+    // built from the chosen values so it should not be able to produce a
+    // duplicate — this catches the case where it somehow did.
+    const keys = variants.map((v) => optionKey(v.options));
+    if (new Set(keys).size !== keys.length) {
+      toast.error('Two rows describe the same combination.');
       return false;
     }
 
@@ -218,13 +254,16 @@ export function ProductForm({ categories, product }: ProductFormProps) {
               ? {
                   variants: variants.map((v) => ({
                     id: v.id,
-                    label: v.label.trim(),
+                    options: v.options,
                     sku: v.sku.trim() || null,
                     stock_quantity: Number(v.stock) || 0,
                     price: v.price === '' ? null : Number(v.price),
-                    measurements: Object.fromEntries(
-                      Object.entries(v.measurements).filter(([, value]) => value.trim()),
-                    ),
+                  })),
+                  optionDetails: Object.entries(optionDetails).map(([key, detail]) => ({
+                    attributeSlug: key.slice(0, key.indexOf(':')),
+                    value: key.slice(key.indexOf(':') + 1),
+                    images: detail.images,
+                    measurements: detail.measurements,
                   })),
                 }
               : {}),
@@ -370,19 +409,30 @@ export function ProductForm({ categories, product }: ProductFormProps) {
             </div>
           </section>
 
+          {/* Variant axes are deliberately absent here: colour is answered
+              once per combination in the grid below, and asking for it twice
+              would leave two answers to disagree. */}
           <AttributeFields
-            attributes={attributes}
+            attributes={attributes.filter((a) => !a.is_variant)}
             values={attrValues}
             onChange={(id, draft) => setAttrValues((v) => ({ ...v, [id]: draft }))}
           />
 
           <section className="rounded-lg border border-outline-variant/40 bg-surface-container-lowest p-6">
-            <h2 className="mb-1 font-headline-md text-headline-md text-on-surface">Sizes</h2>
+            <h2 className="mb-1 font-headline-md text-headline-md text-on-surface">Variants</h2>
             <p className="mb-5 font-body-md text-body-md text-on-surface-variant">
-              Each size keeps its own stock. Leave this empty for anything sold as a single
-              piece — a saree, a cut length.
+              Pick the colours and sizes this piece is stocked in, and every combination gets
+              its own stock. Leave it empty for anything sold as a single piece.
             </p>
-            <VariantFields variants={variants} onChange={setVariants} presets={sizePresets} />
+            <VariantFields
+              axes={axes}
+              chosen={chosen}
+              onChosenChange={setChosen}
+              variants={variants}
+              onVariantsChange={setVariants}
+              details={optionDetails}
+              onDetailsChange={setOptionDetails}
+            />
           </section>
 
           <section className="rounded-lg border border-outline-variant/40 bg-surface-container-lowest p-6">
