@@ -327,6 +327,18 @@ async function mirrorAxisValues(
   const supabase = createAdminSupabase();
   if (!supabase) return;
 
+  /*
+    A product with no variants is still described the old way, and its answers
+    are its own — not something this function put there.
+
+    Without this, ticking Colour as an axis for Sarees and then saving any
+    existing saree would delete the colour it had been given, and the piece
+    would quietly drop out of the colour filter. The moment it has even one
+    variant the axis values become derived, and clearing a stale one is then
+    the right thing to do.
+  */
+  if (drafts.length === 0) return;
+
   for (const axis of axes) {
     const values = [
       ...new Set(

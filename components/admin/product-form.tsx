@@ -409,11 +409,14 @@ export function ProductForm({ categories, product }: ProductFormProps) {
             </div>
           </section>
 
-          {/* Variant axes are deliberately absent here: colour is answered
-              once per combination in the grid below, and asking for it twice
-              would leave two answers to disagree. */}
+          {/* An axis is answered once per combination in the grid below, so
+              asking for it here as well would leave two answers to disagree —
+              but only once there are combinations. A piece with none is still
+              described the old way, which is what lets a shop turn colour into
+              an axis for Sarees without having to rebuild every saree it has
+              already entered. */}
           <AttributeFields
-            attributes={attributes.filter((a) => !a.is_variant)}
+            attributes={attributes.filter((a) => !a.is_variant || variants.length === 0)}
             values={attrValues}
             onChange={(id, draft) => setAttrValues((v) => ({ ...v, [id]: draft }))}
           />
