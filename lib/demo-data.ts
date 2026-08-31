@@ -46,6 +46,7 @@ export const DEMO_CATEGORIES: Category[] = [
     description:
       'Heavy mulberry silk with contrasting korvai borders, woven in the temple town of Kanchipuram.',
     image_url: IMG.kanjeevaram,
+    parent_id: null,
     nav_group: 'sarees',
     sort_order: 0,
     created_at: iso(120),
@@ -56,6 +57,7 @@ export const DEMO_CATEGORIES: Category[] = [
     slug: 'banarasi',
     description: 'Opulent zari brocade from Varanasi, with floral jaal and kadhwa motifs.',
     image_url: IMG.banarasi,
+    parent_id: null,
     nav_group: 'sarees',
     sort_order: 0,
     created_at: iso(118),
@@ -67,6 +69,7 @@ export const DEMO_CATEGORIES: Category[] = [
     description:
       'Handspun, handwoven cotton — the fabric of freedom, prized for its breathability.',
     image_url: IMG.khadi,
+    parent_id: null,
     nav_group: 'sarees',
     sort_order: 0,
     created_at: iso(116),
@@ -78,6 +81,7 @@ export const DEMO_CATEGORIES: Category[] = [
     description:
       'Bridal weaves for the most photographed day of a life — heavy silk, heavier zari.',
     image_url: IMG.weddingHero,
+    parent_id: null,
     nav_group: 'sarees',
     sort_order: 0,
     created_at: iso(114),
@@ -89,6 +93,7 @@ export const DEMO_CATEGORIES: Category[] = [
     description:
       'Revival weaves and archival motifs, reproduced with the original loom techniques.',
     image_url: IMG.artisan,
+    parent_id: null,
     nav_group: 'sarees',
     sort_order: 0,
     created_at: iso(112),

@@ -20,6 +20,10 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       image_url: body.image_url ?? null,
       // Only the three known placements; anything else falls back to the
       // dropdown, which is where a weave belongs.
+      // Null makes it a top-level section. A row cannot be its own parent,
+      // which is the one cycle a single-level tree can produce.
+      parent_id:
+        body.parent_id && body.parent_id !== body.id ? String(body.parent_id) : null,
       nav_group: ['sarees', 'standalone', 'hidden'].includes(body.nav_group)
         ? body.nav_group
         : 'sarees',
@@ -62,6 +66,22 @@ export async function DELETE(_request: Request, { params }: { params: { id: stri
       return NextResponse.json(
         {
           error: `This collection still holds ${count} ${count === 1 ? 'piece' : 'pieces'}. Move them first.`,
+        },
+        { status: 409 },
+      );
+    }
+
+    // A section still holding subcategories is refused by the foreign key.
+    // Saying so plainly beats surfacing a constraint name.
+    const { count: children } = await supabase
+      .from('categories')
+      .select('id', { count: 'exact', head: true })
+      .eq('parent_id', params.id);
+
+    if ((children ?? 0) > 0) {
+      return NextResponse.json(
+        {
+          error: `This section still contains ${children} ${children === 1 ? 'subcategory' : 'subcategories'}. Delete or move them first.`,
         },
         { status: 409 },
       );

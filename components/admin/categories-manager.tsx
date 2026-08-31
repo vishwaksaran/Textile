@@ -31,6 +31,7 @@ interface Draft {
   description: string;
   image_url: string | null;
   nav_group: CategoryNavGroup;
+  parent_id: string | null;
   /** Set once the slug is edited by hand, so it stops tracking the name. */
   slugTouched: boolean;
 }
@@ -41,6 +42,7 @@ const BLANK: Draft = {
   description: '',
   image_url: null,
   nav_group: 'sarees',
+  parent_id: null,
   slugTouched: false,
 };
 const PER_PAGE = 8;
@@ -106,6 +108,7 @@ export function CategoriesManager({ categories }: { categories: CategoryRow[] })
       description: category.description ?? '',
       image_url: category.image_url,
       nav_group: category.nav_group ?? 'sarees',
+      parent_id: category.parent_id ?? null,
       slugTouched: true,
     });
   }
@@ -131,6 +134,8 @@ export function CategoriesManager({ categories }: { categories: CategoryRow[] })
             description: draft.description.trim() || null,
             image_url: draft.image_url,
             nav_group: draft.nav_group,
+            parent_id: draft.parent_id,
+            id: draft.id,
           }),
         },
       );
@@ -262,7 +267,18 @@ export function CategoriesManager({ categories }: { categories: CategoryRow[] })
                     <td className="p-4 font-mono text-sm text-on-surface-variant">
                       /{category.slug}
                     </td>
-                    <td className="p-4 text-on-surface-variant">—</td>
+                    {/* The column existed but was always a dash. It now shows
+                        the section a row sits under, which is the only way to
+                        read the tree from the list. */}
+                    <td className="p-4 text-on-surface-variant">
+                      {category.parent_id ? (
+                        categories.find((c) => c.id === category.parent_id)?.name ?? '—'
+                      ) : (
+                        <span className="font-label-sm text-label-sm uppercase tracking-widest text-earthy-bronze">
+                          Section
+                        </span>
+                      )}
+                    </td>
                     <td className="p-4 text-on-surface-variant">{category.productCount}</td>
 
                     <td className="p-4">
@@ -401,6 +417,36 @@ export function CategoriesManager({ categories }: { categories: CategoryRow[] })
                   value={draft.description}
                   onChange={(e) => setDraft({ ...draft, description: e.target.value })}
                 />
+              </Field>
+
+              {/* A section is simply a category with no parent, so the tree
+                  needs no separate "is a section" flag to fall out of step
+                  with. Only top-level rows are offered, and never itself. */}
+              <Field
+                label="Belongs to"
+                htmlFor="category-parent"
+                hint={
+                  draft.parent_id
+                    ? 'A subcategory. It appears in that section’s dropdown.'
+                    : 'A top-level section. It becomes its own item in the main menu.'
+                }
+              >
+                <Select
+                  id="category-parent"
+                  value={draft.parent_id ?? ''}
+                  onChange={(e) =>
+                    setDraft({ ...draft, parent_id: e.target.value || null })
+                  }
+                >
+                  <option value="">Nothing — this is a top-level section</option>
+                  {categories
+                    .filter((c) => c.parent_id === null && c.id !== draft.id)
+                    .map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                </Select>
               </Field>
 
               <Field

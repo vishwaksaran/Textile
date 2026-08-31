@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ChevronDown, Menu, Package, Search, Sparkles, X } from 'lucide-react';
 import { STORE } from '@/lib/config';
-import { splitNavCategories } from '@/lib/nav';
+import { buildNavTree } from '@/lib/nav';
 import { cn } from '@/lib/utils';
 import { LogoMark } from '@/components/store/logo';
 import { CartButton } from '@/components/store/cart-button';
@@ -41,16 +41,20 @@ export function Navbar({ categories }: { categories: Category[] }) {
     };
   }, [mobileOpen]);
 
-  const { sarees, standalone } = React.useMemo(
-    () => splitNavCategories(categories),
-    [categories],
-  );
+  const { sections } = React.useMemo(() => buildNavTree(categories), [categories]);
 
-  // The dropdown highlights for its own weaves only — a standalone collection
-  // lights its own item instead, so two things are never active at once.
-  const onSarees =
-    pathname === '/collections' ||
-    sarees.some((c) => pathname === `/category/${c.slug}`);
+  /**
+   * A section is current when its own page is open or one of its children is.
+   * Checked per section rather than globally so two items are never lit at
+   * once — the bug the old single "onSarees" flag would produce the moment a
+   * second section existed.
+   */
+  const isCurrent = React.useCallback(
+    ({ section, children }: (typeof sections)[number]) =>
+      pathname === `/category/${section.slug}` ||
+      children.some((c) => pathname === `/category/${c.slug}`),
+    [pathname],
+  );
 
   return (
     <>
@@ -73,30 +77,33 @@ export function Navbar({ categories }: { categories: Category[] }) {
           </Link>
 
           <nav aria-label="Primary" className="flex items-center gap-7">
-            <SareesMenu categories={sarees} active={onSarees} />
-
-            {/* Collections that are not sarees get their own item. Listing a
-                churidar inside a "Sarees" menu is not somewhere a customer
-                would think to look. */}
-            {standalone.map((category) => {
-              const href = `/category/${category.slug}`;
-              const isActive = pathname === href;
-              return (
+            {/* One item per top-level category. A section with children gets
+                a dropdown; one without is a plain link, so a new section
+                needs no code either way. */}
+            {sections.map((entry) =>
+              entry.children.length > 0 ? (
+                <SectionMenu
+                  key={entry.section.id}
+                  section={entry.section}
+                  categories={entry.children}
+                  active={isCurrent(entry)}
+                />
+              ) : (
                 <Link
-                  key={category.id}
-                  href={href}
-                  aria-current={isActive ? 'page' : undefined}
+                  key={entry.section.id}
+                  href={`/category/${entry.section.slug}`}
+                  aria-current={isCurrent(entry) ? 'page' : undefined}
                   className={cn(
                     navItemClass,
-                    isActive
+                    isCurrent(entry)
                       ? 'border-primary-container font-bold text-deep-maroon'
                       : 'border-transparent text-on-surface-variant hover:text-deep-maroon',
                   )}
                 >
-                  {category.name}
+                  {entry.section.name}
                 </Link>
-              );
-            })}
+              ),
+            )}
 
             <button
               type="button"
@@ -191,18 +198,23 @@ export function Navbar({ categories }: { categories: Category[] }) {
             </div>
 
             <nav className="px-margin-mobile pb-16 pt-4" aria-label="Mobile">
-              <MobileSarees categories={sarees} />
-
-              {/* Peers of the Sarees group, not children of it. */}
-              {standalone.map((category) => (
-                <Link
-                  key={category.id}
-                  href={`/category/${category.slug}`}
-                  className="flex items-center justify-between border-b border-outline-variant/40 py-4 font-headline-md text-headline-md text-deep-maroon"
-                >
-                  {category.name}
-                </Link>
-              ))}
+              {sections.map((entry) =>
+                entry.children.length > 0 ? (
+                  <MobileSection
+                    key={entry.section.id}
+                    section={entry.section}
+                    categories={entry.children}
+                  />
+                ) : (
+                  <Link
+                    key={entry.section.id}
+                    href={`/category/${entry.section.slug}`}
+                    className="flex items-center justify-between border-b border-outline-variant/40 py-4 font-headline-md text-headline-md text-deep-maroon"
+                  >
+                    {entry.section.name}
+                  </Link>
+                ),
+              )}
 
               <ul className="mt-2 space-y-1">
                 <li>
@@ -264,7 +276,15 @@ export function Navbar({ categories }: { categories: Category[] }) {
  * "Sarees" with its weave submenu. Opens on hover for pointers and on
  * click/Enter for keyboards, and closes on Escape or focus leaving the group.
  */
-function SareesMenu({ categories, active }: { categories: Category[]; active: boolean }) {
+function SectionMenu({
+  section,
+  categories,
+  active,
+}: {
+  section: Category;
+  categories: Category[];
+  active: boolean;
+}) {
   const [open, setOpen] = React.useState(false);
   const closeTimer = React.useRef<ReturnType<typeof setTimeout>>();
   const groupRef = React.useRef<HTMLDivElement>(null);
@@ -306,7 +326,7 @@ function SareesMenu({ categories, active }: { categories: Category[]; active: bo
             : 'border-transparent text-on-surface-variant hover:text-deep-maroon',
         )}
       >
-        Sarees
+        {section.name}
         <ChevronDown
           className={cn('h-3.5 w-3.5 transition-transform', open && 'rotate-180')}
           strokeWidth={2}
@@ -338,11 +358,11 @@ function SareesMenu({ categories, active }: { categories: Category[]; active: bo
               ))}
               <div className="my-2 h-px bg-outline-variant/40" />
               <Link
-                href="/collections"
+                href={`/category/${section.slug}`}
                 onClick={() => setOpen(false)}
                 className="block px-4 py-2.5 font-label-sm text-label-sm uppercase tracking-widest text-deep-maroon transition-colors hover:bg-primary-container/15"
               >
-                All Collections
+                All {section.name}
               </Link>
             </div>
           </motion.div>
@@ -353,7 +373,7 @@ function SareesMenu({ categories, active }: { categories: Category[]; active: bo
 }
 
 /** The same submenu on mobile, as an expandable section. */
-function MobileSarees({ categories }: { categories: Category[] }) {
+function MobileSection({ section, categories }: { section: Category; categories: Category[] }) {
   const [open, setOpen] = React.useState(true);
 
   return (
@@ -364,7 +384,7 @@ function MobileSarees({ categories }: { categories: Category[] }) {
         aria-expanded={open}
         className="flex w-full items-center justify-between py-4 font-headline-md text-headline-md text-deep-maroon"
       >
-        Sarees
+        {section.name}
         <ChevronDown
           className={cn('h-5 w-5 transition-transform', open && 'rotate-180')}
           strokeWidth={2}
@@ -397,10 +417,10 @@ function MobileSarees({ categories }: { categories: Category[] }) {
             ))}
             <li>
               <Link
-                href="/collections"
+                href={`/category/${section.slug}`}
                 className="block py-3 pb-5 pl-4 font-label-lg text-label-lg uppercase text-deep-maroon"
               >
-                All Collections
+                All {section.name}
               </Link>
             </li>
           </motion.ul>

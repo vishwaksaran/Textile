@@ -9,6 +9,8 @@ export interface Category {
   slug: string;
   description: string | null;
   image_url: string | null;
+  /** Null for a top-level section; otherwise the section it belongs to. */
+  parent_id: string | null;
   /** Where this collection appears in the main navigation. */
   nav_group: CategoryNavGroup;
   /** Lower sorts first within its nav group; ties fall back to name. */

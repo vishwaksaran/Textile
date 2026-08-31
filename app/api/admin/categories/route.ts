@@ -36,6 +36,10 @@ export async function POST(request: Request) {
       image_url: body.image_url ?? null,
       // Only the three known placements; anything else falls back to the
       // dropdown, which is where a weave belongs.
+      // Null makes it a top-level section. A row cannot be its own parent,
+      // which is the one cycle a single-level tree can produce.
+      parent_id:
+        body.parent_id && body.parent_id !== body.id ? String(body.parent_id) : null,
       nav_group: ['sarees', 'standalone', 'hidden'].includes(body.nav_group)
         ? body.nav_group
         : 'sarees',

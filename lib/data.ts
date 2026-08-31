@@ -69,11 +69,15 @@ export async function getAvailableFabrics(categorySlug?: string): Promise<string
 
   let query = supabase
     .from('products')
-    .select('fabric, categories:category_id!inner (slug)')
+    .select('fabric')
     .eq('is_active', true)
     .not('fabric', 'is', null);
 
-  if (categorySlug) query = query.eq('categories.slug', categorySlug);
+  if (categorySlug) {
+    const ids = await categoryIdsFor(categorySlug);
+    if (ids && ids.length === 0) return [];
+    if (ids) query = query.in('category_id', ids);
+  }
 
   const { data, error } = await query;
   if (error || !data) return [];
@@ -143,6 +147,25 @@ function queryDemo(q: ProductQuery): { products: Product[]; total: number } {
   return { products: sorted.slice(offset, offset + limit), total };
 }
 
+/**
+ * A category and everything filed beneath it.
+ *
+ * A section holds no products of its own — pieces live in its subcategories —
+ * so filtering /category/sarees on category_id alone would return an empty
+ * page for the busiest link in the menu. One level of nesting is all the tree
+ * has, so this resolves children rather than recursing.
+ */
+async function categoryIdsFor(slug: string): Promise<string[] | null> {
+  const supabase = createPublicSupabase();
+  if (!supabase) return null;
+
+  const category = await getCategoryBySlug(slug);
+  if (!category) return [];
+
+  const { data } = await supabase.from('categories').select('id').eq('parent_id', category.id);
+  return [category.id, ...((data as { id: string }[]) ?? []).map((c) => c.id)];
+}
+
 export async function getProducts(q: ProductQuery = {}): Promise<{
   products: Product[];
   total: number;
@@ -150,11 +173,11 @@ export async function getProducts(q: ProductQuery = {}): Promise<{
   const supabase = createPublicSupabase();
   if (!supabase) return queryDemo(q);
 
-  let categoryId: string | undefined;
+  let categoryIds: string[] | undefined;
   if (q.categorySlug) {
-    const category = await getCategoryBySlug(q.categorySlug);
-    if (!category) return { products: [], total: 0 };
-    categoryId = category.id;
+    const ids = await categoryIdsFor(q.categorySlug);
+    if (ids && ids.length === 0) return { products: [], total: 0 };
+    categoryIds = ids ?? undefined;
   }
 
   let query = supabase
@@ -162,7 +185,7 @@ export async function getProducts(q: ProductQuery = {}): Promise<{
     .select(PRODUCT_COLUMNS, { count: 'exact' })
     .eq('is_active', true);
 
-  if (categoryId) query = query.eq('category_id', categoryId);
+  if (categoryIds) query = query.in('category_id', categoryIds);
   if (q.search) query = query.ilike('name', `%${q.search}%`);
   if (q.minPrice != null) query = query.gte('price', q.minPrice);
   if (q.maxPrice != null) query = query.lte('price', q.maxPrice);

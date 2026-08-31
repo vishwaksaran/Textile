@@ -11,7 +11,7 @@ import {
   TrackTabIcon,
 } from '@/components/store/tab-icons';
 import { useCartStore, selectCount } from '@/stores/cart-store';
-import { splitNavCategories } from '@/lib/nav';
+import { buildNavTree } from '@/lib/nav';
 import { cn } from '@/lib/utils';
 import type { Category } from '@/types';
 
@@ -37,21 +37,23 @@ export function MobileNav({ categories = [] }: { categories?: Category[] }) {
   const count = useCartStore(selectCount);
   const hydrated = useCartStore((s) => s.hydrated);
 
-  const { sarees, standalone } = React.useMemo(
-    () => splitNavCategories(categories),
-    [categories],
-  );
+  const { sections } = React.useMemo(() => buildNavTree(categories), [categories]);
 
-  // Only one slot is spare, so the first standalone collection takes it.
-  const garment = standalone[0];
-  const garmentHref = garment ? `/category/${garment.slug}` : null;
+  // Two slots for garments, so the first two sections take them — whatever
+  // they are called. A shop that renames Sarees, or leads with Lehengas, gets
+  // the right tabs without a code change.
+  const [primary, secondary] = sections;
+  const hrefFor = (s?: (typeof sections)[number]) =>
+    s ? `/category/${s.section.slug}` : null;
+  const primaryHref = hrefFor(primary);
+  const secondaryHref = hrefFor(secondary);
+
+  const covers = (entry: (typeof sections)[number] | undefined) =>
+    entry !== undefined &&
+    (pathname === `/category/${entry.section.slug}` ||
+      entry.children.some((c) => pathname === `/category/${c.slug}`));
 
   const onHome = pathname === '/';
-  const onGarment = garmentHref !== null && pathname === garmentHref;
-  // The dropdown's own weaves plus the all-collections view — a standalone
-  // collection lights its own tab instead of both.
-  const onSarees =
-    pathname === '/collections' || sarees.some((c) => pathname === `/category/${c.slug}`);
   const onTrack = pathname === '/track';
 
   return (
@@ -64,13 +66,15 @@ export function MobileNav({ categories = [] }: { categories?: Category[] }) {
         <HomeTabIcon filled={onHome} />
       </Tab>
 
-      <Tab href="/collections" active={onSarees} label="Sarees">
-        <SareeTabIcon filled={onSarees} />
-      </Tab>
+      {primaryHref && (
+        <Tab href={primaryHref} active={covers(primary)} label={primary.section.name}>
+          <SareeTabIcon filled={covers(primary)} />
+        </Tab>
+      )}
 
-      {garmentHref && (
-        <Tab href={garmentHref} active={onGarment} label={garment.name}>
-          <ChuridarTabIcon filled={onGarment} />
+      {secondaryHref && (
+        <Tab href={secondaryHref} active={covers(secondary)} label={secondary.section.name}>
+          <ChuridarTabIcon filled={covers(secondary)} />
         </Tab>
       )}
 
