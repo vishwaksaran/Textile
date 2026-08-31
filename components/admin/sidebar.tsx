@@ -9,6 +9,7 @@ import {
   ShoppingCart,
   Tags,
   Boxes,
+  ImageIcon,
   Truck,
   Receipt,
   LogOut,
@@ -26,6 +27,7 @@ export const ADMIN_NAV = [
   { href: '/admin/orders', label: 'Orders', Icon: ShoppingCart },
   { href: '/admin/categories', label: 'Category Manager', Icon: Tags },
   { href: '/admin/products', label: 'Inventory', Icon: Boxes },
+  { href: '/admin/settings/banner', label: 'Home Banner', Icon: ImageIcon },
   { href: '/admin/settings/shipping', label: 'Shipping Rates', Icon: Truck },
   { href: '/admin/settings/tax', label: 'Tax Settings', Icon: Receipt },
 ];

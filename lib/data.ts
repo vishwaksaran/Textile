@@ -4,7 +4,7 @@ import { createPublicSupabase, isSupabaseConfigured } from '@/lib/supabase/serve
 import { DEMO_CATEGORIES, DEMO_PRODUCTS } from '@/lib/demo-data';
 import { effectivePrice } from '@/lib/utils';
 import { upgradeImageUrl, upgradeImageUrls } from '@/lib/images';
-import type { Category, Product } from '@/types';
+import type { HeroSlideRow, Category, Product } from '@/types';
 
 export type ProductSort = 'featured' | 'price-asc' | 'price-desc' | 'newest';
 
@@ -264,4 +264,29 @@ export async function getStockLevels(
         },
       ]),
   );
+}
+
+/**
+ * Banner slides for the home page, newest configuration first.
+ *
+ * Returns an empty array rather than throwing when the table is missing or
+ * unreachable — the caller falls back to a built-in set, so a database
+ * hiccup costs the shop its custom banner, not its whole front page.
+ */
+export async function getHeroSlides(): Promise<HeroSlideRow[]> {
+  const supabase = createPublicSupabase();
+  if (!supabase) return [];
+
+  const { data, error } = await supabase
+    .from('hero_slides')
+    .select('*')
+    .eq('is_active', true)
+    .order('sort_order', { ascending: true })
+    .order('created_at', { ascending: true });
+
+  if (error || !data) return [];
+  return (data as HeroSlideRow[]).map((row) => ({
+    ...row,
+    image_url: upgradeImageUrl(row.image_url),
+  }));
 }

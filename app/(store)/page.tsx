@@ -5,7 +5,7 @@ import { Hero, type HeroSlide } from '@/components/store/hero';
 import { ProductGrid } from '@/components/store/product-grid';
 import { Reveal } from '@/components/shared/motion';
 import { Button } from '@/components/ui/button';
-import { getCategories, getLatestProducts } from '@/lib/data';
+import { getCategories, getHeroSlides, getLatestProducts } from '@/lib/data';
 import { STORE } from '@/lib/config';
 import { ARTISAN_IMAGE, HERO_SLIDE_IMAGES } from '@/lib/demo-data';
 import { JsonLd, canonical, organizationJsonLd, searchActionJsonLd, storeJsonLd } from '@/lib/seo';
@@ -39,9 +39,19 @@ const TESTIMONIALS = [
 ];
 
 export default async function HomePage() {
-  const [categories, latest] = await Promise.all([getCategories(), getLatestProducts(8)]);
+  const [categories, latest, managed] = await Promise.all([
+    getCategories(),
+    getLatestProducts(8),
+    getHeroSlides(),
+  ]);
 
-  const slides: HeroSlide[] = [
+  /*
+    The built-in slides, used only until the shop adds its own at
+    /admin/settings/banner. Kept as a fallback rather than seeded into the
+    table so an empty banner is never what a visitor lands on — a shop that
+    deletes every slide gets these back instead of a blank header.
+  */
+  const fallback: HeroSlide[] = [
     {
       image: HERO_SLIDE_IMAGES.banarasi,
       eyebrow: STORE.tagline,
@@ -67,6 +77,18 @@ export default async function HomePage() {
       ctaHref: '/category/khadi-cotton',
     },
   ];
+
+  const slides: HeroSlide[] =
+    managed.length > 0
+      ? managed.map((row) => ({
+          image: row.image_url,
+          eyebrow: row.eyebrow ?? '',
+          title: row.title,
+          body: row.body ?? '',
+          ctaLabel: row.cta_label ?? '',
+          ctaHref: row.cta_href ?? '/collections',
+        }))
+      : fallback;
 
   return (
     <>

@@ -120,3 +120,17 @@ export interface TaxSettingsRow {
   show_tax_breakdown: boolean;
   updated_at: string;
 }
+
+export interface HeroSlideRow {
+  id: string;
+  eyebrow: string | null;
+  title: string;
+  body: string | null;
+  image_url: string;
+  cta_label: string | null;
+  cta_href: string | null;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
