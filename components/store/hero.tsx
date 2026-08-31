@@ -3,6 +3,7 @@
 import * as React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { EyebrowRule, HeroDivider } from '@/components/store/hero-ornament';
 import { motion, useReducedMotion } from 'framer-motion';
 import { STORE } from '@/lib/config';
 import { cn } from '@/lib/utils';
@@ -78,6 +79,7 @@ export function Hero({ slides }: { slides: HeroSlide[] }) {
       >
         {slides.map((slide, i) => {
           const active = i === index;
+          const centred = (slide.textAlign ?? 'center') === 'center';
           return (
             <div
               key={slide.title}
@@ -155,17 +157,32 @@ export function Hero({ slides }: { slides: HeroSlide[] }) {
                           : 'center',
                   }}
                 >
-                  <p className="mb-4 font-label-sm text-label-sm uppercase tracking-[0.2em] text-primary-fixed drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
-                    {slide.eyebrow}
-                  </p>
+                  {slide.eyebrow && (
+                    <p className="mb-4 flex items-center gap-3 font-label-sm text-label-sm uppercase tracking-[0.2em] text-primary-fixed drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
+                      {/* The flanking rules only make sense around centred
+                          copy — off-centre they point at nothing. */}
+                      {centred && <EyebrowRule side="left" />}
+                      {slide.eyebrow}
+                      {centred && <EyebrowRule side="right" />}
+                    </p>
+                  )}
 
-                  <h2 className="mb-4 max-w-4xl font-display-lg text-display-lg-mobile text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.55)] md:text-display-lg">
+                  <h2 className="max-w-4xl font-display-lg text-display-lg-mobile text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.55)] md:text-display-lg">
                     {slide.title}
                   </h2>
 
-                  <p className="mb-8 max-w-2xl font-body-lg text-body-lg text-white drop-shadow-[0_2px_5px_rgba(0,0,0,0.6)]">
-                    {slide.body}
-                  </p>
+                  {/* Only earns its place between two pieces of copy. With no
+                      supporting line it would be an ornament hanging under
+                      nothing. */}
+                  {slide.body && (
+                    <HeroDivider className="my-5 h-4 w-56 text-primary-fixed opacity-90 drop-shadow-[0_1px_3px_rgba(0,0,0,0.5)] md:w-64" />
+                  )}
+
+                  {slide.body && (
+                    <p className="mb-8 max-w-2xl font-body-lg text-body-lg text-white drop-shadow-[0_2px_5px_rgba(0,0,0,0.6)]">
+                      {slide.body}
+                    </p>
+                  )}
 
                   <Link
                     href={slide.ctaHref}
