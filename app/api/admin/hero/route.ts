@@ -14,6 +14,12 @@ export const dynamic = 'force-dynamic';
  * become an open redirect on the shop's most-clicked link — and an admin who
  * wanted to send visitors elsewhere has no reason to do it from the banner.
  */
+function clampPercent(value: unknown, fallback: number): number {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.min(Math.max(Math.round(n), 0), 100);
+}
+
 function slideFrom(body: Record<string, unknown>) {
   const title = String(body.title ?? '').trim();
   if (title.length < 2) throw new Error('Give the slide a headline.');
@@ -42,6 +48,15 @@ function slideFrom(body: Record<string, unknown>) {
     cta_href: href,
     sort_order: Number.isFinite(Number(body.sort_order)) ? Number(body.sort_order) : 0,
     is_active: body.is_active !== false,
+    // Clamped rather than rejected: a percentage slightly outside the frame
+    // is a dragging mishap, not an attack, and snapping it back is kinder
+    // than refusing the whole save.
+    text_x: clampPercent(body.text_x, 50),
+    text_y: clampPercent(body.text_y, 50),
+    text_align: ['left', 'center', 'right'].includes(String(body.text_align))
+      ? String(body.text_align)
+      : 'center',
+    show_text: body.show_text !== false,
   };
 }
 

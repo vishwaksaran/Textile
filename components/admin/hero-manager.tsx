@@ -10,6 +10,7 @@ import { Field, Input, Textarea } from '@/components/ui/input';
 import { ImageUploader } from '@/components/admin/image-uploader';
 import { ConfirmDialog } from '@/components/shared/confirm-dialog';
 import { EmptyState } from '@/components/admin/ui';
+import { HeroTextPlacer } from '@/components/admin/hero-text-placer';
 import { STORE } from '@/lib/config';
 import type { Category, HeroSlideRow } from '@/types';
 
@@ -23,6 +24,10 @@ interface Draft {
   cta_href: string;
   sort_order: number;
   is_active: boolean;
+  text_x: number;
+  text_y: number;
+  text_align: 'left' | 'center' | 'right';
+  show_text: boolean;
 }
 
 const blank = (order: number): Draft => ({
@@ -34,6 +39,10 @@ const blank = (order: number): Draft => ({
   cta_href: '',
   sort_order: order,
   is_active: true,
+  text_x: 50,
+  text_y: 50,
+  text_align: 'center',
+  show_text: true,
 });
 
 /**
@@ -204,7 +213,23 @@ export function HeroManager({
               )}
 
               <div className="mt-3 flex flex-wrap gap-2">
-                <Button size="sm" variant="outline" onClick={() => setDraft({ ...slide } as Draft)}>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() =>
+                    setDraft({
+                      ...slide,
+                      eyebrow: slide.eyebrow ?? '',
+                      body: slide.body ?? '',
+                      cta_label: slide.cta_label ?? '',
+                      cta_href: slide.cta_href ?? '',
+                      text_x: slide.text_x ?? 50,
+                      text_y: slide.text_y ?? 50,
+                      text_align: slide.text_align ?? 'center',
+                      show_text: slide.show_text ?? true,
+                    })
+                  }
+                >
                   Edit
                 </Button>
                 <Button size="sm" variant="ghost" onClick={() => toggleActive(slide)} disabled={busy}>
@@ -252,6 +277,21 @@ export function HeroManager({
             max={1}
             value={draft.image_url ? [draft.image_url] : []}
             onChange={(images) => setDraft({ ...draft, image_url: images[0] ?? '' })}
+          />
+
+          <HeroTextPlacer
+            imageUrl={draft.image_url}
+            eyebrow={draft.eyebrow}
+            title={draft.title}
+            body={draft.body}
+            ctaLabel={draft.cta_label}
+            value={{
+              text_x: draft.text_x,
+              text_y: draft.text_y,
+              text_align: draft.text_align,
+              show_text: draft.show_text,
+            }}
+            onChange={(next) => setDraft({ ...draft, ...next })}
           />
 
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">

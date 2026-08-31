@@ -13,6 +13,12 @@ export interface HeroSlide {
   title: string;
   body: string;
   ctaLabel: string;
+  /** Where the copy sits, as percentages of the frame. Defaults to centred. */
+  textX?: number;
+  textY?: number;
+  textAlign?: 'left' | 'center' | 'right';
+  /** False when the artwork already carries its own lettering. */
+  showText?: boolean;
   ctaHref: string;
 }
 
@@ -116,7 +122,20 @@ export function Hero({ slides }: { slides: HeroSlide[] }) {
                 }}
               />
 
-              <div className="absolute inset-0 flex flex-col items-center justify-center px-margin-mobile text-center">
+              {/* Positioned rather than centred: a banner supplied with its
+                  own lettering needs the copy moved into the clear space
+                  beside it, not printed over the top. */}
+              {slide.showText !== false && (
+              <div
+                className="absolute px-margin-mobile"
+                style={{
+                  left: `${slide.textX ?? 50}%`,
+                  top: `${slide.textY ?? 50}%`,
+                  transform: 'translate(-50%, -50%)',
+                  textAlign: slide.textAlign ?? 'center',
+                  width: 'min(100%, 56rem)',
+                }}
+              >
                 {/* The copy settles in as its slide arrives, and fades as it leaves. */}
                 <motion.div
                   initial={false}
@@ -126,7 +145,15 @@ export function Hero({ slides }: { slides: HeroSlide[] }) {
                       ? { duration: 0 }
                       : { duration: 0.45, delay: active ? 0.12 : 0, ease: [0.32, 0.72, 0, 1] }
                   }
-                  className="flex flex-col items-center"
+                  className="flex flex-col"
+                  style={{
+                    alignItems:
+                      slide.textAlign === 'left'
+                        ? 'flex-start'
+                        : slide.textAlign === 'right'
+                          ? 'flex-end'
+                          : 'center',
+                  }}
                 >
                   <p className="mb-4 font-label-sm text-label-sm uppercase tracking-[0.2em] text-primary-fixed drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
                     {slide.eyebrow}
@@ -149,6 +176,7 @@ export function Hero({ slides }: { slides: HeroSlide[] }) {
                   </Link>
                 </motion.div>
               </div>
+              )}
             </div>
           );
         })}

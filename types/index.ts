@@ -131,6 +131,12 @@ export interface HeroSlideRow {
   cta_href: string | null;
   sort_order: number;
   is_active: boolean;
+  /** Where the copy sits on the image, as percentages of the frame. */
+  text_x: number;
+  text_y: number;
+  text_align: 'left' | 'center' | 'right';
+  /** False when the artwork already carries its own lettering. */
+  show_text: boolean;
   created_at: string;
   updated_at: string;
 }

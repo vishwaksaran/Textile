@@ -87,6 +87,10 @@ export default async function HomePage() {
           body: row.body ?? '',
           ctaLabel: row.cta_label ?? '',
           ctaHref: row.cta_href ?? '/collections',
+          textX: row.text_x,
+          textY: row.text_y,
+          textAlign: row.text_align,
+          showText: row.show_text,
         }))
       : fallback;
 
