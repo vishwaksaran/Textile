@@ -13,6 +13,7 @@ import { getProductById, getRelatedProducts } from '@/lib/data';
 import { COMMERCE, STORE } from '@/lib/config';
 import { discountPercent, effectivePrice, formatINR } from '@/lib/utils';
 import { breadcrumbJsonLd, canonical } from '@/lib/seo';
+import { getCategoryAttributes, getProductAttributeValues } from '@/lib/attributes';
 
 export const revalidate = 120;
 
@@ -41,6 +42,31 @@ export default async function ProductPage({ params }: { params: { id: string } }
   if (!product) notFound();
 
   const related = await getRelatedProducts(product);
+
+  /*
+    Attributes and answers are read together and zipped here rather than in
+    the query, because the order the shop put its attributes in is the order
+    a customer should read them — and that lives on the attribute, not on the
+    answer.
+  */
+  const [attributes, values] = await Promise.all([
+    getCategoryAttributes(product.category_id),
+    getProductAttributeValues(product.id),
+  ]);
+
+  const specs = attributes
+    .map((attribute) => {
+      const answer = values[attribute.id];
+      const text = answer?.values?.length
+        ? answer.values.join(', ')
+        : (answer?.value ?? '').trim();
+      if (!text) return null;
+      return {
+        label: attribute.name,
+        value: attribute.unit ? `${text} ${attribute.unit}` : text,
+      };
+    })
+    .filter((s): s is { label: string; value: string } => s !== null);
   const price = effectivePrice(product);
   const off = discountPercent(product);
   const soldOut = product.is_sold_out || product.stock_quantity <= 0;
@@ -161,18 +187,19 @@ export default async function ProductPage({ params }: { params: { id: string } }
             </div>
           )}
 
-          {/* The spec a customer would otherwise have to ask for. Rendered
-              only when the shop has filled it in, so a half-described piece
-              shows nothing rather than a row of blanks. */}
-          {(product.length || product.fabric || product.wash_care) && (
+          {/* The spec a customer would otherwise have to ask for, built from
+              whatever this piece's collection asks about. Only answered
+              attributes appear, so a half-described piece shows nothing
+              rather than a row of blanks. */}
+          {specs.length > 0 && (
             <div className="space-y-3">
               <h2 className="font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant">
                 Specifications
               </h2>
               <dl className="divide-y divide-outline-variant/30 border-y border-outline-variant/30">
-                {product.length && <Spec label="Length" value={product.length} />}
-                {product.fabric && <Spec label="Fabric" value={product.fabric} />}
-                {product.wash_care && <Spec label="Wash care" value={product.wash_care} />}
+                {specs.map((spec) => (
+                  <Spec key={spec.label} label={spec.label} value={spec.value} />
+                ))}
               </dl>
             </div>
           )}

@@ -25,9 +25,6 @@ interface FormState {
   price: string;
   discounted_price: string;
   stock_quantity: string;
-  length: string;
-  fabric: string;
-  wash_care: string;
   hsn_code: string;
   gst_rate: string;
   category_id: string;
@@ -45,9 +42,6 @@ export function ProductForm({ categories, product }: ProductFormProps) {
     price: product ? String(product.price) : '',
     discounted_price: product?.discounted_price ? String(product.discounted_price) : '',
     stock_quantity: product ? String(product.stock_quantity) : '0',
-    length: product?.length ?? '',
-    fabric: product?.fabric ?? '',
-    wash_care: product?.wash_care ?? '',
     hsn_code: product?.hsn_code ?? '',
     gst_rate: product?.gst_rate === null || product?.gst_rate === undefined ? '' : String(product.gst_rate),
     category_id: product?.category_id ?? '',

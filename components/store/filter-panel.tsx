@@ -6,13 +6,17 @@ import { SlidersHorizontal, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { PRICE_BANDS, SORT_OPTIONS } from '@/lib/filters';
+import type { AttributeFacet } from '@/lib/attributes';
 
 interface FilterPanelProps {
   categories: { id: string; name: string; slug: string }[];
   activeCategory?: string;
   total: number;
-  /** Fabrics present in this listing, so the filter can never return nothing. */
-  availableFabrics?: string[];
+  /**
+   * Filterable attributes present in this listing, with the values worth
+   * offering. Built server-side, so the panel knows no attribute names.
+   */
+  facets?: AttributeFacet[];
 }
 
 /**
@@ -23,7 +27,7 @@ export function FilterPanel({
   categories,
   activeCategory,
   total,
-  availableFabrics = [],
+  facets = [],
 }: FilterPanelProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -48,26 +52,23 @@ export function FilterPanel({
     [params, pathname, router],
   );
 
-  const selectedFabrics = params.getAll('fabric');
-
   const activeCount =
     (band ? 1 : 0) +
     (inStock ? 1 : 0) +
     (discounted ? 1 : 0) +
-    selectedFabrics.length +
-    (activeCategory ? 0 : 0);
+    facets.reduce((n, f) => n + params.getAll(f.attribute.slug).length, 0);
 
   /**
-   * Material is multi-select — a shopper may be happy with khadi or chanderi
-   * but not silk — so each fabric is its own repeated `fabric` param rather
-   * than a single value that would overwrite the last.
+   * Every attribute filter is multi-select — a shopper may be happy with
+   * khadi or chanderi but not silk — so each value is its own repeated param
+   * rather than one that would overwrite the last.
    */
-  const toggleFabric = (fabric: string, checked: boolean) =>
+  const toggleValue = (slug: string, value: string, checked: boolean) =>
     update((n) => {
-      const remaining = n.getAll('fabric').filter((f) => f !== fabric);
-      n.delete('fabric');
-      for (const f of remaining) n.append('fabric', f);
-      if (checked) n.append('fabric', fabric);
+      const remaining = n.getAll(slug).filter((v) => v !== value);
+      n.delete(slug);
+      for (const v of remaining) n.append(slug, v);
+      if (checked) n.append(slug, value);
     });
 
   const body = (
@@ -79,7 +80,9 @@ export function FilterPanel({
             type="button"
             onClick={() =>
               update((n) =>
-                ['band', 'in_stock', 'discounted', 'fabric'].forEach((k) => n.delete(k)),
+                ['band', 'in_stock', 'discounted', ...facets.map((f) => f.attribute.slug)].forEach(
+                  (k) => n.delete(k),
+                ),
               )
             }
             className="font-label-sm text-label-sm uppercase tracking-widest text-earthy-bronze hover:text-deep-maroon"
@@ -114,29 +117,36 @@ export function FilterPanel({
         })}
       </fieldset>
 
-      {/* Only fabrics that actually appear in this listing are offered. A
-          filter that can only ever return nothing is worse than no filter. */}
-      {availableFabrics.length > 0 && (
-        <fieldset className="space-y-3">
-          <legend className="mb-3 font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant">
-            Material
-          </legend>
-          {availableFabrics.map((fabric) => {
-            const checked = selectedFabrics.includes(fabric);
-            return (
-              <label key={fabric} className="flex cursor-pointer items-center gap-3">
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  onChange={(e) => toggleFabric(fabric, e.target.checked)}
-                  className="h-4 w-4 rounded-none border-outline-variant text-deep-maroon focus:ring-primary-container"
-                />
-                <span className="font-body-md text-sm text-on-surface">{fabric}</span>
-              </label>
-            );
-          })}
-        </fieldset>
-      )}
+      {/* One section per filterable attribute the listing actually has
+          values for. Nothing here names a fabric or a sleeve type — adding a
+          filter is ticking "filterable" on an attribute. */}
+      {facets.map(({ attribute, values }) => {
+        const selected = params.getAll(attribute.slug);
+        return (
+          <fieldset key={attribute.id} className="space-y-3">
+            <legend className="mb-3 font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant">
+              {attribute.name}
+            </legend>
+            {values.map((value) => {
+              const checked = selected.includes(value);
+              return (
+                <label key={value} className="flex cursor-pointer items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={(e) => toggleValue(attribute.slug, value, e.target.checked)}
+                    className="h-4 w-4 rounded-none border-outline-variant text-deep-maroon focus:ring-primary-container"
+                  />
+                  <span className="font-body-md text-sm text-on-surface">
+                    {value}
+                    {attribute.unit ? ` ${attribute.unit}` : ''}
+                  </span>
+                </label>
+              );
+            })}
+          </fieldset>
+        );
+      })}
 
       {categories.length > 0 && (
         <fieldset className="space-y-3">

@@ -9,42 +9,6 @@ export const dynamic = 'force-dynamic';
 
 const SELECT = '*, categories:category_id (id, name, slug)';
 
-/**
- * Persists the attribute answers, and mirrors the three that still have
- * columns.
- *
- * The mirror is temporary scaffolding, not a design. products.fabric,
- * .length and .wash_care still back the Material filter and the product
- * page's spec table; until those read the attribute tables, writing only to
- * the new home would leave the filter quietly indexing stale values. The
- * columns go when the filters move.
- */
-async function persistAttributes(
-  productId: string,
-  raw: unknown,
-): Promise<{ fabric: string | null; length: string | null; wash_care: string | null }> {
-  const values = (raw ?? {}) as Record<string, { value?: string | null; values?: string[] | null }>;
-  await saveProductAttributeValues(productId, values);
-
-  const supabase = requireAdminSupabase();
-  const { data } = await supabase
-    .from('attributes')
-    .select('id, slug')
-    .in('slug', ['fabric', 'saree-length', 'wash-care']);
-
-  const bySlug = Object.fromEntries(
-    ((data as { id: string; slug: string }[]) ?? []).map((a) => [a.slug, a.id]),
-  );
-  const pick = (slug: string) => values[bySlug[slug]]?.value?.trim() || null;
-
-  const mirror = {
-    fabric: pick('fabric'),
-    length: pick('saree-length'),
-    wash_care: pick('wash-care'),
-  };
-  await supabase.from('products').update(mirror).eq('id', productId);
-  return mirror;
-}
 
 export async function GET(request: Request) {
   try {
@@ -108,7 +72,7 @@ export async function POST(request: Request) {
     if (error) throw new Error(error.message);
     // The storefront caches for minutes; clear it so a new piece is visible
     // the moment it is saved rather than whenever the window happens to lapse.
-    if (data?.id) await persistAttributes(data.id, body.attributeValues);
+    if (data?.id) await saveProductAttributeValues(data.id, body.attributeValues ?? {});
 
     revalidateCatalogue({
       productId: data?.id,

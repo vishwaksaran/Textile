@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { ProductGrid } from '@/components/store/product-grid';
 import { FilterPanel, SortControl } from '@/components/store/filter-panel';
 import { Button } from '@/components/ui/button';
-import { getAvailableFabrics, getCategories, getProducts } from '@/lib/data';
+import { categoryIdsFor, getCategories, getProducts } from '@/lib/data';
+import { getFilterFacets } from '@/lib/attributes';
 import { PER_PAGE, formatBand, parseListParams } from '@/lib/filters';
 import type { Category } from '@/types';
 
@@ -33,7 +34,7 @@ export async function ListingView({
   const parsed = parseListParams(searchParams);
   const categorySlug = lockedCategory?.slug ?? parsed.categorySlug;
 
-  const [{ products, total }, categories, availableFabrics] = await Promise.all([
+  const [{ products, total }, categories, facets] = await Promise.all([
     getProducts({
       categorySlug,
       sort: parsed.sort,
@@ -42,11 +43,15 @@ export async function ListingView({
       inStockOnly: parsed.inStockOnly,
       discountedOnly: parsed.discountedOnly,
       search: parsed.search,
-      fabrics: parsed.fabrics,
+      attributeFilters: parsed.attributeFilters,
       limit: parsed.limit,
     }),
     getCategories(),
-    getAvailableFabrics(categorySlug),
+    // Facets are built from the category's whole subtree, and deliberately
+    // ignore the filters already applied — see getFilterFacets.
+    categorySlug
+      ? categoryIdsFor(categorySlug).then((ids) => getFilterFacets(ids))
+      : getFilterFacets(null),
   ]);
 
   const hasMore = products.length < total;
@@ -65,7 +70,7 @@ export async function ListingView({
         categories={lockedCategory ? [] : categories}
         activeCategory={categorySlug}
         total={total}
-        availableFabrics={availableFabrics}
+        facets={facets}
       />
 
       <div className="space-y-6">

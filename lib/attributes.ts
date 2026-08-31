@@ -191,3 +191,128 @@ export async function saveProductAttributeValues(
       .upsert(rows, { onConflict: 'product_id,attribute_id' });
   }
 }
+
+export interface AttributeFacet {
+  attribute: Attribute;
+  /** Values actually present among the products in scope. */
+  values: string[];
+}
+
+/**
+ * The filters a category should offer, and the values worth offering.
+ *
+ * Two rules, both of which matter. Only attributes marked filterable appear —
+ * a wash care instruction is not something anyone browses by. And only values
+ * that exist among the products in scope appear, so a filter can never be
+ * offered that returns nothing.
+ *
+ * The facets deliberately ignore the filters currently applied. Options have
+ * to stay put while they are being ticked; computing them from already
+ * filtered rows would delete every choice but the one just made.
+ */
+export async function getFilterFacets(categoryIds: string[] | null): Promise<AttributeFacet[]> {
+  const supabase = createAdminSupabase() ?? createPublicSupabase();
+  if (!supabase) return [];
+
+  let products = supabase.from('products').select('id').eq('is_active', true);
+  if (categoryIds?.length) products = products.in('category_id', categoryIds);
+  const { data: productRows, error: productError } = await products;
+  if (productError || !productRows?.length) return [];
+
+  const productIds = (productRows as { id: string }[]).map((p) => p.id);
+
+  const { data, error } = await supabase
+    .from('product_attribute_values')
+    .select('attribute_id, value, values, attributes!inner (*)')
+    .in('product_id', productIds)
+    .eq('attributes.is_filterable', true);
+
+  if (error || !data) return [];
+
+  const rows = data as unknown as {
+    attribute_id: string;
+    value: string | null;
+    values: string[] | null;
+    attributes: Omit<Attribute, 'options'>;
+  }[];
+
+  const byAttribute = new Map<string, { attribute: Attribute; values: Set<string> }>();
+  for (const row of rows) {
+    const entry =
+      byAttribute.get(row.attribute_id) ??
+      { attribute: { ...row.attributes, options: [] }, values: new Set<string>() };
+    if (row.value) entry.values.add(row.value);
+    for (const v of row.values ?? []) entry.values.add(v);
+    byAttribute.set(row.attribute_id, entry);
+  }
+
+  return [...byAttribute.values()]
+    .map(({ attribute, values }) => ({ attribute, values: [...values].sort() }))
+    .filter((f) => f.values.length > 0)
+    .sort(
+      (a, b) =>
+        a.attribute.sort_order - b.attribute.sort_order ||
+        a.attribute.name.localeCompare(b.attribute.name),
+    );
+}
+
+/**
+ * Product ids matching every chosen filter.
+ *
+ * Resolved one attribute at a time and intersected, because the filters are
+ * an AND across attributes but an OR within one: a shopper asking for khadi
+ * or chanderi, in red, wants red khadi and red chanderi — not everything red
+ * plus everything khadi. Expressing that as a single join is possible and
+ * unreadable; a handful of small queries is neither.
+ *
+ * Returns null when nothing is being filtered, which the caller reads as
+ * "no id restriction" rather than "no matches".
+ */
+export async function productIdsMatchingAttributes(
+  filters: Record<string, string[]>,
+): Promise<string[] | null> {
+  const active = Object.entries(filters).filter(([, v]) => v.length > 0);
+  if (active.length === 0) return null;
+
+  const supabase = createAdminSupabase() ?? createPublicSupabase();
+  if (!supabase) return null;
+
+  const { data: attrRows } = await supabase
+    .from('attributes')
+    .select('id, slug')
+    .in('slug', active.map(([slug]) => slug));
+
+  const idBySlug = Object.fromEntries(
+    ((attrRows as { id: string; slug: string }[]) ?? []).map((a) => [a.slug, a.id]),
+  );
+
+  let matched: Set<string> | null = null as Set<string> | null;
+
+  for (const [slug, wanted] of active) {
+    const attributeId = idBySlug[slug];
+    // A filter naming an attribute that does not exist matches nothing, which
+    // is the honest answer — quietly ignoring it would show unfiltered results
+    // under a filtered URL.
+    if (!attributeId) return [];
+
+    const { data } = await supabase
+      .from('product_attribute_values')
+      .select('product_id, value, values')
+      .eq('attribute_id', attributeId);
+
+    const hits = new Set(
+      ((data as { product_id: string; value: string | null; values: string[] | null }[]) ?? [])
+        .filter(
+          (row) =>
+            (row.value !== null && wanted.includes(row.value)) ||
+            (row.values ?? []).some((v) => wanted.includes(v)),
+        )
+        .map((row) => row.product_id),
+    );
+
+    matched = matched === null ? hits : new Set([...matched].filter((id) => hits.has(id)));
+    if (matched.size === 0) return [];
+  }
+
+  return matched === null ? null : [...matched];
+}

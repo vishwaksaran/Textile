@@ -55,32 +55,61 @@ export function parseListParams(searchParams: Record<string, string | string[] |
     discountedOnly: get('discounted') === '1',
     categorySlug: get('category'),
     search: get('q'),
-    // Repeatable: ?fabric=Khadi+Cotton&fabric=Chanderi. Read from the raw
-    // params rather than `get`, which collapses to the first value only.
-    fabrics: parseFabrics(searchParams.fabric),
+    // Everything not reserved is treated as an attribute filter, so a new
+    // filterable attribute needs no change here — ?fabric=Khadi+Cotton and
+    // ?sleeve-type=Full+Sleeve are read the same way.
+    attributeFilters: parseAttributeFilters(searchParams),
     ...priceBandFor(get('band')),
     limit: page * PER_PAGE,
   };
 }
 
 /**
- * Fabric filters off the URL, checked by shape rather than by enumeration.
+ * Params the list view owns. Anything else on the URL is a filter, so these
+ * are held apart rather than filters being enumerated — the point of the
+ * attribute system is that nothing here knows their names.
+ */
+const RESERVED = new Set(['page', 'sort', 'band', 'in_stock', 'discounted', 'category', 'q']);
+
+/**
+ * Attribute filters off the URL: `?fabric=Khadi+Cotton&fabric=Chanderi`.
  *
- * This used to test each value against a fixed list of fabrics. That stopped
- * being correct once the admin could type a fabric nobody had listed: the
- * name would appear in the filter panel, having come from the products
- * themselves, and then be silently dropped here for not being on a list it
- * was never going to be on.
+ * Repeatable per attribute, which is what makes a filter an OR within itself
+ * — someone happy with khadi or chanderi ticks both.
+ */
+export function parseAttributeFilters(
+  searchParams: Record<string, string | string[] | undefined>,
+): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  for (const [key, raw] of Object.entries(searchParams)) {
+    if (RESERVED.has(key) || raw === undefined) continue;
+    if (!ATTRIBUTE_SLUG.test(key)) continue;
+    const values = parseFilterValues(raw);
+    if (values.length > 0) out[key] = values;
+  }
+  return out;
+}
+
+const ATTRIBUTE_SLUG = /^[a-z][a-z0-9-]{0,40}$/;
+
+/**
+ * Filter values off the URL, checked by shape rather than by enumeration.
+ *
+ * Values are typed by the shop, so there is no list to check them against.
+ * A fabric nobody listed still appears in the panel, having come from the
+ * products themselves, and has to survive the round trip.
  *
  * The value still lands in a database `in (...)` clause, so it is not simply
  * passed through — anything that is not a plain name is rejected, and the
  * count is capped so a crafted URL cannot turn one request into a thousand
  * predicates.
  */
-const FABRIC_NAME = /^[\p{L}][\p{L} .&'-]{0,48}$/u;
+const FILTER_VALUE = /^[\p{L}\p{N}][\p{L}\p{N} .&'"/-]{0,48}$/u;
 
-export function parseFabrics(value: string | string[] | undefined): string[] {
+export function parseFilterValues(value: string | string[] | undefined): string[] {
   if (!value) return [];
   const wanted = Array.isArray(value) ? value : [value];
-  return wanted.filter((v): v is string => typeof v === 'string' && FABRIC_NAME.test(v)).slice(0, 20);
+  return wanted
+    .filter((v): v is string => typeof v === 'string' && FILTER_VALUE.test(v))
+    .slice(0, 20);
 }

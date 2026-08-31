@@ -4,6 +4,7 @@ import { createPublicSupabase, isSupabaseConfigured } from '@/lib/supabase/serve
 import { DEMO_CATEGORIES, DEMO_PRODUCTS } from '@/lib/demo-data';
 import { effectivePrice } from '@/lib/utils';
 import { upgradeImageUrl, upgradeImageUrls } from '@/lib/images';
+import { productIdsMatchingAttributes } from '@/lib/attributes';
 import type { HeroSlideRow, Category, Product } from '@/types';
 
 export type ProductSort = 'featured' | 'price-asc' | 'price-desc' | 'newest';
@@ -16,8 +17,8 @@ export interface ProductQuery {
   maxPrice?: number;
   inStockOnly?: boolean;
   discountedOnly?: boolean;
-  /** Match any of these fabrics — the "Material" filter. */
-  fabrics?: string[];
+  /** Attribute slug to accepted values. AND across attributes, OR within one. */
+  attributeFilters?: Record<string, string[]>;
   limit?: number;
   offset?: number;
 }
@@ -47,45 +48,6 @@ export async function getCategories(): Promise<Category[]> {
   const { data, error } = await supabase.from('categories').select('*').order('created_at');
   if (error || !data) return DEMO_CATEGORIES;
   return (data as Category[]).map(withHiResCover);
-}
-
-/**
- * Fabrics actually present in a listing, for the Material filter.
- *
- * Deliberately ignores the fabric filter itself: the options have to stay
- * put while you tick them, and a facet computed from already-filtered rows
- * would delete every choice but the one just made. Category and stock still
- * apply, so a filter can never offer something that returns nothing.
- */
-export async function getAvailableFabrics(categorySlug?: string): Promise<string[]> {
-  const supabase = createPublicSupabase();
-
-  if (!supabase) {
-    const list = categorySlug
-      ? DEMO_PRODUCTS.filter((p) => p.categories?.slug === categorySlug)
-      : DEMO_PRODUCTS;
-    return [...new Set(list.map((p) => p.fabric).filter((f): f is string => Boolean(f)))].sort();
-  }
-
-  let query = supabase
-    .from('products')
-    .select('fabric')
-    .eq('is_active', true)
-    .not('fabric', 'is', null);
-
-  if (categorySlug) {
-    const ids = await categoryIdsFor(categorySlug);
-    if (ids && ids.length === 0) return [];
-    if (ids) query = query.in('category_id', ids);
-  }
-
-  const { data, error } = await query;
-  if (error || !data) return [];
-
-  const fabrics = (data as { fabric: string | null }[])
-    .map((r) => r.fabric)
-    .filter((f): f is string => Boolean(f));
-  return [...new Set(fabrics)].sort();
 }
 
 export async function getCategoryBySlug(slug: string): Promise<Category | null> {
@@ -137,8 +99,9 @@ function queryDemo(q: ProductQuery): { products: Product[]; total: number } {
   if (q.inStockOnly) list = list.filter((p) => !p.is_sold_out && p.stock_quantity > 0);
   if (q.discountedOnly)
     list = list.filter((p) => p.discounted_price != null && p.discounted_price < p.price);
-  if (q.fabrics?.length)
-    list = list.filter((p) => p.fabric != null && q.fabrics!.includes(p.fabric));
+  // The demo catalogue carries no attribute values, so a filtered view of it
+  // is honestly empty rather than misleadingly full.
+  if (q.attributeFilters && Object.keys(q.attributeFilters).length > 0) list = [];
 
   const total = list.length;
   const sorted = sortDemo(list, q.sort ?? 'featured');
@@ -155,7 +118,7 @@ function queryDemo(q: ProductQuery): { products: Product[]; total: number } {
  * page for the busiest link in the menu. One level of nesting is all the tree
  * has, so this resolves children rather than recursing.
  */
-async function categoryIdsFor(slug: string): Promise<string[] | null> {
+export async function categoryIdsFor(slug: string): Promise<string[] | null> {
   const supabase = createPublicSupabase();
   if (!supabase) return null;
 
@@ -191,7 +154,13 @@ export async function getProducts(q: ProductQuery = {}): Promise<{
   if (q.maxPrice != null) query = query.lte('price', q.maxPrice);
   if (q.inStockOnly) query = query.gt('stock_quantity', 0);
   if (q.discountedOnly) query = query.not('discounted_price', 'is', null);
-  if (q.fabrics?.length) query = query.in('fabric', q.fabrics);
+  if (q.attributeFilters && Object.keys(q.attributeFilters).length > 0) {
+    const ids = await productIdsMatchingAttributes(q.attributeFilters);
+    if (ids !== null) {
+      if (ids.length === 0) return { products: [], total: 0 };
+      query = query.in('id', ids);
+    }
+  }
 
   switch (q.sort) {
     case 'price-asc':

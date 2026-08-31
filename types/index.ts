@@ -29,10 +29,6 @@ export interface Product {
   images: string[];
   is_sold_out: boolean;
   is_active: boolean;
-  /** Structured spec, chosen from the fixed lists in lib/product-options.ts. */
-  length: string | null;
-  fabric: string | null;
-  wash_care: string | null;
   /** HSN classification for the tax invoice. Null falls back to the default. */
   hsn_code: string | null;
   /** Per-product GST override. Null falls back to the shop-wide rate. */
