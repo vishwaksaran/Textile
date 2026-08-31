@@ -3,7 +3,7 @@
 import * as React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { EyebrowRule, HeroDivider } from '@/components/store/hero-ornament';
+import { HeroDivider } from '@/components/store/hero-ornament';
 import { motion, useReducedMotion } from 'framer-motion';
 import { STORE } from '@/lib/config';
 import { cn } from '@/lib/utils';
@@ -79,7 +79,6 @@ export function Hero({ slides }: { slides: HeroSlide[] }) {
       >
         {slides.map((slide, i) => {
           const active = i === index;
-          const centred = (slide.textAlign ?? 'center') === 'center';
           return (
             <div
               key={slide.title}
@@ -158,12 +157,8 @@ export function Hero({ slides }: { slides: HeroSlide[] }) {
                   }}
                 >
                   {slide.eyebrow && (
-                    <p className="mb-4 flex items-center gap-3 font-label-sm text-label-sm uppercase tracking-[0.2em] text-primary-fixed drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
-                      {/* The flanking rules only make sense around centred
-                          copy — off-centre they point at nothing. */}
-                      {centred && <EyebrowRule side="left" />}
+                    <p className="mb-4 font-label-sm text-label-sm uppercase tracking-[0.2em] text-primary-fixed drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
                       {slide.eyebrow}
-                      {centred && <EyebrowRule side="right" />}
                     </p>
                   )}
 

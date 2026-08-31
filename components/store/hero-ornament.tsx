@@ -1,45 +1,20 @@
 /**
- * The banner's ornaments, drawn from motifs the shop actually sells.
+ * The banner's divider, drawn from a motif the shop actually sells: a
+ * graduated diamond chain of the kind that runs down a wedding invitation.
  *
- * The eyebrow rule is a temple border — the row of triangular points woven
- * into the edge of a Kanchipuram saree — and the divider is a graduated
- * diamond chain of the kind that runs down a wedding invitation. An arrow
- * was the first attempt and it was simply generic: it could have introduced
- * a software release as easily as a silk collection.
+ * A matching temple border once flanked the eyebrow line as well. It came
+ * out at roughly ten pixels on the live banner, where the woven points read
+ * as scratches beside the small caps rather than as an ornament — a motif
+ * that needs to be seen to work, at a size where it cannot be. The divider
+ * survives because it is four times wider and sits alone on its own line.
  *
  * Drawn as SVG rather than set as text. The obvious shortcut is a decorative
- * character — ❦ or ◆ between two em dashes — but those render as whatever
- * glyph the reader's font happens to carry, which on a phone is frequently a
- * coloured emoji or a blank box. A path is the same drawing everywhere and
- * scales with the type around it.
- *
- * Both take their colour from `currentColor`, so they inherit the gold of the
- * eyebrow rather than hardcoding a second copy of it.
+ * character between two em dashes, but those render as whatever glyph the
+ * reader's font happens to carry, which on a phone is frequently a coloured
+ * emoji or a blank box. A path is the same drawing everywhere and scales
+ * with the type around it, and takes its colour from `currentColor` so the
+ * gold is defined once.
  */
-
-/** A temple border: a rule running into a row of woven points. */
-export function EyebrowRule({ side }: { side: 'left' | 'right' }) {
-  return (
-    <svg
-      viewBox="0 0 46 14"
-      className="h-3 w-12 flex-none"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-      style={{ transform: side === 'right' ? 'scaleX(-1)' : undefined }}
-    >
-      {/* the rule, tapering in */}
-      <path d="M2 10h14" opacity="0.6" />
-      {/* the points, rising toward the words */}
-      <path d="M18 10 22 4.5 26 10 30 4.5 34 10 38 4.5 42 10" />
-      {/* the ground line the points stand on */}
-      <path d="M17 10h26" opacity="0.85" />
-    </svg>
-  );
-}
 
 /**
  * The divider: a chain of diamonds graduating to the largest at the centre,

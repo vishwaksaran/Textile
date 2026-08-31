@@ -3,7 +3,7 @@
 import * as React from 'react';
 import Image from 'next/image';
 import { AlignCenter, AlignLeft, AlignRight, Move } from 'lucide-react';
-import { EyebrowRule, HeroDivider } from '@/components/store/hero-ornament';
+import { HeroDivider } from '@/components/store/hero-ornament';
 
 export interface TextPlacement {
   text_x: number;
@@ -176,10 +176,8 @@ export function HeroTextPlacer({
             }`}
           >
             {eyebrow && (
-              <p className="mb-1 flex items-center gap-1.5 font-label-sm text-[9px] uppercase tracking-[0.2em] text-primary-fixed drop-shadow">
-                {value.text_align === 'center' && <EyebrowRule side="left" />}
+              <p className="mb-1 font-label-sm text-[9px] uppercase tracking-[0.2em] text-primary-fixed drop-shadow">
                 {eyebrow}
-                {value.text_align === 'center' && <EyebrowRule side="right" />}
               </p>
             )}
             <p className="font-display-lg text-[22px] leading-tight text-white drop-shadow-[0_2px_6px_rgba(0,0,0,0.55)]">
