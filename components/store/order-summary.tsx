@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { cartTotals } from '@/stores/cart-store';
 import { COMMERCE } from '@/lib/config';
 import type { ShippingSettings } from '@/lib/shipping';
+import { ShippingInfo } from '@/components/store/shipping-info';
 import { formatINR } from '@/lib/utils';
 import type { CartItem } from '@/types';
 
@@ -14,6 +15,17 @@ interface OrderSummaryProps {
   /** Destination, once known. Absent means the rate shown is an estimate. */
   state?: string | null;
   shippingSettings?: ShippingSettings;
+  /**
+   * Show the delivery charge and include it in the total.
+   *
+   * Off everywhere but checkout, and deliberately so. Before the state is
+   * known the figure can only be a guess, and a cart quoting Rs.150 that
+   * becomes Rs.110 at checkout looks like the shop cannot count — it damages
+   * trust at the exact moment the customer is deciding to pay. So the cart
+   * shows what it can stand behind, and the charge appears once there is an
+   * address to base it on.
+   */
+  showShipping?: boolean;
   children?: React.ReactNode;
 }
 
@@ -22,6 +34,7 @@ export function OrderSummary({
   showItems = false,
   state,
   shippingSettings,
+  showShipping = false,
   children,
 }: OrderSummaryProps) {
   const { subtotal, savings, shipping, shippingQuote, total } = cartTotals(
@@ -31,6 +44,8 @@ export function OrderSummary({
   );
   const threshold = shippingSettings?.freeThreshold ?? COMMERCE.freeShippingThreshold;
   const away = Math.max(threshold - subtotal, 0);
+  // Without a delivery charge the total is simply the goods.
+  const shownTotal = showShipping ? total : subtotal;
 
   return (
     <section
@@ -73,26 +88,27 @@ export function OrderSummary({
             <dd className="text-success">− {formatINR(savings)}</dd>
           </div>
         )}
-        <div className="flex justify-between">
-          <dt className="text-on-surface-variant">
-            Shipping
-            {/* Named so the charge is explainable rather than arbitrary — a
-                delivery fee that appears without reason invites a refund
-                request. Absent until a state is chosen, since before that the
-                figure really is only an estimate. */}
-            {shippingQuote.zoneLabel && shipping > 0 && (
-              <span className="block text-xs text-on-surface-variant/80">
-                to {shippingQuote.zoneLabel}
-              </span>
-            )}
-          </dt>
-          <dd className={shipping === 0 ? 'text-success' : 'text-on-surface'}>
-            {shipping === 0 ? 'Free' : formatINR(shipping)}
-          </dd>
-        </div>
+        {showShipping ? (
+          <div className="flex justify-between">
+            <dt className="flex items-center text-on-surface-variant">
+              Shipping
+              {shippingSettings && <ShippingInfo settings={shippingSettings} />}
+            </dt>
+            <dd className={shipping === 0 ? 'text-success' : 'text-on-surface'}>
+              {shipping === 0 ? 'Free' : formatINR(shipping)}
+            </dd>
+          </div>
+        ) : (
+          <div className="flex justify-between">
+            <dt className="text-on-surface-variant">Shipping</dt>
+            <dd className="text-on-surface-variant">Calculated at checkout</dd>
+          </div>
+        )}
         <div className="flex justify-between border-t border-outline-variant/40 pt-3">
           <dt className="font-headline-md text-[18px] text-deep-maroon">Total</dt>
-          <dd className="font-body-lg text-[18px] font-bold tabular-nums text-deep-maroon">{formatINR(total)}</dd>
+          <dd className="font-body-lg text-[18px] font-bold tabular-nums text-deep-maroon">
+            {formatINR(shownTotal)}
+          </dd>
         </div>
       </dl>
 

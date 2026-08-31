@@ -24,7 +24,7 @@ export function CartDrawer() {
   const setQuantity = useCartStore((s) => s.setQuantity);
   const remove = useCartStore((s) => s.remove);
 
-  const { subtotal, savings, shipping, total } = cartTotals(items);
+  const { subtotal, savings } = cartTotals(items);
   const awayFromFreeShipping = Math.max(COMMERCE.freeShippingThreshold - subtotal, 0);
 
   React.useEffect(() => {
@@ -172,14 +172,14 @@ export function CartDrawer() {
                     {savings > 0 && (
                       <Row label="You save" value={`− ${formatINR(savings)}`} accent />
                     )}
-                    <Row
-                      label="Shipping"
-                      value={shipping === 0 ? 'Free' : formatINR(shipping)}
-                    />
+                    {/* No figure here: the drawer cannot know where the
+                        parcel is going, and a guess that changes at checkout
+                        reads as the shop miscounting. */}
+                    <Row label="Shipping" value="At checkout" />
                     <div className="!mt-3 flex justify-between border-t border-outline-variant/40 pt-3">
                       <dt className="font-headline-md text-[17px] text-deep-maroon">Total</dt>
                       <dd className="font-body-lg text-[17px] font-bold tabular-nums text-deep-maroon">
-                        {formatINR(total)}
+                        {formatINR(subtotal)}
                       </dd>
                     </div>
                   </dl>

@@ -461,6 +461,7 @@ export function CheckoutForm({ shippingSettings }: { shippingSettings: ShippingS
             showItems
             state={details.state}
             shippingSettings={shippingSettings}
+            showShipping
           >
             <div className="space-y-4">
               <div className="lg:hidden">
