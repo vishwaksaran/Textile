@@ -11,9 +11,18 @@ export interface Category {
   image_url: string | null;
   /** Null for a top-level section; otherwise the section it belongs to. */
   parent_id: string | null;
-  /** Where this collection appears in the main navigation. */
+  /** Whether it appears in the menu. Hidden rows stay reachable by URL. */
+  is_visible: boolean;
+  /** Portrait card image; falls back to image_url, which is the wide banner. */
+  thumbnail_url: string | null;
+  seo_title: string | null;
+  seo_description: string | null;
+  /**
+   * Superseded by is_visible and the tree. Kept until the column is dropped
+   * so an older row still reads.
+   */
   nav_group: CategoryNavGroup;
-  /** Lower sorts first within its nav group; ties fall back to name. */
+  /** Lower sorts first among its siblings; ties fall back to name. */
   sort_order: number;
   created_at: string;
 }

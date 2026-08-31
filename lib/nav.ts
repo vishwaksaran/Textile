@@ -27,8 +27,14 @@ function byOrderThenName(a: Category, b: Category): number {
   return order !== 0 ? order : a.name.localeCompare(b.name);
 }
 
-/** Hidden rows never reach the menu, but stay reachable by URL and search. */
-const visible = (c: Category) => c.nav_group !== 'hidden';
+/**
+ * Hidden rows never reach the menu, but stay reachable by URL and search.
+ *
+ * Falls back to nav_group when is_visible is absent, so the menu is right
+ * whichever side of the migration the database is on.
+ */
+const visible = (c: Category) =>
+  c.is_visible !== undefined ? c.is_visible : c.nav_group !== 'hidden';
 
 export function buildNavTree(categories: Category[]): NavTree {
   const sorted = [...categories].filter(visible).sort(byOrderThenName);

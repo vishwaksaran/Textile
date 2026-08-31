@@ -14,13 +14,46 @@ export async function GET() {
     const { data, error } = await supabase
       .from('categories')
       .select('*')
-      .order('created_at', { ascending: true });
+      .order('sort_order', { ascending: true })
+      .order('name', { ascending: true });
 
     if (error) throw new Error(error.message);
     return NextResponse.json({ categories: data });
   } catch (err) {
     return errorResponse(err);
   }
+}
+
+/**
+ * Null makes it a top-level section. A row cannot be its own parent, which is
+ * the one cycle a single-level tree can produce.
+ */
+function parentOf(body: { parent_id?: unknown; id?: unknown }): string | null {
+  return body.parent_id && body.parent_id !== body.id ? String(body.parent_id) : null;
+}
+
+/**
+ * The end of its own list, spaced by ten.
+ *
+ * Defaulting to zero put every new category at the top *and* tied with
+ * whatever else was there — and the reorder arrows swap positions, so two
+ * rows holding the same number could never be separated.
+ */
+async function nextSortOrder(
+  supabase: ReturnType<typeof requireAdminSupabase>,
+  parentId: string | null,
+): Promise<number> {
+  let query = supabase
+    .from('categories')
+    .select('sort_order')
+    .order('sort_order', { ascending: false })
+    .limit(1);
+
+  query = parentId === null ? query.is('parent_id', null) : query.eq('parent_id', parentId);
+
+  const { data } = await query;
+  const highest = (data as { sort_order: number }[] | null)?.[0]?.sort_order ?? 0;
+  return highest + 10;
 }
 
 export async function POST(request: Request) {
@@ -34,12 +67,17 @@ export async function POST(request: Request) {
       slug: slugify(String(body.slug || body.name || '')),
       description: body.description ?? null,
       image_url: body.image_url ?? null,
-      // Only the three known placements; anything else falls back to the
-      // dropdown, which is where a weave belongs.
+      is_visible: body.is_visible !== false,
+      thumbnail_url: body.thumbnail_url || null,
+      seo_title: body.seo_title ? String(body.seo_title).trim() : null,
+      seo_description: body.seo_description ? String(body.seo_description).trim() : null,
+      sort_order: Number.isFinite(Number(body.sort_order))
+        ? Number(body.sort_order)
+        : await nextSortOrder(supabase, parentOf(body)),
+
       // Null makes it a top-level section. A row cannot be its own parent,
       // which is the one cycle a single-level tree can produce.
-      parent_id:
-        body.parent_id && body.parent_id !== body.id ? String(body.parent_id) : null,
+      parent_id: parentOf(body),
       nav_group: ['sarees', 'standalone', 'hidden'].includes(body.nav_group)
         ? body.nav_group
         : 'sarees',

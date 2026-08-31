@@ -34,8 +34,16 @@ function withHiResImages<T extends { images?: string[] | null }>(row: T): T {
   return { ...row, images: upgradeImageUrls(row.images) };
 }
 
-function withHiResCover<T extends { image_url?: string | null }>(row: T): T {
-  return { ...row, image_url: upgradeImageUrl(row.image_url ?? null) };
+function withHiResCover<
+  T extends { image_url?: string | null; thumbnail_url?: string | null },
+>(row: T): T {
+  return {
+    ...row,
+    image_url: upgradeImageUrl(row.image_url ?? null),
+    ...(row.thumbnail_url !== undefined
+      ? { thumbnail_url: upgradeImageUrl(row.thumbnail_url) }
+      : {}),
+  };
 }
 
 /** Falls back to the bundled catalogue whenever Supabase is unavailable. */
@@ -45,7 +53,14 @@ export async function getCategories(): Promise<Category[]> {
   const supabase = createPublicSupabase();
   if (!supabase) return DEMO_CATEGORIES;
 
-  const { data, error } = await supabase.from('categories').select('*').order('created_at');
+  // sort_order is what the Category Manager's arrows write, so every surface
+  // that reads this list — menu, home cards, filter rail — agrees with the
+  // order the shop set. Name breaks ties between rows never reordered.
+  const { data, error } = await supabase
+    .from('categories')
+    .select('*')
+    .order('sort_order', { ascending: true })
+    .order('name', { ascending: true });
   if (error || !data) return DEMO_CATEGORIES;
   return (data as Category[]).map(withHiResCover);
 }

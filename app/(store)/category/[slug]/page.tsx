@@ -22,24 +22,34 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const category = await getCategoryBySlug(params.slug);
   if (!category) return { title: 'Collection not found' };
-  // "Churidars Sarees in Coimbatore" is what the old unconditional suffix
-  // produced once a collection that is not a saree existed. A weave still
-  // wants the word — it is what people search — so it is appended only where
-  // it is true, which the nav grouping already records.
-  const isSarees = (category.nav_group ?? 'sarees') === 'sarees';
-  const title = isSarees
-    ? `${category.name} Sarees in ${STORE.address.city}`
-    : `${category.name} in ${STORE.address.city}`;
+
+  // "Churidars Sarees in Coimbatore" is what an unconditional " Sarees"
+  // suffix produced once a collection that is not a saree existed. The
+  // section a row sits under says what it is — Kanchipuram is under Sarees,
+  // 3 Piece is under Churidars — so the parent's name is the suffix, and no
+  // garment is named here at all.
+  const parent = category.parent_id
+    ? (await getCategories()).find((c) => c.id === category.parent_id)
+    : undefined;
+  const noun = parent ? `${category.name} ${parent.name}` : category.name;
+
+  // Both SEO fields are optional overrides. Empty means "keep using the
+  // name", which is right for almost every collection.
+  const title = category.seo_title?.trim()
+    ? category.seo_title.trim()
+    : `${noun} in ${STORE.address.city}`;
+  const description =
+    category.seo_description?.trim() ||
+    category.description ||
+    `Handwoven ${noun.toLowerCase()} at our ${STORE.address.area}, ${STORE.address.city} showroom, and shipped across India.`;
 
   return {
     alternates: { canonical: canonical(`/category/${category.slug}`) },
     title,
-    description:
-      category.description ??
-      `Handwoven ${category.name}${isSarees ? ' sarees' : ''} at our ${STORE.address.area}, ${STORE.address.city} showroom, and shipped across India.`,
+    description,
     openGraph: {
-      title: isSarees ? `${category.name} Sarees` : category.name,
-      description: category.description ?? undefined,
+      title,
+      description,
       images: category.image_url ? [category.image_url] : undefined,
     },
   };

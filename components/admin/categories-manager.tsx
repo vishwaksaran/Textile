@@ -4,7 +4,7 @@ import * as React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, EyeOff, Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
@@ -19,7 +19,7 @@ import {
 import { ConfirmDialog } from '@/components/shared/confirm-dialog';
 import { ImageUploader } from '@/components/admin/image-uploader';
 import { EmptyState } from '@/components/admin/ui';
-import { slugify } from '@/lib/utils';
+import { cn, slugify } from '@/lib/utils';
 import type { Category } from '@/types';
 
 type CategoryRow = Category & { productCount: number };
@@ -32,6 +32,10 @@ interface Draft {
   image_url: string | null;
   nav_group: CategoryNavGroup;
   parent_id: string | null;
+  is_visible: boolean;
+  thumbnail_url: string | null;
+  seo_title: string;
+  seo_description: string;
   /** Set once the slug is edited by hand, so it stops tracking the name. */
   slugTouched: boolean;
 }
@@ -43,6 +47,10 @@ const BLANK: Draft = {
   image_url: null,
   nav_group: 'sarees',
   parent_id: null,
+  is_visible: true,
+  thumbnail_url: null,
+  seo_title: '',
+  seo_description: '',
   slugTouched: false,
 };
 const PER_PAGE = 8;
@@ -58,16 +66,51 @@ export function CategoriesManager({ categories }: { categories: CategoryRow[] })
   const [error, setError] = React.useState<string | null>(null);
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
   const [page, setPage] = React.useState(1);
+  const [moving, setMoving] = React.useState<string | null>(null);
+
+  /**
+   * Sections in order, each followed by its own children.
+   *
+   * The rows arrive flat and sorted by sort_order, which interleaves a
+   * section's children with the next section. Grouping them here is what
+   * makes the reorder arrows legible: a row's neighbour in the table is the
+   * sibling it will swap with.
+   */
+  const ordered = React.useMemo(() => {
+    const ids = new Set(categories.map((c) => c.id));
+    const rows: CategoryRow[] = [];
+    for (const c of categories) {
+      if (c.parent_id !== null && ids.has(c.parent_id)) continue;
+      rows.push(c);
+      rows.push(...categories.filter((child) => child.parent_id === c.id));
+    }
+    return rows;
+  }, [categories]);
+
+  /** Where a row sits among its own siblings, for disabling the end arrows. */
+  const position = React.useMemo(() => {
+    const bySibling = new Map<string, CategoryRow[]>();
+    for (const c of ordered) {
+      const key = c.parent_id ?? 'root';
+      bySibling.set(key, [...(bySibling.get(key) ?? []), c]);
+    }
+    const map = new Map<string, { first: boolean; last: boolean }>();
+    for (const siblings of bySibling.values())
+      siblings.forEach((c, i) =>
+        map.set(c.id, { first: i === 0, last: i === siblings.length - 1 }),
+      );
+    return map;
+  }, [ordered]);
 
   const filtered = React.useMemo(
     () =>
       query
-        ? categories.filter(
+        ? ordered.filter(
             (c) =>
               c.name.toLowerCase().includes(query) || c.slug.toLowerCase().includes(query),
           )
-        : categories,
-    [categories, query],
+        : ordered,
+    [ordered, query],
   );
 
   React.useEffect(() => setPage(1), [query]);
@@ -109,6 +152,10 @@ export function CategoriesManager({ categories }: { categories: CategoryRow[] })
       image_url: category.image_url,
       nav_group: category.nav_group ?? 'sarees',
       parent_id: category.parent_id ?? null,
+      is_visible: category.is_visible ?? true,
+      thumbnail_url: category.thumbnail_url ?? null,
+      seo_title: category.seo_title ?? '',
+      seo_description: category.seo_description ?? '',
       slugTouched: true,
     });
   }
@@ -135,6 +182,10 @@ export function CategoriesManager({ categories }: { categories: CategoryRow[] })
             image_url: draft.image_url,
             nav_group: draft.nav_group,
             parent_id: draft.parent_id,
+            is_visible: draft.is_visible,
+            thumbnail_url: draft.thumbnail_url,
+            seo_title: draft.seo_title,
+            seo_description: draft.seo_description,
             id: draft.id,
           }),
         },
@@ -152,6 +203,21 @@ export function CategoriesManager({ categories }: { categories: CategoryRow[] })
     } finally {
       setSaving(false);
     }
+  }
+
+  async function move(id: string, direction: 'up' | 'down') {
+    setMoving(id);
+    const res = await fetch('/api/admin/categories/reorder', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, direction }),
+    });
+    setMoving(null);
+    if (!res.ok) {
+      toast.error('Could not reorder.');
+      return;
+    }
+    router.refresh();
   }
 
   async function remove() {
@@ -215,7 +281,7 @@ export function CategoriesManager({ categories }: { categories: CategoryRow[] })
                       className="border-earthy-bronze text-deep-maroon focus:ring-primary-container"
                     />
                   </th>
-                  {['Category Name', 'Slug', 'Parent', 'Items', 'Status'].map((h) => (
+                  {['Category Name', 'Slug', 'Parent', 'Items', 'Status', 'Order'].map((h) => (
                     <th
                       key={h}
                       className="p-4 font-label-lg text-label-lg font-bold uppercase tracking-wider text-on-surface-variant"
@@ -258,7 +324,12 @@ export function CategoriesManager({ categories }: { categories: CategoryRow[] })
                             />
                           )}
                         </div>
-                        <span className="font-headline-md text-lg text-on-surface">
+                        <span
+                          className={cn(
+                            'font-headline-md text-lg text-on-surface',
+                            category.parent_id && 'pl-4',
+                          )}
+                        >
                           {category.name}
                         </span>
                       </div>
@@ -282,7 +353,12 @@ export function CategoriesManager({ categories }: { categories: CategoryRow[] })
                     <td className="p-4 text-on-surface-variant">{category.productCount}</td>
 
                     <td className="p-4">
-                      {category.productCount > 0 ? (
+                      {category.is_visible === false ? (
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-outline-variant bg-surface-variant px-3 py-1 text-xs font-bold tracking-wider text-on-surface-variant">
+                          <EyeOff className="h-3 w-3" />
+                          Hidden
+                        </span>
+                      ) : category.productCount > 0 ? (
                         <span className="inline-flex items-center gap-1.5 rounded-full border border-[#c8e6c9] bg-[#e8f5e9] px-3 py-1 text-xs font-bold tracking-wider text-[#1b5e20]">
                           <span className="h-1.5 w-1.5 rounded-full bg-[#4caf50]" />
                           Active
@@ -293,6 +369,33 @@ export function CategoriesManager({ categories }: { categories: CategoryRow[] })
                           Empty
                         </span>
                       )}
+                    </td>
+
+                    {/* Always visible, unlike the row actions: reordering is a
+                        sequence of clicks on the same pair of buttons, and
+                        controls that appear only under the pointer are hard to
+                        aim at twice in a row. */}
+                    <td className="p-4">
+                      <div className="flex gap-1">
+                        <button
+                          type="button"
+                          onClick={() => void move(category.id, 'up')}
+                          disabled={moving != null || position.get(category.id)?.first}
+                          aria-label={`Move ${category.name} up`}
+                          className="border border-outline-variant p-1 text-on-surface-variant transition-colors hover:text-primary disabled:opacity-30"
+                        >
+                          <ChevronUp className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void move(category.id, 'down')}
+                          disabled={moving != null || position.get(category.id)?.last}
+                          aria-label={`Move ${category.name} down`}
+                          className="border border-outline-variant p-1 text-on-surface-variant transition-colors hover:text-primary disabled:opacity-30"
+                        >
+                          <ChevronDown className="h-4 w-4" />
+                        </button>
+                      </div>
                     </td>
 
                     <td className="p-4 text-right">
@@ -329,7 +432,7 @@ export function CategoriesManager({ categories }: { categories: CategoryRow[] })
 
                 {visible.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="p-10 text-center text-on-surface-variant">
+                    <td colSpan={8} className="p-10 text-center text-on-surface-variant">
                       Nothing matches &ldquo;{params.get('q')}&rdquo;.
                     </td>
                   </tr>
@@ -449,37 +552,92 @@ export function CategoriesManager({ categories }: { categories: CategoryRow[] })
                 </Select>
               </Field>
 
+              {/* nav_group used to answer two questions at once — which menu
+                  a row belonged to, and whether it appeared at all. The parent
+                  above now answers the first, leaving only the second. */}
               <Field
-                label="Where it appears in the menu"
-                htmlFor="category-nav-group"
+                label="Show in the menu"
+                htmlFor="category-visible"
                 hint={
-                  draft.nav_group === 'sarees'
-                    ? 'Inside the Sarees dropdown — right for a weave.'
-                    : draft.nav_group === 'standalone'
-                      ? 'Its own item in the top menu — right for a different garment, like churidars.'
-                      : 'Not in the menu. Still reachable by its link and by search.'
+                  draft.is_visible
+                    ? draft.parent_id
+                      ? 'Appears in its section’s dropdown.'
+                      : 'Appears as its own item in the main menu.'
+                    : 'Not in the menu. Still reachable by its link and by search.'
                 }
               >
                 <Select
-                  id="category-nav-group"
-                  value={draft.nav_group}
+                  id="category-visible"
+                  value={draft.is_visible ? 'yes' : 'no'}
                   onChange={(e) =>
-                    setDraft({ ...draft, nav_group: e.target.value as CategoryNavGroup })
+                    setDraft({ ...draft, is_visible: e.target.value === 'yes' })
                   }
                 >
-                  <option value="sarees">Under Sarees</option>
-                  <option value="standalone">Its own menu item</option>
-                  <option value="hidden">Hidden from the menu</option>
+                  <option value="yes">Visible</option>
+                  <option value="no">Hidden</option>
                 </Select>
               </Field>
 
+              {/* Two images because they are two different crops: the banner
+                  runs wide across the top of the collection page, the card is
+                  portrait on the home page. One photograph cannot be well
+                  composed for both, so the card falls back to the banner only
+                  when no card has been chosen. */}
               <ImageUploader
                 bucket="categories"
-                label="Cover image"
+                label="Banner image (wide, top of the collection page)"
                 max={1}
                 value={draft.image_url ? [draft.image_url] : []}
                 onChange={(images) => setDraft({ ...draft, image_url: images[0] ?? null })}
               />
+
+              <ImageUploader
+                bucket="categories"
+                label="Card image (portrait, home page). Falls back to the banner."
+                max={1}
+                value={draft.thumbnail_url ? [draft.thumbnail_url] : []}
+                onChange={(images) => setDraft({ ...draft, thumbnail_url: images[0] ?? null })}
+              />
+
+              {/* Both optional: the collection page builds a perfectly good
+                  title and description from the name, and only needs telling
+                  when the shop wants to rank for a phrase that is not the menu
+                  label. */}
+              <details className="border-t border-outline-variant/40 pt-4">
+                <summary className="cursor-pointer font-label-lg text-label-lg uppercase tracking-wider text-on-surface-variant">
+                  Search engine listing (optional)
+                </summary>
+                <div className="space-y-5 pt-4">
+                  <Field
+                    label="Page title"
+                    htmlFor="category-seo-title"
+                    hint={`Leave empty to use “${draft.name || 'the name'}”.`}
+                  >
+                    <Input
+                      id="category-seo-title"
+                      value={draft.seo_title}
+                      maxLength={70}
+                      onChange={(e) => setDraft({ ...draft, seo_title: e.target.value })}
+                    />
+                  </Field>
+
+                  <Field
+                    label="Meta description"
+                    htmlFor="category-seo-description"
+                    hint="Around 160 characters is what Google shows."
+                  >
+                    <Textarea
+                      id="category-seo-description"
+                      rows={2}
+                      maxLength={200}
+                      value={draft.seo_description}
+                      onChange={(e) =>
+                        setDraft({ ...draft, seo_description: e.target.value })
+                      }
+                    />
+                  </Field>
+                </div>
+              </details>
 
               <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end">
                 <Button type="button" variant="outline" onClick={() => setDraft(null)}>

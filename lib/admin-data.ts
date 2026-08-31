@@ -125,7 +125,13 @@ export async function listAdminCategories(): Promise<
 > {
   const supabase = requireAdminSupabase();
   const [categoriesRes, productsRes] = await Promise.all([
-    supabase.from('categories').select('*').order('created_at'),
+    // Ordered as the storefront menu is, so the reorder arrows in the manager
+    // move rows against the order a shopper actually sees.
+    supabase
+      .from('categories')
+      .select('*')
+      .order('sort_order', { ascending: true })
+      .order('name', { ascending: true }),
     supabase.from('products').select('category_id'),
   ]);
 

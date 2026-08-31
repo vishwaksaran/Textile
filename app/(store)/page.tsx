@@ -6,6 +6,7 @@ import { ProductGrid } from '@/components/store/product-grid';
 import { Reveal } from '@/components/shared/motion';
 import { Button } from '@/components/ui/button';
 import { getCategories, getHeroSlides, getLatestProducts } from '@/lib/data';
+import { buildNavTree } from '@/lib/nav';
 import { STORE, marqueeNotices } from '@/lib/config';
 import { getPublicShippingSettings } from '@/lib/shipping-settings';
 import { Marquee } from '@/components/store/marquee';
@@ -47,6 +48,17 @@ export default async function HomePage() {
     getHeroSlides(),
     getPublicShippingSettings(),
   ]);
+
+  /*
+    Weaves, not sections. This band is headed "Heritage Weaves", and once
+    categories became a tree the flat list started with Sarees and Churidars —
+    the menu items — rather than the weaves inside them. Reading the first
+    section's children keeps the band saying what its heading promises, and
+    falls back to the top-level items for a shop with no subcategories yet.
+  */
+  const { sections } = buildNavTree(categories);
+  const featured =
+    sections[0]?.children.length ? sections[0].children : sections.map((s) => s.section);
 
   /*
     The built-in slides, used only until the shop adds its own at
@@ -123,14 +135,17 @@ export default async function HomePage() {
         </Reveal>
 
         <div className="grid grid-cols-1 gap-gutter md:grid-cols-3">
-          {categories.slice(0, 3).map((category, i) => (
+          {featured.slice(0, 3).map((category, i) => (
             <Reveal key={category.id} delay={i * 0.1} className={i === 1 ? 'md:mt-12' : undefined}>
               <Link href={`/category/${category.slug}`} className="group block h-full">
                 <div className="textile-card flex h-full flex-col rounded-lg bg-surface-container-lowest p-4">
                   <div className="textile-card-image-wrapper relative mb-6 aspect-[3/4] rounded bg-surface-variant/50">
-                    {category.image_url && (
+                    {/* The card is 3:4 and the banner is wide, so a shop that
+                        has uploaded a portrait card gets it here; everyone
+                        else keeps the banner, cropped as before. */}
+                    {(category.thumbnail_url || category.image_url) && (
                       <Image
-                        src={category.image_url}
+                        src={category.thumbnail_url || category.image_url!}
                         alt={category.name}
                         fill
                         sizes="(max-width: 768px) 100vw, 33vw"

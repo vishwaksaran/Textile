@@ -20,6 +20,12 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       image_url: body.image_url ?? null,
       // Only the three known placements; anything else falls back to the
       // dropdown, which is where a weave belongs.
+      is_visible: body.is_visible !== false,
+      thumbnail_url: body.thumbnail_url || null,
+      seo_title: body.seo_title ? String(body.seo_title).trim() : null,
+      seo_description: body.seo_description ? String(body.seo_description).trim() : null,
+      sort_order: Number.isFinite(Number(body.sort_order)) ? Number(body.sort_order) : 0,
+
       // Null makes it a top-level section. A row cannot be its own parent,
       // which is the one cycle a single-level tree can produce.
       parent_id:
