@@ -15,7 +15,7 @@ import type { CheckoutDetails } from '@/types';
 export const dynamic = 'force-dynamic';
 
 interface Body {
-  items: { productId: string; quantity: number }[];
+  items: { productId: string; variantId?: string | null; quantity: number }[];
   customer: CheckoutDetails;
 }
 
@@ -66,6 +66,10 @@ export async function POST(request: Request) {
     cart = await priceCart(
       body.items.map((i) => ({
         productId: String(i.productId),
+        // Carried through as an id only. priceCart re-reads the row, checks
+        // it belongs to this product and is still on sale, and takes both
+        // stock and price from there.
+        variantId: i.variantId ? String(i.variantId) : null,
         quantity: Math.max(1, Math.floor(Number(i.quantity) || 0)),
       })),
       customer.state,

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { revalidateCatalogue } from '@/lib/revalidate';
 import { saveProductAttributeValues } from '@/lib/attributes';
+import { parseVariantDrafts, saveProductVariants } from '@/lib/variants';
 import { errorResponse, validateProduct } from '@/lib/admin-api';
 import { requireAdminSupabase } from '@/lib/supabase/server';
 
@@ -36,6 +37,7 @@ export async function GET(request: Request) {
     return errorResponse(err);
   }
 }
+
 
 export async function POST(request: Request) {
   try {
@@ -72,7 +74,12 @@ export async function POST(request: Request) {
     if (error) throw new Error(error.message);
     // The storefront caches for minutes; clear it so a new piece is visible
     // the moment it is saved rather than whenever the window happens to lapse.
-    if (data?.id) await saveProductAttributeValues(data.id, body.attributeValues ?? {});
+    if (data?.id) {
+      await saveProductAttributeValues(data.id, body.attributeValues ?? {});
+      // After the insert, so the rollup trigger has a product row to update.
+      const drafts = parseVariantDrafts(body);
+      if (drafts) await saveProductVariants(data.id, drafts);
+    }
 
     revalidateCatalogue({
       productId: data?.id,

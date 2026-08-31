@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { cartTotals } from '@/stores/cart-store';
+import { lineKey, cartTotals } from '@/stores/cart-store';
 import { COMMERCE } from '@/lib/config';
 import type { ShippingSettings } from '@/lib/shipping';
 import { ShippingInfo } from '@/components/store/shipping-info';
@@ -57,7 +57,7 @@ export function OrderSummary({
       {showItems && (
         <ul className="mb-5 space-y-4 border-b border-outline-variant/40 pb-5">
           {items.map((item) => (
-            <li key={item.productId} className="flex gap-3">
+            <li key={lineKey(item.productId, item.variantId)} className="flex gap-3">
               <div className="relative h-16 w-12 flex-none overflow-hidden rounded bg-surface-variant">
                 {item.image && (
                   <Image src={item.image} alt="" fill sizes="48px" className="object-cover" />
@@ -66,7 +66,7 @@ export function OrderSummary({
               <div className="min-w-0 flex-1">
                 <p className="line-clamp-2 font-body-md text-sm text-on-surface">{item.name}</p>
                 <p className="font-body-md text-xs text-on-surface-variant">
-                  Qty {item.quantity}
+                  {item.variantLabel && <>Size {item.variantLabel} · </>}Qty {item.quantity}
                 </p>
               </div>
               <span className="font-body-md text-sm text-on-surface">

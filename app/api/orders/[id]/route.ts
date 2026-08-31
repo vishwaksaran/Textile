@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getOrderWithItems } from '@/lib/orders';
 import { appUrl, generateCourierTrackingUrl } from '@/lib/config';
-import { shortOrderId } from '@/lib/utils';
+import { describeItem, shortOrderId } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,7 +35,7 @@ export async function GET(_request: Request, { params }: { params: { id: string 
         invoiceUrl: appUrl(`/api/invoice/${order.id}`),
         createdAt: order.created_at,
         items: (order.order_items ?? []).map((item) => ({
-          name: item.products?.name ?? 'Handloom piece',
+          name: describeItem(item),
           image: item.products?.images?.[0] ?? null,
           quantity: item.quantity,
           price: Number(item.price_at_time),

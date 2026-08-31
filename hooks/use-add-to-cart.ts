@@ -2,14 +2,18 @@
 
 import * as React from 'react';
 import { toast } from 'sonner';
-import { useCartStore } from '@/stores/cart-store';
+import { lineKey, useCartStore } from '@/stores/cart-store';
 import { COMMERCE } from '@/lib/config';
 import { effectivePrice, formatINR } from '@/lib/utils';
-import type { Product } from '@/types';
+import type { Product, ProductVariant } from '@/types';
 
 /**
  * The single add-to-cart code path, shared by the product page and the grid's
  * quick-add so the stock rules can never drift apart.
+ *
+ * A product with sizes is only addable once one is chosen: `variant` carries
+ * it, and `needsSize` is how the grid's quick-add knows to send the shopper
+ * to the product page instead of guessing which size they meant.
  *
  * Stock is enforced in three places, deliberately:
  *   1. here, against a live server read, so a cached grid cannot oversell;
@@ -18,13 +22,22 @@ import type { Product } from '@/types';
  * Only the third is authoritative — the first two exist to keep the customer
  * from ever reaching a checkout that will reject them.
  */
-export function useAddToCart(product: Product) {
+export function useAddToCart(product: Product, variant?: ProductVariant | null) {
   const add = useCartStore((s) => s.add);
   const openCart = useCartStore((s) => s.open);
   const hydrated = useCartStore((s) => s.hydrated);
   const setQuantity = useCartStore((s) => s.setQuantity);
-  const cartItem = useCartStore((s) => s.items.find((i) => i.productId === product.id));
+
+  const variantId = variant?.id ?? null;
+  const key = lineKey(product.id, variantId);
+  const cartItem = useCartStore((s) =>
+    s.items.find((i) => lineKey(i.productId, i.variantId) === key),
+  );
   const inCart = cartItem?.quantity ?? 0;
+
+  /** Has sizes, none chosen yet. Not an error — just not addable from here. */
+  const sizes = product.variants ?? [];
+  const needsSize = sizes.length > 0 && !variant;
 
   const [pending, setPending] = React.useState(false);
   const [justAdded, setJustAdded] = React.useState(false);
@@ -32,7 +45,13 @@ export function useAddToCart(product: Product) {
 
   React.useEffect(() => () => clearTimeout(timer.current), []);
 
-  const soldOut = product.is_sold_out || product.stock_quantity <= 0;
+  /*
+    A chosen size answers for itself; without one the product's own total
+    does, and that total is the sum of the sizes, so a churidar with every
+    size at zero still reads as sold out on the grid.
+  */
+  const shelf = variant ? variant.stock_quantity : product.stock_quantity;
+  const soldOut = variant ? shelf <= 0 : product.is_sold_out || shelf <= 0;
 
   /**
    * Never offer more than the shelf holds, or more than the per-order cap.
@@ -40,7 +59,7 @@ export function useAddToCart(product: Product) {
    * check, so prefer that over this page's possibly-cached figure.
    */
   const ceiling = Math.max(
-    Math.min(cartItem?.maxStock ?? product.stock_quantity, COMMERCE.maxQuantityPerItem),
+    Math.min(cartItem?.maxStock ?? shelf, COMMERCE.maxQuantityPerItem),
     0,
   );
   /** Only trustworthy once the persisted cart has rehydrated. */
@@ -49,13 +68,17 @@ export function useAddToCart(product: Product) {
 
   /** Stepper edits. The store clamps to the row's own maxStock as well. */
   const changeQuantity = React.useCallback(
-    (next: number) => setQuantity(product.id, Math.min(Math.max(next, 0), ceiling)),
-    [setQuantity, product.id, ceiling],
+    (next: number) => setQuantity(key, Math.min(Math.max(next, 0), ceiling)),
+    [setQuantity, key, ceiling],
   );
 
   const addToCart = React.useCallback(
     async (quantity = 1): Promise<boolean> => {
       if (soldOut || pending) return false;
+      if (needsSize) {
+        toast.error('Choose a size first');
+        return false;
+      }
 
       setPending(true);
       try {
@@ -70,18 +93,32 @@ export function useAddToCart(product: Product) {
           return false;
         }
 
-        const stock: number = live?.stock_quantity ?? product.stock_quantity;
+        // The live row for the size in hand, when there is one. A size the
+        // shop retired mid-visit is simply absent, which reads as sold out.
+        const liveVariant: { stock_quantity: number; price: number } | undefined = variantId
+          ? live?.variants?.find((v: { id: string }) => v.id === variantId)
+          : undefined;
+
+        const stock: number = variantId
+          ? (liveVariant?.stock_quantity ?? 0)
+          : (live?.stock_quantity ?? product.stock_quantity);
+
         if (stock <= 0) {
           toast.error('Just sold out', {
-            description: 'This piece was taken while you were browsing.',
+            description: variant
+              ? `Size ${variant.label} was taken while you were browsing.`
+              : 'This piece was taken while you were browsing.',
           });
           return false;
         }
 
-        const price: number = live?.price ?? effectivePrice(product);
+        const price: number =
+          liveVariant?.price ?? live?.price ?? variant?.price ?? effectivePrice(product);
         const result = add(
           {
             productId: product.id,
+            variantId,
+            variantLabel: variant?.label ?? null,
             name: product.name,
             slug: product.categories?.slug ?? '',
             image: product.images?.[0] ?? null,
@@ -102,7 +139,9 @@ export function useAddToCart(product: Product) {
         timer.current = setTimeout(() => setJustAdded(false), 1600);
 
         toast.success('Added to your cart', {
-          description: result.reason ?? `${product.name} — ${formatINR(price * quantity)}`,
+          description:
+            result.reason ??
+            `${product.name}${variant ? ` · ${variant.label}` : ''} — ${formatINR(price * quantity)}`,
           action: { label: 'View cart', onClick: openCart },
         });
         return true;
@@ -113,7 +152,7 @@ export function useAddToCart(product: Product) {
         setPending(false);
       }
     },
-    [add, openCart, pending, product, soldOut],
+    [add, openCart, pending, product, soldOut, needsSize, variant, variantId],
   );
 
   return {
@@ -122,6 +161,7 @@ export function useAddToCart(product: Product) {
     pending,
     justAdded,
     soldOut,
+    needsSize,
     atLimit,
     inCart,
     ceiling,

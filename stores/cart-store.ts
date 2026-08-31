@@ -6,6 +6,20 @@ import { COMMERCE } from '@/lib/config';
 import { quoteShipping, type ShippingSettings } from '@/lib/shipping';
 import type { CartItem } from '@/types';
 
+/**
+ * A cart line is a product *and* a size.
+ *
+ * An M and an L of the same churidar are two rows, not one row of two, so
+ * every mutation is addressed by this key rather than by product alone.
+ * Null collapses to the product id, which is exactly what the key was before
+ * sizes existed — the reason old persisted carts still work.
+ */
+export const lineKey = (productId: string, variantId?: string | null) =>
+  variantId ? `${productId}:${variantId}` : productId;
+
+const keyOf = (item: Pick<CartItem, 'productId' | 'variantId'>) =>
+  lineKey(item.productId, item.variantId);
+
 interface CartState {
   items: CartItem[];
   isOpen: boolean;
@@ -17,8 +31,9 @@ interface CartState {
   toggle: () => void;
 
   add: (item: Omit<CartItem, 'quantity'>, quantity?: number) => { ok: boolean; reason?: string };
-  remove: (productId: string) => void;
-  setQuantity: (productId: string, quantity: number) => void;
+  /** Addressed by lineKey(productId, variantId) — see above. */
+  remove: (key: string) => void;
+  setQuantity: (key: string, quantity: number) => void;
   clear: () => void;
   /** Reconciles the cart against live stock; returns human-readable changes. */
   reconcile: (levels: Record<string, { stock: number; price: number; name: string }>) => string[];
@@ -39,7 +54,8 @@ export const useCartStore = create<CartState>()(
       add: (item, quantity = 1) => {
         if (item.maxStock <= 0) return { ok: false, reason: 'This piece is sold out.' };
 
-        const existing = get().items.find((i) => i.productId === item.productId);
+        const key = keyOf(item);
+        const existing = get().items.find((i) => keyOf(i) === key);
         const desired = (existing?.quantity ?? 0) + quantity;
         const ceiling = Math.min(item.maxStock, COMMERCE.maxQuantityPerItem);
 
@@ -57,9 +73,7 @@ export const useCartStore = create<CartState>()(
           // rather than only updating rows that already exist.
           set((s) => ({
             items: existing
-              ? s.items.map((i) =>
-                  i.productId === item.productId ? { ...i, ...item, quantity: ceiling } : i,
-                )
+              ? s.items.map((i) => (keyOf(i) === key ? { ...i, ...item, quantity: ceiling } : i))
               : [...s.items, { ...item, quantity: ceiling }],
           }));
           return {
@@ -73,21 +87,18 @@ export const useCartStore = create<CartState>()(
 
         set((s) => ({
           items: existing
-            ? s.items.map((i) =>
-                i.productId === item.productId ? { ...i, quantity: desired, ...item } : i,
-              )
+            ? s.items.map((i) => (keyOf(i) === key ? { ...i, quantity: desired, ...item } : i))
             : [...s.items, { ...item, quantity }],
         }));
         return { ok: true };
       },
 
-      remove: (productId) =>
-        set((s) => ({ items: s.items.filter((i) => i.productId !== productId) })),
+      remove: (key) => set((s) => ({ items: s.items.filter((i) => keyOf(i) !== key) })),
 
-      setQuantity: (productId, quantity) =>
+      setQuantity: (key, quantity) =>
         set((s) => ({
           items: s.items.flatMap((i) => {
-            if (i.productId !== productId) return [i];
+            if (keyOf(i) !== key) return [i];
             const ceiling = Math.min(i.maxStock, COMMERCE.maxQuantityPerItem);
             const next = Math.min(Math.max(quantity, 0), ceiling);
             return next === 0 ? [] : [{ ...i, quantity: next }];
@@ -99,18 +110,20 @@ export const useCartStore = create<CartState>()(
       reconcile: (levels) => {
         const notes: string[] = [];
         const items = get().items.flatMap((item) => {
-          const live = levels[item.productId];
+          // Keyed by line, so an M selling out does not empty the L as well.
+          const live = levels[keyOf(item)];
+          const label = item.variantLabel ? `${item.name} (${item.variantLabel})` : item.name;
           if (!live || live.stock <= 0) {
-            notes.push(`${item.name} is now sold out and was removed.`);
+            notes.push(`${label} is now sold out and was removed.`);
             return [];
           }
           let next = item;
           if (item.quantity > live.stock) {
-            notes.push(`${item.name}: only ${live.stock} left — quantity reduced.`);
+            notes.push(`${label}: only ${live.stock} left — quantity reduced.`);
             next = { ...next, quantity: live.stock };
           }
           if (live.price !== item.price) {
-            notes.push(`${item.name}: price updated.`);
+            notes.push(`${label}: price updated.`);
             next = { ...next, price: live.price };
           }
           return [{ ...next, maxStock: live.stock }];
@@ -124,6 +137,23 @@ export const useCartStore = create<CartState>()(
     {
       name: 'sls-cart',
       storage: createJSONStorage(() => localStorage),
+      version: 1,
+      /*
+        Carts saved before sizes existed have no variantId, and every lookup
+        here reads one. Filling it in on rehydrate is cheaper than defending
+        against undefined at each call site, and a null variant is precisely
+        what those lines meant.
+      */
+      migrate: (persisted) => {
+        const state = persisted as { items?: Partial<CartItem>[] } | undefined;
+        return {
+          items: (state?.items ?? []).map((i) => ({
+            ...i,
+            variantId: i.variantId ?? null,
+            variantLabel: i.variantLabel ?? null,
+          })),
+        } as { items: CartItem[] };
+      },
       partialize: (state) => ({ items: state.items }),
       // Always fires, even with an empty store, so the badge can stop
       // rendering its SSR placeholder.

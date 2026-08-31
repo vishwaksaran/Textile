@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { Loader2, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { QuantitySelector } from '@/components/store/quantity-selector';
@@ -11,10 +12,26 @@ import type { Product } from '@/types';
  * Card buy control. Starts as a single button, then becomes a −/+ stepper
  * once the piece is in the cart. Always visible rather than hover-only, since
  * a hover-gated control is unreachable on touch.
+ *
+ * A piece with sizes cannot be added from here — there is no honest default
+ * size, and picking one for the shopper is how a churidar arrives in the
+ * wrong fit — so the control becomes a link to the page that can ask.
  */
 export function QuickAdd({ product, className }: { product: Product; className?: string }) {
   const { addToCart, changeQuantity, pending, soldOut, atLimit, inCart, ceiling, hydrated } =
     useAddToCart(product);
+
+  // has_variants is maintained by the database beside the stock rollup, so a
+  // card knows this without fetching a single variant row.
+  if (product.has_variants && !soldOut) {
+    return (
+      <Button asChild variant="outline" size="sm" className={cn('w-full', className)}>
+        <Link href={`/product/${product.id}`} onClick={(e) => e.stopPropagation()}>
+          Choose a size
+        </Link>
+      </Button>
+    );
+  }
 
   // Before rehydration the cart count is unknown, so render the neutral
   // button rather than flashing a stepper with the wrong number in it.

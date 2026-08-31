@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { QuantitySelector } from '@/components/store/quantity-selector';
 import { OrderSummary } from '@/components/store/order-summary';
 import { Skeleton } from '@/components/shared/skeleton';
-import { useCartStore } from '@/stores/cart-store';
+import { lineKey, useCartStore } from '@/stores/cart-store';
 import { COMMERCE } from '@/lib/config';
 import { formatINR } from '@/lib/utils';
 
@@ -24,7 +24,8 @@ export function CartView() {
 
   React.useEffect(() => {
     if (!hydrated || items.length === 0) return;
-    const ids = items.map((i) => i.productId);
+    // Two sizes of one piece are one product to this call.
+    const ids = [...new Set(items.map((i) => i.productId))];
     let cancelled = false;
 
     (async () => {
@@ -87,9 +88,11 @@ export function CartView() {
 
         <ul className="divide-y divide-outline-variant/40 border-y border-outline-variant/40">
           <AnimatePresence initial={false}>
-            {items.map((item) => (
+            {items.map((item) => {
+              const key = lineKey(item.productId, item.variantId);
+              return (
               <motion.li
-                key={item.productId}
+                key={key}
                 layout
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -119,6 +122,11 @@ export function CartView() {
                     >
                       {item.name}
                     </Link>
+                    {item.variantLabel && (
+                      <p className="mt-0.5 font-label-sm text-label-sm uppercase tracking-widest text-earthy-bronze">
+                        Size {item.variantLabel}
+                      </p>
+                    )}
                     <p className="mt-1 font-body-md text-body-md text-on-surface">
                       {formatINR(item.price)}
                       {item.originalPrice && (
@@ -138,8 +146,8 @@ export function CartView() {
                     <QuantitySelector
                       value={item.quantity}
                       max={Math.min(item.maxStock, COMMERCE.maxQuantityPerItem)}
-                      onChange={(next) => setQuantity(item.productId, next)}
-                      label={`Quantity for ${item.name}`}
+                      onChange={(next) => setQuantity(key, next)}
+                      label={`Quantity for ${item.name}${item.variantLabel ? ` size ${item.variantLabel}` : ''}`}
                     />
                     <div className="flex items-center gap-4">
                       <span className="font-body-md text-[17px] font-semibold tabular-nums text-deep-maroon">
@@ -147,8 +155,8 @@ export function CartView() {
                       </span>
                       <button
                         type="button"
-                        onClick={() => remove(item.productId)}
-                        aria-label={`Remove ${item.name}`}
+                        onClick={() => remove(key)}
+                        aria-label={`Remove ${item.name}${item.variantLabel ? ` size ${item.variantLabel}` : ''}`}
                         className="rounded p-2 text-on-surface-variant transition-colors hover:text-error"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -157,7 +165,8 @@ export function CartView() {
                   </div>
                 </div>
               </motion.li>
-            ))}
+              );
+            })}
           </AnimatePresence>
         </ul>
 

@@ -71,6 +71,14 @@ export async function POST(request: Request) {
       thumbnail_url: body.thumbnail_url || null,
       seo_title: body.seo_title ? String(body.seo_title).trim() : null,
       seo_description: body.seo_description ? String(body.seo_description).trim() : null,
+      // Comma-separated in the form; an array in the column. Empty becomes
+      // null rather than [], so "no suggestions" is one value, not two.
+      size_presets: Array.isArray(body.size_presets)
+        ? (body.size_presets as unknown[])
+            .map((s) => String(s).trim())
+            .filter(Boolean)
+            .slice(0, 24)
+        : null,
       sort_order: Number.isFinite(Number(body.sort_order))
         ? Number(body.sort_order)
         : await nextSortOrder(supabase, parentOf(body)),

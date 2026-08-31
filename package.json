@@ -18,7 +18,8 @@
     "tax:check": "npx tsx scripts/tax-check.mts",
     "invoice:preview": "npx tsx --tsconfig scripts/tsconfig.json scripts/invoice-preview.mts",
     "stock:race": "node scripts/stock-race.mjs",
-    "shipping:check": "npx tsx --tsconfig scripts/tsconfig.json scripts/shipping-check.mts"
+    "shipping:check": "npx tsx --tsconfig scripts/tsconfig.json scripts/shipping-check.mts",
+    "variants:check": "npx tsx --tsconfig scripts/tsconfig.json scripts/variant-check.mts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.6",

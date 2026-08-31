@@ -10,7 +10,7 @@ import { OrderStatusControl } from '@/components/admin/order-status-control';
 import { Button } from '@/components/ui/button';
 import { getOrderWithItems } from '@/lib/orders';
 import { generateCourierTrackingUrl } from '@/lib/config';
-import { formatDateTime, formatINR, invoiceNumber, shortOrderId } from '@/lib/utils';
+import { describeItem, formatDateTime, formatINR, invoiceNumber, shortOrderId } from '@/lib/utils';
 import { isSupabaseConfigured } from '@/lib/supabase/server';
 
 export const metadata: Metadata = { title: 'Order' };
@@ -117,11 +117,11 @@ export default async function AdminOrderPage({ params }: { params: { id: string 
                         href={`/admin/products/${item.product_id}`}
                         className="font-body-md text-body-md text-deep-maroon hover:underline"
                       >
-                        {item.products?.name ?? 'Handloom piece'}
+                        {describeItem(item)}
                       </Link>
                     ) : (
                       <span className="font-body-md text-body-md text-on-surface">
-                        {item.products?.name ?? 'Handloom piece'}
+                        {describeItem(item)}
                       </span>
                     )}
                     <p className="font-body-md text-sm text-on-surface-variant">

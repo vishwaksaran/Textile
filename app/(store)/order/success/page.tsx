@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { AnimatedPage } from '@/components/shared/motion';
 import { getOrderWithItems } from '@/lib/orders';
 import { STORE, whatsappUrl } from '@/lib/config';
-import { formatDate, formatINR, shortOrderId } from '@/lib/utils';
+import { describeItem, formatDate, formatINR, shortOrderId } from '@/lib/utils';
 import { OrderIdCard } from '@/components/store/order-id-card';
 
 export const metadata: Metadata = {
@@ -81,7 +81,7 @@ export default async function OrderSuccessPage({
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="font-body-md text-body-md text-on-surface">
-                    {item.products?.name ?? 'Handloom piece'}
+                    {describeItem(item)}
                   </p>
                   <p className="font-body-md text-sm text-on-surface-variant">
                     Quantity {item.quantity}

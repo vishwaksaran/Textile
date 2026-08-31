@@ -36,6 +36,8 @@ interface Draft {
   thumbnail_url: string | null;
   seo_title: string;
   seo_description: string;
+  /** Typed as one comma-separated line; stored as an array. */
+  size_presets: string;
   /** Set once the slug is edited by hand, so it stops tracking the name. */
   slugTouched: boolean;
 }
@@ -51,6 +53,7 @@ const BLANK: Draft = {
   thumbnail_url: null,
   seo_title: '',
   seo_description: '',
+  size_presets: '',
   slugTouched: false,
 };
 const PER_PAGE = 8;
@@ -156,6 +159,7 @@ export function CategoriesManager({ categories }: { categories: CategoryRow[] })
       thumbnail_url: category.thumbnail_url ?? null,
       seo_title: category.seo_title ?? '',
       seo_description: category.seo_description ?? '',
+      size_presets: (category.size_presets ?? []).join(', '),
       slugTouched: true,
     });
   }
@@ -186,6 +190,10 @@ export function CategoriesManager({ categories }: { categories: CategoryRow[] })
             thumbnail_url: draft.thumbnail_url,
             seo_title: draft.seo_title,
             seo_description: draft.seo_description,
+            size_presets: draft.size_presets
+              .split(',')
+              .map((s) => s.trim())
+              .filter(Boolean),
             id: draft.id,
           }),
         },
@@ -576,6 +584,22 @@ export function CategoriesManager({ categories }: { categories: CategoryRow[] })
                   <option value="yes">Visible</option>
                   <option value="no">Hidden</option>
                 </Select>
+              </Field>
+
+              {/* Not a switch for "this collection has sizes": a product has
+                  sizes when it has sizes, and a flag here could disagree.
+                  These are only the chips the product form offers. */}
+              <Field
+                label="Suggested sizes"
+                htmlFor="category-sizes"
+                hint="Offered as one-click chips when adding sizes to a piece here. Comma separated — leave empty for sarees."
+              >
+                <Input
+                  id="category-sizes"
+                  value={draft.size_presets}
+                  placeholder="S, M, L, XL"
+                  onChange={(e) => setDraft({ ...draft, size_presets: e.target.value })}
+                />
               </Field>
 
               {/* Two images because they are two different crops: the banner

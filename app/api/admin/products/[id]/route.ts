@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { revalidateCatalogue } from '@/lib/revalidate';
 import { saveProductAttributeValues } from '@/lib/attributes';
+import { parseVariantDrafts, saveProductVariants } from '@/lib/variants';
 import { errorResponse, validateProduct } from '@/lib/admin-api';
 import { requireAdminSupabase } from '@/lib/supabase/server';
 
@@ -64,7 +65,17 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       .single();
 
     if (error) throw new Error(error.message);
-    if (data?.id) await saveProductAttributeValues(data.id, body.attributeValues ?? {});
+    if (data?.id) {
+      await saveProductAttributeValues(data.id, body.attributeValues ?? {});
+      /*
+        After the product update, and deliberately so: saving sizes fires the
+        trigger that writes stock_quantity back, and doing it first would let
+        the product update overwrite the sum with the figure the form was
+        showing.
+      */
+      const drafts = parseVariantDrafts(body);
+      if (drafts) await saveProductVariants(data.id, drafts);
+    }
 
     revalidateCatalogue({
       productId: params.id,

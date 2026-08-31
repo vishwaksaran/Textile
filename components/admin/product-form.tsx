@@ -4,6 +4,7 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { AttributeFields, type AttributeDraft } from '@/components/admin/attribute-fields';
+import { VariantFields, type VariantDraftUI } from '@/components/admin/variant-fields';
 import type { Attribute } from '@/lib/attributes';
 import { Loader2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -49,6 +50,53 @@ export function ProductForm({ categories, product }: ProductFormProps) {
     is_active: product?.is_active ?? true,
   });
 
+  /*
+    Sizes.
+
+    Loaded rather than passed in, because the product row itself carries no
+    variants — the storefront reads them, the admin list does not, and paying
+    for that query on the products table would be paying for it forty times
+    to use it once.
+  */
+  const [variants, setVariants] = React.useState<VariantDraftUI[]>([]);
+  const [variantsLoaded, setVariantsLoaded] = React.useState(!product);
+
+  React.useEffect(() => {
+    if (!product) return;
+    let cancelled = false;
+    fetch(`/api/admin/products/${product.id}/variants`)
+      .then((r) => (r.ok ? r.json() : { variants: [] }))
+      .then((d) => {
+        if (cancelled) return;
+        setVariants(
+          (d.variants ?? []).map(
+            (v: {
+              id: string;
+              label: string;
+              sku: string | null;
+              stock_quantity: number;
+              price: number | null;
+              measurements: Record<string, string>;
+              sold: boolean;
+            }) => ({
+              id: v.id,
+              label: v.label,
+              sku: v.sku ?? '',
+              stock: String(v.stock_quantity),
+              price: v.price == null ? '' : String(v.price),
+              measurements: v.measurements ?? {},
+              removable: !v.sold,
+            }),
+          ),
+        );
+        setVariantsLoaded(true);
+      })
+      .catch(() => !cancelled && setVariantsLoaded(true));
+    return () => {
+      cancelled = true;
+    };
+  }, [product]);
+
   const [attributes, setAttributes] = React.useState<Attribute[]>([]);
   const [attrValues, setAttrValues] = React.useState<Record<string, AttributeDraft>>(
     product?.attributeValues ?? {},
@@ -74,6 +122,12 @@ export function ProductForm({ categories, product }: ProductFormProps) {
       cancelled = true;
     };
   }, [form.category_id]);
+
+  /** Size suggestions come from the collection the piece is filed under. */
+  const sizePresets = React.useMemo(
+    () => categories.find((c) => c.id === form.category_id)?.size_presets ?? [],
+    [categories, form.category_id],
+  );
 
   const [errors, setErrors] = React.useState<Partial<Record<keyof FormState, string>>>({});
   const [saving, setSaving] = React.useState(false);
@@ -117,7 +171,21 @@ export function ProductForm({ categories, product }: ProductFormProps) {
     }
 
     setErrors(next);
-    return Object.keys(next).length === 0;
+    if (Object.keys(next).length > 0) return false;
+
+    // Reported as toasts rather than field errors: these belong to the sizes
+    // table, which has no single field to hang a message under.
+    const labels = variants.map((v) => v.label.trim().toLowerCase());
+    if (labels.some((l) => !l)) {
+      toast.error('Every size needs a label.');
+      return false;
+    }
+    if (new Set(labels).size !== labels.length) {
+      toast.error('Two sizes share a label.');
+      return false;
+    }
+
+    return true;
   }
 
   async function save(e: React.FormEvent) {
@@ -141,6 +209,25 @@ export function ProductForm({ categories, product }: ProductFormProps) {
             discounted_price: form.discounted_price ? Number(form.discounted_price) : null,
             stock_quantity: Number(form.stock_quantity),
             attributeValues: attrValues,
+            /*
+              Omitted entirely until the sizes have loaded. An empty array
+              means "the admin removed every size", so saving a product
+              before its variants arrived would delete them.
+            */
+            ...(variantsLoaded
+              ? {
+                  variants: variants.map((v) => ({
+                    id: v.id,
+                    label: v.label.trim(),
+                    sku: v.sku.trim() || null,
+                    stock_quantity: Number(v.stock) || 0,
+                    price: v.price === '' ? null : Number(v.price),
+                    measurements: Object.fromEntries(
+                      Object.entries(v.measurements).filter(([, value]) => value.trim()),
+                    ),
+                  })),
+                }
+              : {}),
             hsn_code: form.hsn_code || null,
             gst_rate: form.gst_rate ? Number(form.gst_rate) : null,
             category_id: form.category_id || null,
@@ -290,6 +377,15 @@ export function ProductForm({ categories, product }: ProductFormProps) {
           />
 
           <section className="rounded-lg border border-outline-variant/40 bg-surface-container-lowest p-6">
+            <h2 className="mb-1 font-headline-md text-headline-md text-on-surface">Sizes</h2>
+            <p className="mb-5 font-body-md text-body-md text-on-surface-variant">
+              Each size keeps its own stock. Leave this empty for anything sold as a single
+              piece — a saree, a cut length.
+            </p>
+            <VariantFields variants={variants} onChange={setVariants} presets={sizePresets} />
+          </section>
+
+          <section className="rounded-lg border border-outline-variant/40 bg-surface-container-lowest p-6">
             <ImageUploader
               bucket="products"
               value={form.images}
@@ -330,16 +426,26 @@ export function ProductForm({ categories, product }: ProductFormProps) {
               htmlFor="stock_quantity"
               error={errors.stock_quantity}
               hint={
-                Number(form.stock_quantity) <= 0
-                  ? 'Zero marks the piece Sold Out on the storefront.'
-                  : undefined
+                variants.length > 0
+                  ? 'Totalled from the sizes below.'
+                  : Number(form.stock_quantity) <= 0
+                    ? 'Zero marks the piece Sold Out on the storefront.'
+                    : undefined
               }
               required
             >
+              {/* Once a piece has sizes the shelf is the sizes, and this is
+                  their sum — kept by the database, not typed here. */}
               <Input
                 id="stock_quantity"
                 inputMode="numeric"
-                value={form.stock_quantity}
+                readOnly={variants.length > 0}
+                className={variants.length > 0 ? 'bg-surface-variant/40' : undefined}
+                value={
+                  variants.length > 0
+                    ? String(variants.reduce((sum, v) => sum + (Number(v.stock) || 0), 0))
+                    : form.stock_quantity
+                }
                 onChange={(e) => set('stock_quantity', e.target.value.replace(/\D/g, ''))}
               />
             </Field>

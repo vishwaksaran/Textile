@@ -2,6 +2,7 @@ import 'server-only';
 
 import { createPublicSupabase, isSupabaseConfigured } from '@/lib/supabase/server';
 import { DEMO_CATEGORIES, DEMO_PRODUCTS } from '@/lib/demo-data';
+import { getProductVariants } from '@/lib/variants';
 import { effectivePrice } from '@/lib/utils';
 import { upgradeImageUrl, upgradeImageUrls } from '@/lib/images';
 import { productIdsMatchingAttributes } from '@/lib/attributes';
@@ -215,8 +216,13 @@ export async function getProductById(id: string): Promise<Product | null> {
     .eq('id', id)
     .eq('is_active', true)
     .maybeSingle();
-  if (error) return null;
-  return data ? withHiResImages(data as unknown as Product) : null;
+  if (error || !data) return null;
+
+  // Only the detail page needs sizes — the grid reads the product's own
+  // total, which the database keeps as their sum — so this is the one read
+  // that pays for the second query.
+  const product = withHiResImages(data as unknown as Product);
+  return { ...product, variants: await getProductVariants(product.id) };
 }
 
 export async function getRelatedProducts(product: Product, limit = 6): Promise<Product[]> {
@@ -254,22 +260,52 @@ export async function getStockLevels(
     );
   }
 
-  const { data } = await supabase
-    .from('products')
-    .select('id, name, price, discounted_price, stock_quantity, is_active')
-    .in('id', productIds);
+  const [{ data }, { data: variantRows }] = await Promise.all([
+    supabase
+      .from('products')
+      .select('id, name, price, discounted_price, stock_quantity, is_active')
+      .in('id', productIds),
+    supabase
+      .from('product_variants')
+      .select('id, product_id, label, price, stock_quantity, is_active')
+      .in('product_id', productIds),
+  ]);
 
-  return Object.fromEntries(
-    (data ?? [])
-      .filter((p) => p.is_active)
-      .map((p) => [
+  const active = (data ?? []).filter((p) => p.is_active);
+
+  /*
+    Keyed the way the cart keys its own lines — the product id alone, or the
+    product and the size — so a cart holding an M and an L of the same piece
+    reconciles each against its own shelf instead of both against a total.
+  */
+  const products = active.map(
+    (p) =>
+      [
         p.id,
         {
           stock: p.stock_quantity ?? 0,
           price: effectivePrice(p as Product),
           name: p.name as string,
         },
-      ]),
+      ] as const,
+  );
+
+  const byId = new Map(active.map((p) => [String(p.id), p]));
+  const variants = (variantRows ?? [])
+    .filter((v) => v.is_active && byId.has(String(v.product_id)))
+    .map((v) => {
+      const product = byId.get(String(v.product_id))!;
+      return [
+        `${v.product_id}:${v.id}`,
+        {
+          stock: v.stock_quantity ?? 0,
+          price: v.price == null ? effectivePrice(product as Product) : Number(v.price),
+          name: `${product.name} (${v.label})`,
+        },
+      ] as const;
+    });
+
+  return Object.fromEntries([...products, ...variants]
   );
 }
 

@@ -2,7 +2,7 @@ import 'server-only';
 
 import { Resend } from 'resend';
 import { STORE, appUrl, envOr, storeAddressOneLine } from '@/lib/config';
-import { formatDate, invoiceNumber, shortOrderId } from '@/lib/utils';
+import { describeItem, formatDate, invoiceNumber, shortOrderId } from '@/lib/utils';
 import type { Order } from '@/types';
 
 const apiKey = process.env.RESEND_API_KEY;
@@ -44,13 +44,26 @@ function money(n: number) {
   return `Rs. ${Number(n).toLocaleString('en-IN')}`;
 }
 
+/**
+ * Item names reach this template from the admin, and now carry a size label
+ * built by concatenation. An ampersand in either would break the markup, so
+ * the one interpolated value that is not ours is escaped.
+ */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
 function itemRows(order: Order): string {
   return (order.order_items ?? [])
     .map(
       (item) => `
       <tr>
         <td style="padding:10px 0;border-bottom:1px solid #eae1d4;color:#1f1b13;">
-          ${item.products?.name ?? 'Handloom piece'}
+          ${escapeHtml(describeItem(item))}
         </td>
         <td style="padding:10px 0;border-bottom:1px solid #eae1d4;text-align:center;color:#4d4635;">
           ${item.quantity}

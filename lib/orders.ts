@@ -12,6 +12,10 @@ import type { CheckoutDetails, Order, OrderItem } from '@/types';
 
 export interface PricedLine {
   productId: string;
+  /** Which size was bought. Null for a product that has none. */
+  variantId: string | null;
+  /** Frozen onto the line, so retiring a size cannot rewrite a receipt. */
+  variantLabel: string | null;
   name: string;
   /** Frozen onto the order line so a later rate change cannot rewrite it. */
   hsn: string | null;
@@ -48,7 +52,7 @@ export class CartError extends Error {
  * that gets charged, and only one of them is allowed to be authoritative.
  */
 export async function priceCart(
-  requested: { productId: string; quantity: number }[],
+  requested: { productId: string; variantId?: string | null; quantity: number }[],
   state?: string | null,
 ): Promise<PricedCart> {
   if (requested.length === 0) throw new CartError('Your cart is empty.');
@@ -65,23 +69,65 @@ export async function priceCart(
       ).data ?? [])
     : DEMO_PRODUCTS.filter((p) => ids.includes(p.id));
 
+  /*
+    Sizes are read here rather than trusted from the browser, for the same
+    reason the prices are: the cart names a variant, and the shelf it points
+    at decides both what is available and — where a size is priced
+    differently — what it costs.
+
+    Fetched for the whole product, not just the ids the cart named, so a
+    variant that has been retired or moved to another product is absent from
+    this map and fails the lookup below rather than quietly passing.
+  */
+  const variantRows = supabase
+    ? ((
+        await supabase
+          .from('product_variants')
+          .select('id, product_id, label, price, stock_quantity, is_active')
+          .in('product_id', ids)
+      ).data ?? [])
+    : [];
+  const variants = new Map(variantRows.map((v) => [String(v.id), v]));
+  const hasVariants = new Set(variantRows.map((v) => String(v.product_id)));
+
   const lines: PricedLine[] = requested.map((item) => {
     const product = rows.find((p) => p.id === item.productId);
     if (!product || !product.is_active) {
       throw new CartError('One of these pieces is no longer available.', item.productId);
     }
     if (item.quantity < 1) throw new CartError('Invalid quantity.', item.productId);
-    if ((product.stock_quantity ?? 0) < item.quantity) {
+
+    /*
+      A product that has sizes can only be bought by the size. A cart line
+      naming no variant for such a product is a stale row — the shop added
+      sizes after it went into someone's cart — and must be rejected rather
+      than fulfilled from a total that no longer describes a single shelf.
+    */
+    const variant = item.variantId ? variants.get(item.variantId) : undefined;
+    if (hasVariants.has(item.productId) && (!variant || variant.product_id !== item.productId)) {
       throw new CartError(
-        `${product.name} — only ${product.stock_quantity ?? 0} left in stock.`,
+        `${product.name} — please choose a size.`,
         item.productId,
       );
     }
+    if (variant && !variant.is_active) {
+      throw new CartError(`${product.name} — that size is no longer available.`, item.productId);
+    }
 
-    const unitPrice = effectivePrice(product as never);
+    const available = variant ? variant.stock_quantity : (product.stock_quantity ?? 0);
+    if (available < item.quantity) {
+      const what = variant ? `${product.name} (${variant.label})` : product.name;
+      throw new CartError(`${what} — only ${available} left in stock.`, item.productId);
+    }
+
+    // A size priced differently overrides the product; almost none are.
+    const unitPrice =
+      variant && variant.price != null ? Number(variant.price) : effectivePrice(product as never);
     const taxable = product as { hsn_code?: string | null; gst_rate?: number | null };
     return {
       productId: item.productId,
+      variantId: variant ? String(variant.id) : null,
+      variantLabel: variant ? String(variant.label) : null,
       name: product.name as string,
       quantity: item.quantity,
       unitPrice,
@@ -160,6 +206,8 @@ export async function createPendingOrder(input: {
         id: randomUUID(),
         order_id: order.id,
         product_id: l.productId,
+        variant_id: l.variantId,
+        variant_at_time: l.variantLabel,
         quantity: l.quantity,
         price_at_time: l.unitPrice,
         hsn_at_time: l.hsn,
@@ -176,6 +224,8 @@ export async function createPendingOrder(input: {
     input.cart.lines.map((l) => ({
       order_id: data.id,
       product_id: l.productId,
+      variant_id: l.variantId,
+      variant_at_time: l.variantLabel,
       quantity: l.quantity,
       price_at_time: l.unitPrice,
       hsn_at_time: l.hsn,
@@ -308,11 +358,16 @@ export async function commitStock(lines: PricedLine[]): Promise<string[]> {
   const supabase = createAdminSupabase();
   const failures: string[] = [];
 
+  // Named for the shop owner reading the shortfall list, who needs to know
+  // which size could not be shipped, not just which product.
+  const describe = (line: PricedLine) =>
+    line.variantLabel ? `${line.name} (${line.variantLabel})` : line.name;
+
   if (!supabase) {
     for (const line of lines) {
       const product = DEMO_PRODUCTS.find((p) => p.id === line.productId);
       if (!product || product.stock_quantity < line.quantity) {
-        failures.push(line.name);
+        failures.push(describe(line));
         continue;
       }
       product.stock_quantity -= line.quantity;
@@ -322,12 +377,25 @@ export async function commitStock(lines: PricedLine[]): Promise<string[]> {
   }
 
   for (const line of lines) {
-    const { data, error } = await supabase.rpc('decrement_stock', {
-      p_product_id: line.productId,
-      p_qty: line.quantity,
-    });
+    /*
+      Two functions, one contract: zero rows back means the quantity was not
+      there. decrement_stock refuses outright for a product that has sizes —
+      it would move a total the database maintains as a sum — so a line that
+      lost its variant between pricing and capture lands in the shortfall
+      list rather than overselling a shelf.
+    */
+    const { data, error } = line.variantId
+      ? await supabase.rpc('decrement_variant_stock', {
+          p_variant_id: line.variantId,
+          p_qty: line.quantity,
+        })
+      : await supabase.rpc('decrement_stock', {
+          p_product_id: line.productId,
+          p_qty: line.quantity,
+        });
+
     if (error || !data || (Array.isArray(data) && data.length === 0)) {
-      failures.push(line.name);
+      failures.push(describe(line));
     }
   }
   return failures;
@@ -338,6 +406,10 @@ export async function linesForOrder(orderId: string): Promise<PricedLine[]> {
   if (!order?.order_items) return [];
   return order.order_items.map((item) => ({
     productId: item.product_id ?? '',
+    variantId: item.variant_id ?? null,
+    // The frozen label, never the live variant — the invoice must read the
+    // same next year as it did the day it was issued.
+    variantLabel: item.variant_at_time ?? null,
     name: item.products?.name ?? 'Item',
     quantity: item.quantity,
     unitPrice: Number(item.price_at_time),

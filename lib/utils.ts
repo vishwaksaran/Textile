@@ -51,6 +51,21 @@ export function slugify(input: string): string {
 }
 
 /** The effective price a customer pays for a product. */
+/**
+ * How an order line is named on an invoice, in an email and in the admin.
+ *
+ * Reads variant_at_time, the label frozen at the sale, and never the live
+ * variant: a size renamed or retired next season must not rewrite a receipt
+ * that has already been issued.
+ */
+export function describeItem(item: {
+  variant_at_time?: string | null;
+  products?: { name?: string | null } | null;
+}): string {
+  const name = item.products?.name ?? 'Handloom piece';
+  return item.variant_at_time ? `${name} — ${item.variant_at_time}` : name;
+}
+
 export function effectivePrice(p: { price: number; discounted_price: number | null }): number {
   return p.discounted_price && p.discounted_price > 0 && p.discounted_price < p.price
     ? p.discounted_price

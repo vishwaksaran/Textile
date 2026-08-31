@@ -17,6 +17,8 @@ export interface Category {
   thumbnail_url: string | null;
   seo_title: string | null;
   seo_description: string | null;
+  /** One-click sizes offered when adding variants to a product filed here. */
+  size_presets: string[] | null;
   /**
    * Superseded by is_visible and the tree. Kept until the column is dropped
    * so an older row still reads.
@@ -38,6 +40,11 @@ export interface Product {
   images: string[];
   is_sold_out: boolean;
   is_active: boolean;
+  /**
+   * Whether the product has sizes, maintained by the database alongside the
+   * stock rollup. Lets a grid card know without fetching the sizes.
+   */
+  has_variants: boolean;
   /** HSN classification for the tax invoice. Null falls back to the default. */
   hsn_code: string | null;
   /** Per-product GST override. Null falls back to the shop-wide rate. */
@@ -48,6 +55,29 @@ export interface Product {
   categories?: Pick<Category, 'id' | 'name' | 'slug'> | null;
   /** Attached when the admin loads a product for editing, keyed by attribute id. */
   attributeValues?: Record<string, { value?: string | null; values?: string[] | null }>;
+  /**
+   * Sizes, when the product has any.
+   *
+   * Empty — which is every saree — means stock_quantity is the shelf and
+   * there is nothing for a shopper to choose. When it is not empty,
+   * stock_quantity is the sum of these, maintained by the database.
+   */
+  variants?: ProductVariant[];
+}
+
+export interface ProductVariant {
+  id: string;
+  product_id: string;
+  /** 'M', '40', 'Free Size' — whatever the shop writes on the tag. */
+  label: string;
+  sku: string | null;
+  stock_quantity: number;
+  /** Null means the product's own price, which is the usual case. */
+  price: number | null;
+  /** Named by the shop: chest, length, sleeve. Rendered as the size table. */
+  measurements: Record<string, string>;
+  sort_order: number;
+  is_active: boolean;
 }
 
 export interface OrderItem {
@@ -59,6 +89,9 @@ export interface OrderItem {
   /** Frozen at the sale, like price_at_time — rates and codes change. */
   hsn_at_time: string | null;
   gst_rate_at_time: number | null;
+  variant_id: string | null;
+  /** The size as printed. Frozen, so retiring a size cannot rewrite a receipt. */
+  variant_at_time: string | null;
   /** Populated by joins on read. */
   products?: Pick<Product, 'id' | 'name' | 'images' | 'hsn_code' | 'gst_rate'> | null;
 }
@@ -102,6 +135,15 @@ export interface Admin {
 
 export interface CartItem {
   productId: string;
+  /**
+   * Which size, when the product has any. Null for a saree.
+   *
+   * Part of the line's identity: an M and an L of the same churidar are two
+   * rows in the cart, not one row with a quantity of two.
+   */
+  variantId: string | null;
+  /** Shown beside the name in the cart and frozen onto the order line. */
+  variantLabel: string | null;
   name: string;
   slug: string;
   image: string | null;

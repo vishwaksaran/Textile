@@ -5,7 +5,7 @@ import { taxForOrder } from '@/lib/tax-settings';
 import { sendAdminOrderEmail, sendCustomerConfirmationEmail } from '@/lib/notifications/email';
 import { sendWhatsAppOrderConfirmation } from '@/lib/notifications/whatsapp';
 import { sendSmsConfirmation } from '@/lib/notifications/sms';
-import { formatINR } from '@/lib/utils';
+import { describeItem, formatINR } from '@/lib/utils';
 import { shortOrderId } from '@/lib/utils';
 import { commitStock, getOrderWithItems, linesForOrder, updateOrder } from '@/lib/orders';
 import { revalidateCatalogue } from '@/lib/revalidate';
@@ -106,8 +106,8 @@ export async function fulfilPaidOrder(
     items.length === 0
       ? 'your order'
       : items.length === 1
-        ? `${items[0].products?.name ?? 'Handloom piece'} x${items[0].quantity}`
-        : `${items[0].products?.name ?? 'Handloom piece'} and ${items.length - 1} more`;
+        ? `${describeItem(items[0])} x${items[0].quantity}`
+        : `${describeItem(items[0])} and ${items.length - 1} more`;
 
   const [adminResult, customerResult, whatsappResult, smsResult] = await Promise.all([
     sendAdminOrderEmail(withInvoice),

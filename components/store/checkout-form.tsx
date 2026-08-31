@@ -118,7 +118,13 @@ export function CheckoutForm({ shippingSettings }: { shippingSettings: ShippingS
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+          // The size travels with the line; the server re-reads the shelf it
+          // names and prices from that, never from anything sent here.
+          items: items.map((i) => ({
+            productId: i.productId,
+            variantId: i.variantId,
+            quantity: i.quantity,
+          })),
           customer: { ...details, phone: normalisePhone(details.phone) },
         }),
       });
@@ -131,7 +137,7 @@ export function CheckoutForm({ shippingSettings }: { shippingSettings: ShippingS
           const check = await fetch('/api/cart/validate', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ productIds: items.map((i) => i.productId) }),
+            body: JSON.stringify({ productIds: [...new Set(items.map((i) => i.productId))] }),
           });
           if (check.ok) reconcile((await check.json()).levels);
           toast.error(data.error, { description: 'Your cart has been updated.' });

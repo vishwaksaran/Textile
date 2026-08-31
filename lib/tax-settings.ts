@@ -3,6 +3,7 @@ import 'server-only';
 import { createAdminSupabase, createPublicSupabase } from '@/lib/supabase/server';
 import { computeTax, DEFAULT_TAX_SETTINGS, type TaxSettings, type TaxSummary } from '@/lib/tax';
 import { STORE } from '@/lib/config';
+import { describeItem } from '@/lib/utils';
 import type { Order, TaxSettingsRow } from '@/types';
 
 /**
@@ -93,7 +94,7 @@ export async function taxForOrder(order: Order): Promise<TaxSummary | null> {
 
   return computeTax({
     items: items.map((item) => ({
-      description: item.products?.name ?? 'Handloom piece',
+      description: describeItem(item),
       quantity: item.quantity,
       gross: Number(item.price_at_time) * item.quantity,
       hsn: item.hsn_at_time ?? item.products?.hsn_code ?? null,

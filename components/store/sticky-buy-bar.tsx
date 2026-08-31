@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AddToCart } from '@/components/store/add-to-cart';
+import { useSelectedVariant } from '@/stores/variant-store';
 import { effectivePrice, formatINR } from '@/lib/utils';
 import { useUiStore } from '@/stores/ui-store';
 import type { Product } from '@/types';
@@ -31,6 +32,7 @@ export function StickyBuyBar({ product }: { product: Product }) {
     return () => setBuyBarVisible(false);
   }, [visible, setBuyBarVisible]);
 
+  const variant = useSelectedVariant(product.id, product.variants);
   const soldOut = product.is_sold_out || product.stock_quantity <= 0;
 
   return (
@@ -44,9 +46,12 @@ export function StickyBuyBar({ product }: { product: Product }) {
           className="fixed bottom-[60px] left-0 right-0 z-30 flex items-center gap-4 border-t border-primary-container/30 bg-warm-cream/95 px-margin-mobile py-3 backdrop-blur-md md:hidden"
         >
           <div className="min-w-0 flex-1">
-            <p className="truncate font-body-md text-xs text-on-surface-variant">{product.name}</p>
+            <p className="truncate font-body-md text-xs text-on-surface-variant">
+              {product.name}
+              {variant && <span className="text-earthy-bronze"> · {variant.label}</span>}
+            </p>
             <p className="font-body-md text-[17px] font-semibold tabular-nums text-deep-maroon">
-              {formatINR(effectivePrice(product))}
+              {formatINR(variant?.price ?? effectivePrice(product))}
             </p>
           </div>
           <div className="w-[52%]">

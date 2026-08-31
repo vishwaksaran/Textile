@@ -8,7 +8,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { ShoppingBag, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { QuantitySelector } from '@/components/store/quantity-selector';
-import { useCartStore, cartTotals } from '@/stores/cart-store';
+import { lineKey, useCartStore, cartTotals } from '@/stores/cart-store';
 import { COMMERCE } from '@/lib/config';
 import { formatINR } from '@/lib/utils';
 
@@ -102,9 +102,11 @@ export function CartDrawer() {
 
                   <ul className="space-y-5">
                     <AnimatePresence initial={false}>
-                      {items.map((item) => (
+                      {items.map((item) => {
+                        const key = lineKey(item.productId, item.variantId);
+                        return (
                         <motion.li
-                          key={item.productId}
+                          key={key}
                           layout
                           initial={{ opacity: 0, y: 12 }}
                           animate={{ opacity: 1, y: 0 }}
@@ -129,6 +131,11 @@ export function CartDrawer() {
                               <p className="line-clamp-2 font-body-md text-sm font-semibold text-deep-maroon">
                                 {item.name}
                               </p>
+                              {item.variantLabel && (
+                                <p className="mt-0.5 font-label-sm text-label-sm uppercase tracking-widest text-earthy-bronze">
+                                  Size {item.variantLabel}
+                                </p>
+                              )}
                               <p className="mt-1 font-body-md text-sm text-on-surface-variant">
                                 {formatINR(item.price)}
                                 {item.originalPrice && (
@@ -144,13 +151,13 @@ export function CartDrawer() {
                                 size="sm"
                                 value={item.quantity}
                                 max={Math.min(item.maxStock, COMMERCE.maxQuantityPerItem)}
-                                onChange={(next) => setQuantity(item.productId, next)}
-                                label={`Quantity for ${item.name}`}
+                                onChange={(next) => setQuantity(key, next)}
+                                label={`Quantity for ${item.name}${item.variantLabel ? ` size ${item.variantLabel}` : ''}`}
                               />
                               <button
                                 type="button"
-                                onClick={() => remove(item.productId)}
-                                aria-label={`Remove ${item.name}`}
+                                onClick={() => remove(key)}
+                                aria-label={`Remove ${item.name}${item.variantLabel ? ` size ${item.variantLabel}` : ''}`}
                                 className="rounded p-2 text-on-surface-variant transition-colors hover:text-error"
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -158,7 +165,8 @@ export function CartDrawer() {
                             </div>
                           </div>
                         </motion.li>
-                      ))}
+                        );
+                      })}
                     </AnimatePresence>
                   </ul>
                 </div>

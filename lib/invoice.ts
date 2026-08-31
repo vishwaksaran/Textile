@@ -5,7 +5,7 @@ import autoTable from 'jspdf-autotable';
 import { STORE, storeAddressLines } from '@/lib/config';
 import { INVOICE_LOGO_PNG, INVOICE_WATERMARK_JPG } from '@/lib/logo-data';
 import { createAdminSupabase } from '@/lib/supabase/server';
-import { formatDate, invoiceNumber, shortOrderId } from '@/lib/utils';
+import { describeItem, formatDate, invoiceNumber, shortOrderId } from '@/lib/utils';
 import type { TaxSummary } from '@/lib/tax';
 import type { Order } from '@/types';
 
@@ -181,7 +181,7 @@ export function buildInvoicePdf(order: Order, tax?: TaxSummary | null): Uint8Arr
       head: [['#', 'Item', 'Qty', 'Unit Price', 'Amount']],
       body: items.map((item, i) => [
         String(i + 1),
-        item.products?.name ?? 'Handloom piece',
+        describeItem(item),
         String(item.quantity),
         money(Number(item.price_at_time)),
         money(Number(item.price_at_time) * item.quantity),

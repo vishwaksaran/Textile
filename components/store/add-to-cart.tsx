@@ -4,7 +4,9 @@ import * as React from 'react';
 import { Check, Loader2, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { QuantitySelector } from '@/components/store/quantity-selector';
+import { SizePicker } from '@/components/store/size-picker';
 import { useAddToCart } from '@/hooks/use-add-to-cart';
+import { useSelectedVariant } from '@/stores/variant-store';
 import { cn, effectivePrice, formatINR } from '@/lib/utils';
 import type { Product } from '@/types';
 
@@ -16,10 +18,16 @@ interface AddToCartProps {
 }
 
 export function AddToCart({ product, compact = false, className }: AddToCartProps) {
-  const { addToCart, pending, justAdded, soldOut, atLimit, inCart, ceiling, remaining } =
-    useAddToCart(product);
+  const variants = product.variants ?? [];
+  const variant = useSelectedVariant(product.id, variants);
+  const { addToCart, pending, justAdded, soldOut, needsSize, atLimit, inCart, ceiling, remaining } =
+    useAddToCart(product, variant);
 
   const [quantity, setQuantity] = React.useState(1);
+
+  // A different size is a different shelf, so the stepper starts again rather
+  // than carrying a quantity that the new size may not have.
+  React.useEffect(() => setQuantity(1), [variant?.id]);
 
   // Never let the stepper offer more than is left after what is already in the
   // cart — the ceiling shrinks as the customer adds more.
@@ -30,6 +38,12 @@ export function AddToCart({ product, compact = false, className }: AddToCartProp
   const disabled = soldOut || atLimit || pending;
 
   async function handleAdd() {
+    // The compact bar has no room for the chips, so it sends the shopper up
+    // to them instead of refusing with a message they cannot act on.
+    if (needsSize) {
+      document.getElementById('buy-box')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
     const added = await addToCart(quantity);
     if (added) setQuantity(1);
   }
@@ -38,7 +52,7 @@ export function AddToCart({ product, compact = false, className }: AddToCartProp
     return (
       <Button
         onClick={handleAdd}
-        disabled={disabled}
+        disabled={disabled && !needsSize}
         shine={!disabled}
         className={cn('w-full', className)}
         size="lg"
@@ -46,18 +60,28 @@ export function AddToCart({ product, compact = false, className }: AddToCartProp
       >
         {soldOut
           ? 'Sold Out'
-          : pending
-            ? 'Adding…'
-            : atLimit
-              ? `All ${ceiling} in cart`
-              : `Add — ${formatINR(effectivePrice(product) * quantity)}`}
+          : needsSize
+            ? 'Choose a size'
+            : pending
+              ? 'Adding…'
+              : atLimit
+                ? `All ${ceiling} in cart`
+                : `Add — ${formatINR((variant?.price ?? effectivePrice(product)) * quantity)}`}
       </Button>
     );
   }
 
   return (
     <div className={cn('space-y-5', className)}>
-      {!soldOut && !atLimit && (
+      {variants.length > 0 && (
+        <SizePicker
+          productId={product.id}
+          variants={variants}
+          basePrice={effectivePrice(product)}
+        />
+      )}
+
+      {!soldOut && !atLimit && !needsSize && (
         <div className="flex flex-wrap items-center gap-4">
           <span className="font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant">
             Quantity
@@ -77,14 +101,16 @@ export function AddToCart({ product, compact = false, className }: AddToCartProp
 
       <Button
         onClick={handleAdd}
-        disabled={disabled}
-        shine={!disabled}
+        disabled={disabled || needsSize}
+        shine={!disabled && !needsSize}
         size="lg"
         className="w-full"
         aria-live="polite"
       >
         {soldOut ? (
           'Sold Out'
+        ) : needsSize ? (
+          'Select a size'
         ) : pending ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" /> Adding…
@@ -112,7 +138,9 @@ export function AddToCart({ product, compact = false, className }: AddToCartProp
 
       {soldOut && (
         <p className="text-center font-body-md text-sm text-on-surface-variant">
-          This weave is between looms. Write to us and we will tell you when the next one is ready.
+          {variants.length > 0
+            ? 'Every size is spoken for. Write to us and we will tell you when this is back.'
+            : 'This weave is between looms. Write to us and we will tell you when the next one is ready.'}
         </p>
       )}
     </div>
