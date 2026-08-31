@@ -97,7 +97,8 @@ export async function priceCart(
   });
 
   const subtotal = lines.reduce((sum, l) => sum + l.lineTotal, 0);
-  const shipping = shippingFor(subtotal, state, await getShippingSettings());
+  const pieces = lines.reduce((sum, l) => sum + l.quantity, 0);
+  const shipping = shippingFor(subtotal, state, await getShippingSettings(), pieces);
   return { lines, subtotal, shipping, total: subtotal + shipping };
 }
 

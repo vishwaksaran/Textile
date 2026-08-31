@@ -163,7 +163,10 @@ export function cartTotals(
     (t, i) => t + Math.max((i.originalPrice ?? i.price) - i.price, 0) * i.quantity,
     0,
   );
-  const quote = quoteShipping(subtotal, state, settings);
+  // Pieces, not lines: two of the same saree is still two parcels' worth of
+  // cloth, and the courier charges for both.
+  const pieces = items.reduce((t, i) => t + i.quantity, 0);
+  const quote = quoteShipping(subtotal, state, settings, pieces);
   return {
     subtotal,
     savings,

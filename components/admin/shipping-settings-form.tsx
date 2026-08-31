@@ -29,9 +29,18 @@ export function ShippingSettingsForm({ initial }: { initial: ShippingSettings })
   const router = useRouter();
   const [freeThreshold, setFreeThreshold] = React.useState(String(initial.freeThreshold));
   const [defaultRate, setDefaultRate] = React.useState(String(initial.defaultRate));
+  const [defaultExtraRate, setDefaultExtraRate] = React.useState(String(initial.defaultExtraRate));
   const [zoneRates, setZoneRates] = React.useState<Record<string, string>>(() =>
     Object.fromEntries(
       SHIPPING_ZONES.map((z) => [z.id, initial.zoneRates[z.id] === undefined ? '' : String(initial.zoneRates[z.id])]),
+    ),
+  );
+  const [zoneExtraRates, setZoneExtraRates] = React.useState<Record<string, string>>(() =>
+    Object.fromEntries(
+      SHIPPING_ZONES.map((z) => [
+        z.id,
+        initial.zoneExtraRates[z.id] === undefined ? '' : String(initial.zoneExtraRates[z.id]),
+      ]),
     ),
   );
   const [stateRates, setStateRates] = React.useState<Record<string, string>>(() =>
@@ -48,8 +57,14 @@ export function ShippingSettingsForm({ initial }: { initial: ShippingSettings })
     () => ({
       freeThreshold: Number(freeThreshold) || 0,
       defaultRate: Number(defaultRate) || 0,
+      defaultExtraRate: Number(defaultExtraRate) || 0,
       zoneRates: Object.fromEntries(
         Object.entries(zoneRates)
+          .filter(([, v]) => v !== '')
+          .map(([k, v]) => [k, Number(v) || 0]),
+      ),
+      zoneExtraRates: Object.fromEntries(
+        Object.entries(zoneExtraRates)
           .filter(([, v]) => v !== '')
           .map(([k, v]) => [k, Number(v) || 0]),
       ),
@@ -58,8 +73,12 @@ export function ShippingSettingsForm({ initial }: { initial: ShippingSettings })
           .filter(([, v]) => v !== '')
           .map(([k, v]) => [k, Number(v) || 0]),
       ),
+      // Per-state extras are not exposed: a state override is a rare
+      // exception, and asking for two numbers where one will do makes the
+      // common case worse. An overridden state keeps its zone's extra rate.
+      stateExtraRates: {},
     }),
-    [freeThreshold, defaultRate, zoneRates, stateRates],
+    [freeThreshold, defaultRate, defaultExtraRate, zoneRates, zoneExtraRates, stateRates],
   );
 
   async function save(e: React.FormEvent) {
@@ -72,7 +91,9 @@ export function ShippingSettingsForm({ initial }: { initial: ShippingSettings })
         body: JSON.stringify({
           freeThreshold: draft.freeThreshold,
           defaultRate: draft.defaultRate,
+          defaultExtraRate: draft.defaultExtraRate,
           zoneRates: draft.zoneRates,
+          zoneExtraRates: draft.zoneExtraRates,
           stateRates: draft.stateRates,
         }),
       });
@@ -205,17 +226,20 @@ export function ShippingSettingsForm({ initial }: { initial: ShippingSettings })
       <section className="rounded-lg border border-outline-variant/40 bg-surface-container-low p-6">
         <h2 className="mb-1 font-headline-md text-headline-md text-deep-maroon">Preview</h2>
         <p className="mb-5 font-body-md text-sm text-on-surface-variant">
-          A {formatINR(2000)} order, as it would be quoted at checkout today.
+          A {formatINR(2000)} order at checkout today — one piece, and three.
         </p>
         <dl className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {['Tamil Nadu', 'Kerala', 'Maharashtra', 'Delhi', 'West Bengal', 'Assam'].map((s) => {
-            const q = quoteShipping(2000, s, draft);
+            const one = quoteShipping(2000, s, draft, 1);
+            const three = quoteShipping(2000, s, draft, 3);
             return (
               <div key={s} className="flex justify-between gap-4 font-body-md text-sm">
                 <dt className="text-on-surface-variant">{s}</dt>
                 <dd className="tabular-nums text-on-surface">
-                  {q.amount === 0 ? 'Free' : formatINR(q.amount)}
-                  <span className="ml-2 text-xs text-on-surface-variant">({q.reason})</span>
+                  {one.amount === 0 ? 'Free' : formatINR(one.amount)}
+                  <span className="mx-1 text-on-surface-variant">/</span>
+                  {three.amount === 0 ? 'Free' : formatINR(three.amount)}
+                  <span className="ml-2 text-xs text-on-surface-variant">(1 / 3 pieces)</span>
                 </dd>
               </div>
             );

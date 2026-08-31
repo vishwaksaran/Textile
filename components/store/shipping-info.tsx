@@ -53,7 +53,13 @@ export function ShippingInfo({ settings }: { settings: ShippingSettings }) {
         <span
           role="dialog"
           aria-label="Delivery charges"
-          className="absolute bottom-full right-0 z-50 mb-2 block w-[280px] rounded-lg border border-outline-variant/60 bg-surface-container-lowest p-4 text-left shadow-[0_8px_28px_rgba(74,4,4,0.16)]"
+          /*
+            Opens downward. Anchored above, it ran off the top of the screen
+            and the first line was cut in half — the panel is taller than the
+            space between the summary and the header. Below it there is the
+            whole page.
+          */
+          className="absolute right-0 top-full z-50 mt-2 block max-h-[60vh] w-[min(20rem,calc(100vw-2rem))] overflow-y-auto overscroll-contain rounded-lg border border-outline-variant/60 bg-surface-container-lowest p-4 text-left shadow-[0_8px_28px_rgba(74,4,4,0.16)]"
         >
           <span className="mb-2 flex items-start justify-between gap-3">
             <span className="font-label-sm text-label-sm uppercase tracking-widest text-earthy-bronze">
@@ -70,18 +76,31 @@ export function ShippingInfo({ settings }: { settings: ShippingSettings }) {
           </span>
 
           <span className="block font-body-md text-xs leading-relaxed text-on-surface-variant">
-            What it costs to send a parcel depends on how far it travels. Tamil Nadu is the
-            least; the north-east and the islands the most, because the courier charges more
-            to reach them.
+            What it costs to send depends on how far the parcel travels — Tamil Nadu is the
+            least, the north-east and the islands the most.
           </span>
 
-          <span className="mt-3 block space-y-1">
+          <span className="mt-3 block">
+            <span className="flex justify-between gap-3 border-b border-outline-variant/40 pb-1 font-label-sm text-[10px] uppercase tracking-widest text-on-surface-variant">
+              <span>Destination</span>
+              <span className="flex gap-3">
+                <span className="w-14 text-right">1st</span>
+                <span className="w-14 text-right">Each more</span>
+              </span>
+            </span>
             {SHIPPING_ZONES.map((zone) => {
-              const rate = settings.zoneRates[zone.id] ?? settings.defaultRate;
+              const first = settings.zoneRates[zone.id] ?? settings.defaultRate;
+              const extra = settings.zoneExtraRates[zone.id] ?? settings.defaultExtraRate;
               return (
-                <span key={zone.id} className="flex justify-between gap-3 font-body-md text-xs">
+                <span
+                  key={zone.id}
+                  className="flex justify-between gap-3 py-1 font-body-md text-xs"
+                >
                   <span className="text-on-surface-variant">{zone.label}</span>
-                  <span className="tabular-nums text-on-surface">{formatINR(rate)}</span>
+                  <span className="flex gap-3 tabular-nums text-on-surface">
+                    <span className="w-14 text-right">{formatINR(first)}</span>
+                    <span className="w-14 text-right">{formatINR(extra)}</span>
+                  </span>
                 </span>
               );
             })}
@@ -95,9 +114,9 @@ export function ShippingInfo({ settings }: { settings: ShippingSettings }) {
           )}
 
           <span className="mt-3 block font-body-md text-[11px] leading-relaxed text-on-surface-variant">
-            Sarees are light and fold flat, so the charge is per order rather than by weight
-            or size — a second piece in the same parcel costs you nothing more. Your exact
-            figure appears above once the state is chosen.
+            Charged per piece: the first rate, then the second column for every saree after
+            it. Sarees fold flat and weigh little, so distance sets the price rather than
+            weight or size. Your exact figure appears above once the state is chosen.
           </span>
         </span>
       )}

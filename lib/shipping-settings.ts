@@ -39,8 +39,11 @@ export async function getShippingSettings(): Promise<ShippingSettings> {
   const row = data as {
     free_threshold?: number | string | null;
     default_rate?: number | string | null;
+    default_extra_rate?: number | string | null;
     zone_rates?: unknown;
+    zone_extra_rates?: unknown;
     state_rates?: unknown;
+    state_extra_rates?: unknown;
   };
 
   return {
@@ -52,16 +55,28 @@ export async function getShippingSettings(): Promise<ShippingSettings> {
       row.default_rate === null || row.default_rate === undefined
         ? DEFAULT_SHIPPING_SETTINGS.defaultRate
         : Number(row.default_rate),
+    // Falls back to the first-piece rate, not to zero: on a row written
+    // before per-piece pricing existed, charging the same for every piece is
+    // the safe reading of "no extra rate set".
+    defaultExtraRate:
+      row.default_extra_rate === null || row.default_extra_rate === undefined
+        ? DEFAULT_SHIPPING_SETTINGS.defaultExtraRate
+        : Number(row.default_extra_rate),
     zoneRates: toNumberMap(row.zone_rates),
+    zoneExtraRates: toNumberMap(row.zone_extra_rates),
     stateRates: toNumberMap(row.state_rates),
+    stateExtraRates: toNumberMap(row.state_extra_rates),
   };
 }
 
 export async function updateShippingSettings(patch: {
   freeThreshold?: number;
   defaultRate?: number;
+  defaultExtraRate?: number;
   zoneRates?: Record<string, number>;
+  zoneExtraRates?: Record<string, number>;
   stateRates?: Record<string, number>;
+  stateExtraRates?: Record<string, number>;
 }): Promise<ShippingSettings> {
   const supabase = createAdminSupabase();
   if (!supabase) throw new Error('Supabase service role key is not configured.');
@@ -69,8 +84,11 @@ export async function updateShippingSettings(patch: {
   const row: Record<string, unknown> = { id: 1 };
   if (patch.freeThreshold !== undefined) row.free_threshold = patch.freeThreshold;
   if (patch.defaultRate !== undefined) row.default_rate = patch.defaultRate;
+  if (patch.defaultExtraRate !== undefined) row.default_extra_rate = patch.defaultExtraRate;
   if (patch.zoneRates !== undefined) row.zone_rates = patch.zoneRates;
+  if (patch.zoneExtraRates !== undefined) row.zone_extra_rates = patch.zoneExtraRates;
   if (patch.stateRates !== undefined) row.state_rates = patch.stateRates;
+  if (patch.stateExtraRates !== undefined) row.state_extra_rates = patch.stateExtraRates;
 
   const { error } = await supabase
     .from('shipping_settings')

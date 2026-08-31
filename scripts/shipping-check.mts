@@ -83,6 +83,16 @@ check('Tamil Nadu is the cheapest zone', (() => {
   return SHIPPING_ZONES.every((z) => quoteShipping(2000, z.states[0], DEFAULT_SHIPPING_SETTINGS).amount >= tn);
 })());
 
+console.log('\n  Per-piece charging:');
+const tnRate = (n: number) => quoteShipping(2000, 'Tamil Nadu', DEFAULT_SHIPPING_SETTINGS, n).amount;
+const otherRate = (n: number) => quoteShipping(2000, 'Karnataka', DEFAULT_SHIPPING_SETTINGS, n).amount;
+console.log(`    Tamil Nadu    1:${tnRate(1)}  2:${tnRate(2)}  3:${tnRate(3)}  4:${tnRate(4)}`);
+console.log(`    Other states  1:${otherRate(1)}  2:${otherRate(2)}  3:${otherRate(3)}  4:${otherRate(4)}`);
+check('TN taper: 60, 90, 120, 150', tnRate(1) === 60 && tnRate(2) === 90 && tnRate(3) === 120 && tnRate(4) === 150);
+check('Other flat: 80, 160, 240, 320', otherRate(1) === 80 && otherRate(2) === 160 && otherRate(3) === 240 && otherRate(4) === 320);
+check('free threshold still wins on a multi-piece order', quoteShipping(6000, 'Assam', DEFAULT_SHIPPING_SETTINGS, 5).amount === 0);
+check('zero pieces is never charged', quoteShipping(2000, 'Tamil Nadu', DEFAULT_SHIPPING_SETTINGS, 0).amount === 0);
+
 console.log('\n  City suggestions:');
 const missingCities = INDIAN_STATES.filter((s) => !CITIES_BY_STATE[s]?.length);
 check('every state offers city suggestions', missingCities.length === 0, missingCities.join(', '));

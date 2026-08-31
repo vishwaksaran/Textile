@@ -48,8 +48,20 @@ export async function PATCH(request: Request) {
         body.freeThreshold === undefined ? undefined : rate(body.freeThreshold, 'Free shipping threshold'),
       defaultRate:
         body.defaultRate === undefined ? undefined : rate(body.defaultRate, 'Default rate'),
+      defaultExtraRate:
+        body.defaultExtraRate === undefined
+          ? undefined
+          : rate(body.defaultExtraRate, 'Default extra-piece rate'),
       zoneRates: body.zoneRates === undefined ? undefined : rateMap(body.zoneRates, 'Zone rate'),
+      zoneExtraRates:
+        body.zoneExtraRates === undefined
+          ? undefined
+          : rateMap(body.zoneExtraRates, 'Zone extra-piece rate'),
       stateRates: body.stateRates === undefined ? undefined : rateMap(body.stateRates, 'State rate'),
+      stateExtraRates:
+        body.stateExtraRates === undefined
+          ? undefined
+          : rateMap(body.stateExtraRates, 'State extra-piece rate'),
     });
 
     // The free-shipping threshold is quoted on product pages, which are

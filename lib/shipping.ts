@@ -1,12 +1,17 @@
 import { INDIAN_STATES } from '@/lib/states';
 
 /**
- * What it costs to send a parcel, by where it is going.
+ * What it costs to send a parcel, by where it is going and how many pieces.
  *
  * Pure and dependency-free on purpose: the storefront quotes with it in the
  * browser and the server re-prices with it before charging, and the two must
  * agree to the rupee. A customer shown Rs.849 and charged Rs.889 will not
  * come back, so there is exactly one implementation and both sides call it.
+ *
+ * Charging is per piece, in two parts: a rate for the first saree and a rate
+ * for each one after it. Both are set per zone, so a shop that ships several
+ * pieces in one parcel can price the extras lower without giving away the
+ * first, and a shop that cannot can simply set the two the same.
  */
 
 export interface ShippingZone {
@@ -101,8 +106,7 @@ export function zoneForState(state: string | null | undefined): string | null {
  *
  * A state in `INDIAN_STATES` that no zone claims would silently fall through
  * to the default rate, which is the sort of thing nobody notices until a
- * parcel to that one state has been underpriced for a year. The admin screen
- * renders this so an unzoned state is visible rather than merely possible.
+ * parcel to that one state has been underpriced for a year.
  */
 export function statesWithoutZone(): string[] {
   return INDIAN_STATES.filter((state) => !ZONE_BY_STATE.has(state));
@@ -110,25 +114,44 @@ export function statesWithoutZone(): string[] {
 
 export interface ShippingSettings {
   freeThreshold: number;
+  /** Fallback for the first piece when nothing more specific matches. */
   defaultRate: number;
-  /** Keyed by zone id. */
+  /** Fallback for each piece after the first. */
+  defaultExtraRate: number;
+  /** First-piece rate, keyed by zone id. */
   zoneRates: Record<string, number>;
-  /** Keyed by state name; wins over the zone. */
+  /** Rate for each additional piece, keyed by zone id. */
+  zoneExtraRates: Record<string, number>;
+  /** First-piece rate for one state; wins over its zone. */
   stateRates: Record<string, number>;
+  /** Additional-piece rate for one state; wins over its zone. */
+  stateExtraRates: Record<string, number>;
 }
 
 export const DEFAULT_SHIPPING_SETTINGS: ShippingSettings = {
   freeThreshold: 5000,
-  defaultRate: 150,
+  defaultRate: 80,
+  defaultExtraRate: 80,
   zoneRates: {
     'tamil-nadu': 60,
-    south: 110,
-    'west-central': 150,
-    north: 190,
-    east: 190,
-    remote: 260,
+    south: 80,
+    'west-central': 80,
+    north: 80,
+    east: 80,
+    remote: 80,
+  },
+  // Tamil Nadu is the only zone where a second piece costs less to send —
+  // everywhere else the courier charges per piece, so the rates match.
+  zoneExtraRates: {
+    'tamil-nadu': 30,
+    south: 80,
+    'west-central': 80,
+    north: 80,
+    east: 80,
+    remote: 80,
   },
   stateRates: {},
+  stateExtraRates: {},
 };
 
 export interface ShippingQuote {
@@ -137,48 +160,61 @@ export interface ShippingQuote {
   reason: 'free-threshold' | 'state' | 'zone' | 'default' | 'empty';
   zoneId: string | null;
   zoneLabel: string | null;
+  /** The two parts, so the breakdown can be shown rather than asserted. */
+  firstRate: number;
+  extraRate: number;
+  quantity: number;
 }
 
 /**
- * Quote the delivery charge for a subtotal going to a state.
+ * Quote the delivery charge for a subtotal and piece count going to a state.
  *
- * A state that has not been chosen yet quotes the default rate rather than
- * zero. Showing "free" and then adding a charge once the address is filled in
- * reads as a bait, and it is the estimate the cart page has to show before it
- * can possibly know where the parcel is going.
+ * A state that has not been chosen yet quotes the default rather than zero.
+ * Showing "free" and then adding a charge once the address is filled in reads
+ * as a bait.
  */
 export function quoteShipping(
   subtotal: number,
   state: string | null | undefined,
   settings: ShippingSettings = DEFAULT_SHIPPING_SETTINGS,
+  quantity = 1,
 ): ShippingQuote {
   const zoneId = zoneForState(state);
   const zoneLabel = SHIPPING_ZONES.find((z) => z.id === zoneId)?.label ?? null;
+  const pieces = Math.max(Math.floor(quantity) || 0, 0);
 
-  if (subtotal <= 0) {
-    return { amount: 0, reason: 'empty', zoneId, zoneLabel };
-  }
-
-  if (settings.freeThreshold > 0 && subtotal >= settings.freeThreshold) {
-    return { amount: 0, reason: 'free-threshold', zoneId, zoneLabel };
-  }
+  const num = (v: unknown): number | null =>
+    typeof v === 'number' && Number.isFinite(v) ? v : null;
 
   const trimmed = state?.trim();
-  if (trimmed) {
-    const override = settings.stateRates[trimmed];
-    if (typeof override === 'number' && Number.isFinite(override)) {
-      return { amount: override, reason: 'state', zoneId, zoneLabel };
-    }
+  // state override → zone → default, resolved for each part independently so
+  // a state can raise its first-piece rate without losing the zone's extras.
+  const firstRate =
+    (trimmed ? num(settings.stateRates[trimmed]) : null) ??
+    (zoneId ? num(settings.zoneRates[zoneId]) : null) ??
+    settings.defaultRate;
+  const extraRate =
+    (trimmed ? num(settings.stateExtraRates[trimmed]) : null) ??
+    (zoneId ? num(settings.zoneExtraRates[zoneId]) : null) ??
+    settings.defaultExtraRate;
+
+  const reason: ShippingQuote['reason'] =
+    trimmed && num(settings.stateRates[trimmed]) !== null
+      ? 'state'
+      : zoneId && num(settings.zoneRates[zoneId]) !== null
+        ? 'zone'
+        : 'default';
+
+  const base = { zoneId, zoneLabel, firstRate, extraRate, quantity: pieces };
+
+  if (subtotal <= 0 || pieces === 0) {
+    return { ...base, amount: 0, reason: 'empty' };
+  }
+  if (settings.freeThreshold > 0 && subtotal >= settings.freeThreshold) {
+    return { ...base, amount: 0, reason: 'free-threshold' };
   }
 
-  if (zoneId) {
-    const zoneRate = settings.zoneRates[zoneId];
-    if (typeof zoneRate === 'number' && Number.isFinite(zoneRate)) {
-      return { amount: zoneRate, reason: 'zone', zoneId, zoneLabel };
-    }
-  }
-
-  return { amount: settings.defaultRate, reason: 'default', zoneId, zoneLabel };
+  return { ...base, amount: firstRate + extraRate * (pieces - 1), reason };
 }
 
 /** The amount alone, for callers that do not need the reasoning. */
@@ -186,6 +222,7 @@ export function shippingFor(
   subtotal: number,
   state?: string | null,
   settings?: ShippingSettings,
+  quantity = 1,
 ): number {
-  return quoteShipping(subtotal, state, settings).amount;
+  return quoteShipping(subtotal, state, settings, quantity).amount;
 }

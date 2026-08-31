@@ -205,53 +205,57 @@ export function ProductForm({ categories, product }: ProductFormProps) {
               />
             </Field>
 
-            {/* Chosen, never typed. The same care instruction typed by hand
-                arrives as three different strings, which reads as three
-                different things in a spec table and cannot be filtered. */}
+            {/*
+              A list of suggestions, not a closed set. The fixed options keep
+              the common cases spelled one way, which is the point — but a
+              shop that starts stocking a weave nobody listed should be able
+              to sell it today, not wait for a deploy. Typing a new value is
+              allowed and saved as written.
+            */}
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-              <Field label="Length" htmlFor="length">
-                <Select
+              <Field label="Length" htmlFor="length" hint="Pick one, or type a different length.">
+                <Input
                   id="length"
+                  list="length-options"
+                  placeholder="Choose, or type your own"
                   value={form.length}
                   onChange={(e) => set('length', e.target.value)}
-                >
-                  <option value="">Not specified</option>
+                />
+                <datalist id="length-options">
                   {PRODUCT_LENGTHS.map((v) => (
-                    <option key={v} value={v}>
-                      {v}
-                    </option>
+                    <option key={v} value={v} />
                   ))}
-                </Select>
+                </datalist>
               </Field>
 
-              <Field label="Fabric" htmlFor="fabric">
-                <Select
+              <Field label="Fabric" htmlFor="fabric" hint="Pick one, or type a fabric not listed.">
+                <Input
                   id="fabric"
+                  list="fabric-options"
+                  placeholder="Choose, or type your own"
                   value={form.fabric}
                   onChange={(e) => set('fabric', e.target.value)}
-                >
-                  <option value="">Not specified</option>
+                />
+                <datalist id="fabric-options">
                   {PRODUCT_FABRICS.map((v) => (
-                    <option key={v} value={v}>
-                      {v}
-                    </option>
+                    <option key={v} value={v} />
                   ))}
-                </Select>
+                </datalist>
               </Field>
 
-              <Field label="Wash care" htmlFor="wash_care">
-                <Select
+              <Field label="Wash care" htmlFor="wash_care" hint="Pick one, or write your own instruction.">
+                <Input
                   id="wash_care"
+                  list="wash-care-options"
+                  placeholder="Choose, or type your own"
                   value={form.wash_care}
                   onChange={(e) => set('wash_care', e.target.value)}
-                >
-                  <option value="">Not specified</option>
+                />
+                <datalist id="wash-care-options">
                   {PRODUCT_WASH_CARE.map((v) => (
-                    <option key={v} value={v}>
-                      {v}
-                    </option>
+                    <option key={v} value={v} />
                   ))}
-                </Select>
+                </datalist>
               </Field>
             </div>
 
