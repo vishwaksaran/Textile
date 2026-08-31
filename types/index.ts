@@ -41,6 +41,8 @@ export interface Product {
   updated_at: string;
   /** Populated by joins on read. */
   categories?: Pick<Category, 'id' | 'name' | 'slug'> | null;
+  /** Attached when the admin loads a product for editing, keyed by attribute id. */
+  attributeValues?: Record<string, { value?: string | null; values?: string[] | null }>;
 }
 
 export interface OrderItem {

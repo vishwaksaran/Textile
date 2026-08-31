@@ -3,11 +3,8 @@
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import {
-  PRODUCT_FABRICS,
-  PRODUCT_LENGTHS,
-  PRODUCT_WASH_CARE,
-} from '@/lib/product-options';
+import { AttributeFields, type AttributeDraft } from '@/components/admin/attribute-fields';
+import type { Attribute } from '@/lib/attributes';
 import { Loader2, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -57,6 +54,32 @@ export function ProductForm({ categories, product }: ProductFormProps) {
     images: product?.images ?? [],
     is_active: product?.is_active ?? true,
   });
+
+  const [attributes, setAttributes] = React.useState<Attribute[]>([]);
+  const [attrValues, setAttrValues] = React.useState<Record<string, AttributeDraft>>(
+    product?.attributeValues ?? {},
+  );
+
+  /*
+    Refetched whenever the collection changes, because the fields a product
+    is asked for belong to its category. Answers already given are kept: a
+    piece moved from Sarees to Churidars keeps its fabric, which both ask
+    for, and simply stops being asked for a saree length.
+  */
+  React.useEffect(() => {
+    if (!form.category_id) {
+      setAttributes([]);
+      return;
+    }
+    let cancelled = false;
+    fetch(`/api/admin/attributes?categoryId=${form.category_id}`)
+      .then((r) => (r.ok ? r.json() : { attributes: [] }))
+      .then((d) => !cancelled && setAttributes(d.attributes ?? []))
+      .catch(() => !cancelled && setAttributes([]));
+    return () => {
+      cancelled = true;
+    };
+  }, [form.category_id]);
 
   const [errors, setErrors] = React.useState<Partial<Record<keyof FormState, string>>>({});
   const [saving, setSaving] = React.useState(false);
@@ -123,9 +146,7 @@ export function ProductForm({ categories, product }: ProductFormProps) {
             price: Number(form.price),
             discounted_price: form.discounted_price ? Number(form.discounted_price) : null,
             stock_quantity: Number(form.stock_quantity),
-            length: form.length || null,
-            fabric: form.fabric || null,
-            wash_care: form.wash_care || null,
+            attributeValues: attrValues,
             hsn_code: form.hsn_code || null,
             gst_rate: form.gst_rate ? Number(form.gst_rate) : null,
             category_id: form.category_id || null,
@@ -205,59 +226,7 @@ export function ProductForm({ categories, product }: ProductFormProps) {
               />
             </Field>
 
-            {/*
-              A list of suggestions, not a closed set. The fixed options keep
-              the common cases spelled one way, which is the point — but a
-              shop that starts stocking a weave nobody listed should be able
-              to sell it today, not wait for a deploy. Typing a new value is
-              allowed and saved as written.
-            */}
-            <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-              <Field label="Length" htmlFor="length" hint="Pick one, or type a different length.">
-                <Input
-                  id="length"
-                  list="length-options"
-                  placeholder="Choose, or type your own"
-                  value={form.length}
-                  onChange={(e) => set('length', e.target.value)}
-                />
-                <datalist id="length-options">
-                  {PRODUCT_LENGTHS.map((v) => (
-                    <option key={v} value={v} />
-                  ))}
-                </datalist>
-              </Field>
 
-              <Field label="Fabric" htmlFor="fabric" hint="Pick one, or type a fabric not listed.">
-                <Input
-                  id="fabric"
-                  list="fabric-options"
-                  placeholder="Choose, or type your own"
-                  value={form.fabric}
-                  onChange={(e) => set('fabric', e.target.value)}
-                />
-                <datalist id="fabric-options">
-                  {PRODUCT_FABRICS.map((v) => (
-                    <option key={v} value={v} />
-                  ))}
-                </datalist>
-              </Field>
-
-              <Field label="Wash care" htmlFor="wash_care" hint="Pick one, or write your own instruction.">
-                <Input
-                  id="wash_care"
-                  list="wash-care-options"
-                  placeholder="Choose, or type your own"
-                  value={form.wash_care}
-                  onChange={(e) => set('wash_care', e.target.value)}
-                />
-                <datalist id="wash-care-options">
-                  {PRODUCT_WASH_CARE.map((v) => (
-                    <option key={v} value={v} />
-                  ))}
-                </datalist>
-              </Field>
-            </div>
 
             <Field label="Collection" htmlFor="category_id">
               <Select
@@ -319,6 +288,12 @@ export function ProductForm({ categories, product }: ProductFormProps) {
               </Field>
             </div>
           </section>
+
+          <AttributeFields
+            attributes={attributes}
+            values={attrValues}
+            onChange={(id, draft) => setAttrValues((v) => ({ ...v, [id]: draft }))}
+          />
 
           <section className="rounded-lg border border-outline-variant/40 bg-surface-container-lowest p-6">
             <ImageUploader

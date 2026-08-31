@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { getProductAttributeValues } from '@/lib/attributes';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { ExternalLink } from 'lucide-react';
@@ -30,6 +31,9 @@ export default async function EditProductPage({ params }: { params: { id: string
   if (!data) notFound();
   const product = data as unknown as Product;
 
+  const attributeValues = await getProductAttributeValues(product.id);
+
+
   return (
     <AdminPage>
       <AdminHeader
@@ -44,7 +48,7 @@ export default async function EditProductPage({ params }: { params: { id: string
           </Button>
         }
       />
-      <ProductForm categories={categories} product={product} />
+      <ProductForm categories={categories} product={{ ...product, attributeValues }} />
     </AdminPage>
   );
 }

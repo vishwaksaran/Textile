@@ -1,5 +1,4 @@
 import { formatINR } from '@/lib/utils';
-import { PRODUCT_FABRICS } from '@/lib/product-options';
 import type { ProductSort } from '@/lib/data';
 
 /** Shared by the client filter UI and the server components that query. */
@@ -65,16 +64,23 @@ export function parseListParams(searchParams: Record<string, string | string[] |
 }
 
 /**
- * Only fabrics the shop actually offers reach the query.
+ * Fabric filters off the URL, checked by shape rather than by enumeration.
  *
- * The value lands in a database `in (...)` clause and comes straight off the
- * URL, so it is checked against the known list rather than passed through —
- * an unknown fabric is dropped instead of being asked about.
+ * This used to test each value against a fixed list of fabrics. That stopped
+ * being correct once the admin could type a fabric nobody had listed: the
+ * name would appear in the filter panel, having come from the products
+ * themselves, and then be silently dropped here for not being on a list it
+ * was never going to be on.
+ *
+ * The value still lands in a database `in (...)` clause, so it is not simply
+ * passed through — anything that is not a plain name is rejected, and the
+ * count is capped so a crafted URL cannot turn one request into a thousand
+ * predicates.
  */
+const FABRIC_NAME = /^[\p{L}][\p{L} .&'-]{0,48}$/u;
+
 export function parseFabrics(value: string | string[] | undefined): string[] {
   if (!value) return [];
   const wanted = Array.isArray(value) ? value : [value];
-  return wanted.filter((v): v is string =>
-    (PRODUCT_FABRICS as readonly string[]).includes(v),
-  );
+  return wanted.filter((v): v is string => typeof v === 'string' && FABRIC_NAME.test(v)).slice(0, 20);
 }

@@ -1,12 +1,50 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { revalidateCatalogue } from '@/lib/revalidate';
+import { saveProductAttributeValues } from '@/lib/attributes';
 import { errorResponse, validateProduct } from '@/lib/admin-api';
 import { requireAdminSupabase } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
 const SELECT = '*, categories:category_id (id, name, slug)';
+
+/**
+ * Persists the attribute answers, and mirrors the three that still have
+ * columns.
+ *
+ * The mirror is temporary scaffolding, not a design. products.fabric,
+ * .length and .wash_care still back the Material filter and the product
+ * page's spec table; until those read the attribute tables, writing only to
+ * the new home would leave the filter quietly indexing stale values. The
+ * columns go when the filters move.
+ */
+async function persistAttributes(
+  productId: string,
+  raw: unknown,
+): Promise<{ fabric: string | null; length: string | null; wash_care: string | null }> {
+  const values = (raw ?? {}) as Record<string, { value?: string | null; values?: string[] | null }>;
+  await saveProductAttributeValues(productId, values);
+
+  const supabase = requireAdminSupabase();
+  const { data } = await supabase
+    .from('attributes')
+    .select('id, slug')
+    .in('slug', ['fabric', 'saree-length', 'wash-care']);
+
+  const bySlug = Object.fromEntries(
+    ((data as { id: string; slug: string }[]) ?? []).map((a) => [a.slug, a.id]),
+  );
+  const pick = (slug: string) => values[bySlug[slug]]?.value?.trim() || null;
+
+  const mirror = {
+    fabric: pick('fabric'),
+    length: pick('saree-length'),
+    wash_care: pick('wash-care'),
+  };
+  await supabase.from('products').update(mirror).eq('id', productId);
+  return mirror;
+}
 
 export async function GET(_request: Request, { params }: { params: { id: string } }) {
   try {
@@ -46,9 +84,6 @@ export async function PUT(request: Request, { params }: { params: { id: string }
         discounted_price: body.discounted_price ? Number(body.discounted_price) : null,
         stock_quantity: stock,
         category_id: body.category_id || null,
-        length: body.length || null,
-        fabric: body.fabric || null,
-        wash_care: body.wash_care || null,
         // Null means "fall back to the shop-wide default at invoice time".
         hsn_code: body.hsn_code ? String(body.hsn_code).trim() : null,
         gst_rate:
@@ -65,6 +100,8 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       .single();
 
     if (error) throw new Error(error.message);
+    if (data?.id) await persistAttributes(data.id, body.attributeValues);
+
     revalidateCatalogue({
       productId: params.id,
       categorySlug: (data as { categories?: { slug?: string } })?.categories?.slug,
@@ -98,6 +135,7 @@ export async function DELETE(_request: Request, { params }: { params: { id: stri
       return NextResponse.json({ deleted: false, deactivated: true });
     }
 
+    // Attribute values go with the row: the foreign key cascades.
     const { error } = await supabase.from('products').delete().eq('id', params.id);
     if (error) throw new Error(error.message);
     revalidateCatalogue({ productId: params.id });

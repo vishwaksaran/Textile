@@ -1,12 +1,50 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { revalidateCatalogue } from '@/lib/revalidate';
+import { saveProductAttributeValues } from '@/lib/attributes';
 import { errorResponse, validateProduct } from '@/lib/admin-api';
 import { requireAdminSupabase } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
 const SELECT = '*, categories:category_id (id, name, slug)';
+
+/**
+ * Persists the attribute answers, and mirrors the three that still have
+ * columns.
+ *
+ * The mirror is temporary scaffolding, not a design. products.fabric,
+ * .length and .wash_care still back the Material filter and the product
+ * page's spec table; until those read the attribute tables, writing only to
+ * the new home would leave the filter quietly indexing stale values. The
+ * columns go when the filters move.
+ */
+async function persistAttributes(
+  productId: string,
+  raw: unknown,
+): Promise<{ fabric: string | null; length: string | null; wash_care: string | null }> {
+  const values = (raw ?? {}) as Record<string, { value?: string | null; values?: string[] | null }>;
+  await saveProductAttributeValues(productId, values);
+
+  const supabase = requireAdminSupabase();
+  const { data } = await supabase
+    .from('attributes')
+    .select('id, slug')
+    .in('slug', ['fabric', 'saree-length', 'wash-care']);
+
+  const bySlug = Object.fromEntries(
+    ((data as { id: string; slug: string }[]) ?? []).map((a) => [a.slug, a.id]),
+  );
+  const pick = (slug: string) => values[bySlug[slug]]?.value?.trim() || null;
+
+  const mirror = {
+    fabric: pick('fabric'),
+    length: pick('saree-length'),
+    wash_care: pick('wash-care'),
+  };
+  await supabase.from('products').update(mirror).eq('id', productId);
+  return mirror;
+}
 
 export async function GET(request: Request) {
   try {
@@ -54,9 +92,6 @@ export async function POST(request: Request) {
         discounted_price: body.discounted_price ? Number(body.discounted_price) : null,
         stock_quantity: stock,
         category_id: body.category_id || null,
-        length: body.length || null,
-        fabric: body.fabric || null,
-        wash_care: body.wash_care || null,
         // Null means "fall back to the shop-wide default at invoice time".
         hsn_code: body.hsn_code ? String(body.hsn_code).trim() : null,
         gst_rate:
@@ -73,6 +108,8 @@ export async function POST(request: Request) {
     if (error) throw new Error(error.message);
     // The storefront caches for minutes; clear it so a new piece is visible
     // the moment it is saved rather than whenever the window happens to lapse.
+    if (data?.id) await persistAttributes(data.id, body.attributeValues);
+
     revalidateCatalogue({
       productId: data?.id,
       categorySlug: (data as { categories?: { slug?: string } })?.categories?.slug,
