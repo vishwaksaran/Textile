@@ -50,6 +50,22 @@ export const STORE = {
    * Profile, not from this markup. Fill this in and it appears automatically.
    */
   openingHours: ['Mo-Sa 10:00-21:00'] as string[],
+
+  /**
+   * The shop's own profiles.
+   *
+   * Blank by default and blank means hidden. The footer used to link the word
+   * "Instagram" to instagram.com — the platform's front page, not the shop —
+   * which is worse than no link at all: it sends an interested customer away
+   * from the site to somewhere that has never heard of it.
+   *
+   * Set through the environment so a profile can go live without a deploy.
+   */
+  social: {
+    instagram: envOr(process.env.NEXT_PUBLIC_INSTAGRAM_URL, ''),
+    youtube: envOr(process.env.NEXT_PUBLIC_YOUTUBE_URL, ''),
+    facebook: envOr(process.env.NEXT_PUBLIC_FACEBOOK_URL, ''),
+  },
   address: {
     line1: 'No 42, Murugan Shopping Complex',
     line2: 'Big Bazaar Street, Uppukinar Lane',

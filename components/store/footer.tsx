@@ -6,6 +6,7 @@ import { ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { STORE, storeAddressLines, storeHoursLines } from '@/lib/config';
 import { splitNavCategories } from '@/lib/nav';
+import { SocialIcon, type SocialNetwork } from '@/components/store/social-icons';
 import { isValidEmail } from '@/lib/utils';
 import { LogoMark } from '@/components/store/logo';
 import type { Category } from '@/types';
@@ -82,11 +83,16 @@ export function Footer({ categories = [] }: { categories?: Category[] }) {
 
         <div className="space-y-4">
           <h2 className="font-label-sm text-label-sm uppercase tracking-widest text-primary-fixed">
-            Newsletter
+            Stay Connected
           </h2>
+
+          <SocialRow />
+
           <p className="font-body-md text-sm text-warm-cream/80">
-            Join our journal for tales of textiles and new arrivals.
+            Follow our journey of heritage and craftsmanship, or join the journal for new
+            arrivals.
           </p>
+
           <form className="flex items-center gap-3" onSubmit={subscribe} noValidate>
             <label htmlFor="newsletter-email" className="sr-only">
               Email address
@@ -114,24 +120,48 @@ export function Footer({ categories = [] }: { categories?: Category[] }) {
         <p className="font-body-md text-xs text-warm-cream/80">
           © {new Date().getFullYear()} {STORE.legalName}. Handcrafted Excellence.
         </p>
-        <div className="flex gap-4">
-          <a
-            href="https://instagram.com"
-            className="font-label-sm text-label-sm text-warm-cream/80 transition-colors hover:text-primary-fixed-dim"
-            aria-label="Instagram"
-          >
-            IG
-          </a>
-          <a
-            href="https://pinterest.com"
-            className="font-label-sm text-label-sm text-warm-cream/80 transition-colors hover:text-primary-fixed-dim"
-            aria-label="Pinterest"
-          >
-            PT
-          </a>
-        </div>
+        <p className="font-body-md text-xs text-warm-cream/80">
+          GSTIN {STORE.gstin}
+        </p>
       </div>
     </footer>
+  );
+}
+
+const SOCIALS: { network: SocialNetwork; label: string; href: string }[] = [
+  { network: 'instagram', label: 'Instagram', href: STORE.social.instagram },
+  { network: 'youtube', label: 'YouTube', href: STORE.social.youtube },
+  { network: 'facebook', label: 'Facebook', href: STORE.social.facebook },
+];
+
+/**
+ * The shop's profiles, as marks rather than initials.
+ *
+ * Renders nothing at all when no profile is configured. An empty row of
+ * buttons is an invitation to click something that does not exist, and the
+ * previous version was worse still — it linked the word Instagram to
+ * instagram.com, sending an interested customer to a front page that has
+ * never heard of this shop.
+ */
+function SocialRow() {
+  const live = SOCIALS.filter((s) => s.href);
+  if (live.length === 0) return null;
+
+  return (
+    <div className="flex gap-3">
+      {live.map(({ network, label, href }) => (
+        <a
+          key={network}
+          href={href}
+          target="_blank"
+          rel="noreferrer noopener"
+          aria-label={`${STORE.name} on ${label}`}
+          className="flex h-11 w-11 items-center justify-center rounded-lg border border-primary-container/40 text-primary-fixed transition-colors hover:border-primary-fixed hover:bg-primary-container/15"
+        >
+          <SocialIcon network={network} />
+        </a>
+      ))}
+    </div>
   );
 }
 
