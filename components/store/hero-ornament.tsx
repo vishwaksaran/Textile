@@ -1,6 +1,11 @@
 /**
- * The banner's ornaments: a flourished rule either side of the eyebrow, and
- * a scrolled divider between the headline and the supporting line.
+ * The banner's ornaments, drawn from motifs the shop actually sells.
+ *
+ * The eyebrow rule is a temple border — the row of triangular points woven
+ * into the edge of a Kanchipuram saree — and the divider is a graduated
+ * diamond chain of the kind that runs down a wedding invitation. An arrow
+ * was the first attempt and it was simply generic: it could have introduced
+ * a software release as easily as a silk collection.
  *
  * Drawn as SVG rather than set as text. The obvious shortcut is a decorative
  * character — ❦ or ◆ between two em dashes — but those render as whatever
@@ -12,12 +17,12 @@
  * eyebrow rather than hardcoding a second copy of it.
  */
 
-/** A tapering rule ending in an arrow, pointing toward the words. */
+/** A temple border: a rule running into a row of woven points. */
 export function EyebrowRule({ side }: { side: 'left' | 'right' }) {
   return (
     <svg
-      viewBox="0 0 44 8"
-      className="h-2 w-11 flex-none"
+      viewBox="0 0 46 14"
+      className="h-3 w-12 flex-none"
       fill="none"
       stroke="currentColor"
       strokeWidth="1"
@@ -26,20 +31,24 @@ export function EyebrowRule({ side }: { side: 'left' | 'right' }) {
       aria-hidden="true"
       style={{ transform: side === 'right' ? 'scaleX(-1)' : undefined }}
     >
-      <path d="M2 4h34" />
-      <path d="M31 1.6 36 4l-5 2.4" />
+      {/* the rule, tapering in */}
+      <path d="M2 10h14" opacity="0.6" />
+      {/* the points, rising toward the words */}
+      <path d="M18 10 22 4.5 26 10 30 4.5 34 10 38 4.5 42 10" />
+      {/* the ground line the points stand on */}
+      <path d="M17 10h26" opacity="0.85" />
     </svg>
   );
 }
 
 /**
- * The divider under the headline: a lozenge at the centre, a scroll curling
- * away on each side, and a rule tapering out to nothing.
+ * The divider: a chain of diamonds graduating to the largest at the centre,
+ * with a rule running out to either side.
  */
 export function HeroDivider({ className }: { className?: string }) {
   return (
     <svg
-      viewBox="0 0 260 18"
+      viewBox="0 0 268 20"
       className={className}
       fill="none"
       stroke="currentColor"
@@ -49,20 +58,21 @@ export function HeroDivider({ className }: { className?: string }) {
       aria-hidden="true"
     >
       {/* rules out to the edges */}
-      <path d="M6 9h74" opacity="0.55" />
-      <path d="M254 9h-74" opacity="0.55" />
+      <path d="M6 10h72" opacity="0.5" />
+      <path d="M262 10h-72" opacity="0.5" />
 
-      {/* scrolls, mirrored about the centre */}
-      <path d="M80 9c7 0 7-5 14-5s7 5 14 5" />
-      <path d="M180 9c-7 0-7-5-14-5s-7 5-14 5" />
+      {/* the chain, smallest outward */}
+      <path d="M82 10 87 5.5 92 10 87 14.5Z" />
+      <path d="M100 10 106.5 4 113 10 106.5 16Z" />
+      <path d="M121 10 129 2.5 137 10 129 17.5Z" />
+      <path d="M145 10 151.5 4 158 10 151.5 16Z" />
+      <path d="M166 10 171 5.5 176 10 171 14.5Z" />
 
-      {/* small terminals where the scrolls begin */}
-      <circle cx="80" cy="9" r="1.4" fill="currentColor" stroke="none" opacity="0.8" />
-      <circle cx="180" cy="9" r="1.4" fill="currentColor" stroke="none" opacity="0.8" />
+      {/* the thread between them */}
+      <path d="M92 10h8M113 10h8M137 10h8M158 10h8" opacity="0.85" />
 
-      {/* the lozenge */}
-      <path d="M130 3.4 135.6 9 130 14.6 124.4 9Z" />
-      <path d="M130 6.2 132.8 9 130 11.8 127.2 9Z" fill="currentColor" stroke="none" />
+      {/* a filled heart to the centre stone */}
+      <path d="M129 6.5 132.5 10 129 13.5 125.5 10Z" fill="currentColor" stroke="none" />
     </svg>
   );
 }
