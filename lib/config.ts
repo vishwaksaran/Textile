@@ -79,6 +79,7 @@ export const STORE = {
     youtube: withScheme(envOr(process.env.NEXT_PUBLIC_YOUTUBE_URL, '')),
     /** A WhatsApp community invite, not the direct-message number. */
     whatsappGroup: withScheme(envOr(process.env.NEXT_PUBLIC_WHATSAPP_GROUP_URL, '')),
+    facebook: withScheme(envOr(process.env.NEXT_PUBLIC_FACEBOOK_URL, '')),
   },
   address: {
     line1: 'No 42, Murugan Shopping Complex',
@@ -92,6 +93,36 @@ export const STORE = {
     pincode: '641001',
   },
 } as const;
+
+/**
+ * The notices that scroll under the banner.
+ *
+ * The free-shipping figure is not written here: it is filled in from the live
+ * shipping settings where this is rendered, so raising the threshold in the
+ * admin cannot leave the front page advertising the old one.
+ *
+ * The Instagram handle is stated deliberately. Counterfeit pages using a real
+ * shop's photographs are common in this trade, and naming the only official
+ * account is the cheapest defence a small shop has.
+ */
+export const MARQUEE_NOTICES = [
+  `🎉 Welcome to ${'Sri Laxmi Silks'} — handloom silk sarees from Coimbatore`,
+  '⚠️ Shop only through our official pages: @sri_laxmi_silks_cbe',
+  '__FREE_SHIPPING__',
+  '🌍 Worldwide shipping available',
+  '📩 For international orders, message us on WhatsApp',
+  '📞 For ordering and support, reach us on WhatsApp',
+  '✨ New arrivals updated regularly',
+];
+
+/** Substitutes the live threshold into the placeholder notice. */
+export function marqueeNotices(freeShippingAbove: number): string[] {
+  return MARQUEE_NOTICES.map((line) =>
+    line === '__FREE_SHIPPING__'
+      ? `🚚 Free shipping above ₹${freeShippingAbove.toLocaleString('en-IN')}`
+      : line,
+  );
+}
 
 export const COMMERCE = {
   /**

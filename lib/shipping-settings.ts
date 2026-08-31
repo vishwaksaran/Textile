@@ -21,9 +21,30 @@ function toNumberMap(value: unknown): Record<string, number> {
   return out;
 }
 
+/**
+ * The rates, read through the *cacheable* anon client.
+ *
+ * For copy rather than for charging. The authoritative read below opts out of
+ * Next's data cache, which makes any page calling it dynamic — and the home
+ * page is statically generated with the banner as its LCP element, so paying
+ * a round trip on every visit to print a shipping figure would be a poor
+ * trade. This one rides the page's own revalidate window instead.
+ */
+export async function getPublicShippingSettings(): Promise<ShippingSettings> {
+  const supabase = createPublicSupabase();
+  if (!supabase) return DEFAULT_SHIPPING_SETTINGS;
+  return readSettings(supabase);
+}
+
 export async function getShippingSettings(): Promise<ShippingSettings> {
   const supabase = createAdminSupabase() ?? createPublicSupabase();
   if (!supabase) return DEFAULT_SHIPPING_SETTINGS;
+  return readSettings(supabase);
+}
+
+async function readSettings(
+  supabase: NonNullable<ReturnType<typeof createPublicSupabase>>,
+): Promise<ShippingSettings> {
 
   const { data, error } = await supabase
     .from('shipping_settings')

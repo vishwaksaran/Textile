@@ -116,11 +116,21 @@ const config: Config = {
           from: { opacity: '0', transform: 'translateY(12px)' },
           to: { opacity: '1', transform: 'translateY(0)' },
         },
+        // Exactly half, because the track holds the notices twice: at -50%
+        // the second copy sits where the first started, so the reset is
+        // invisible and the loop has no seam.
+        marquee: {
+          from: { transform: 'translateX(0)' },
+          to: { transform: 'translateX(-50%)' },
+        },
       },
       animation: {
         shimmer: 'shimmer 1.6s infinite',
         shake: 'shake 0.4s ease-in-out',
         'fade-up': 'fade-up 0.5s ease-out both',
+        // Slow and linear. Easing would make it surge and stall, and a strip
+        // of notices is meant to be read, not watched.
+        marquee: 'marquee 45s linear infinite',
       },
     },
   },

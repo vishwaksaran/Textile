@@ -6,7 +6,9 @@ import { ProductGrid } from '@/components/store/product-grid';
 import { Reveal } from '@/components/shared/motion';
 import { Button } from '@/components/ui/button';
 import { getCategories, getHeroSlides, getLatestProducts } from '@/lib/data';
-import { STORE } from '@/lib/config';
+import { STORE, marqueeNotices } from '@/lib/config';
+import { getPublicShippingSettings } from '@/lib/shipping-settings';
+import { Marquee } from '@/components/store/marquee';
 import { ARTISAN_IMAGE, HERO_SLIDE_IMAGES } from '@/lib/demo-data';
 import { JsonLd, canonical, organizationJsonLd, searchActionJsonLd, storeJsonLd } from '@/lib/seo';
 import type { Metadata } from 'next';
@@ -39,10 +41,11 @@ const TESTIMONIALS = [
 ];
 
 export default async function HomePage() {
-  const [categories, latest, managed] = await Promise.all([
+  const [categories, latest, managed, shipping] = await Promise.all([
     getCategories(),
     getLatestProducts(8),
     getHeroSlides(),
+    getPublicShippingSettings(),
   ]);
 
   /*
@@ -99,6 +102,8 @@ export default async function HomePage() {
       <JsonLd data={[storeJsonLd(), organizationJsonLd(), searchActionJsonLd()]} />
 
       <Hero slides={slides} />
+
+      <Marquee items={marqueeNotices(shipping.freeThreshold)} />
 
       <div className="gold-divider mx-auto max-w-container-max" />
 

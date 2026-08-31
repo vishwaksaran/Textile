@@ -132,6 +132,7 @@ const SOCIALS: { network: SocialNetwork; label: string; href: string }[] = [
   { network: 'instagram', label: 'Instagram', href: STORE.social.instagram },
   { network: 'youtube', label: 'YouTube', href: STORE.social.youtube },
   { network: 'whatsapp', label: 'WhatsApp group', href: STORE.social.whatsappGroup },
+  { network: 'facebook', label: 'Facebook', href: STORE.social.facebook },
 ];
 
 /**
