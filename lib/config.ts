@@ -21,6 +21,19 @@ export function envOr(value: string | undefined, fallback: string): string {
   return trimmed ? trimmed : fallback;
 }
 
+/**
+ * Prefixes https:// when a pasted link is missing it.
+ *
+ * An invite copied out of WhatsApp arrives as "chat.whatsapp.com/AbC123" —
+ * no scheme. Put straight into an href that is a *relative* path, so the
+ * browser looks for /chat.whatsapp.com on this site and 404s. Cheap to fix
+ * here, and the alternative is a dead social button nobody notices.
+ */
+function withScheme(url: string): string {
+  if (!url) return '';
+  return /^https?:\/\//i.test(url) ? url : `https://${url.replace(/^\/+/, '')}`;
+}
+
 export const STORE = {
   name: 'Sri Laxmi Silks',
   tagline: 'Quality. Value. Trust.',
@@ -62,9 +75,10 @@ export const STORE = {
    * Set through the environment so a profile can go live without a deploy.
    */
   social: {
-    instagram: envOr(process.env.NEXT_PUBLIC_INSTAGRAM_URL, ''),
-    youtube: envOr(process.env.NEXT_PUBLIC_YOUTUBE_URL, ''),
-    facebook: envOr(process.env.NEXT_PUBLIC_FACEBOOK_URL, ''),
+    instagram: withScheme(envOr(process.env.NEXT_PUBLIC_INSTAGRAM_URL, '')),
+    youtube: withScheme(envOr(process.env.NEXT_PUBLIC_YOUTUBE_URL, '')),
+    /** A WhatsApp community invite, not the direct-message number. */
+    whatsappGroup: withScheme(envOr(process.env.NEXT_PUBLIC_WHATSAPP_GROUP_URL, '')),
   },
   address: {
     line1: 'No 42, Murugan Shopping Complex',
