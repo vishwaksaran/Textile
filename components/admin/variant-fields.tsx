@@ -69,14 +69,6 @@ export function VariantFields({
   className,
 }: VariantFieldsProps) {
   const [newValue, setNewValue] = React.useState<Record<string, string>>({});
-  const [newMeasurement, setNewMeasurement] = React.useState('');
-  const [detailAxis, setDetailAxis] = React.useState<string | null>(axes[0]?.slug ?? null);
-
-  React.useEffect(() => {
-    if (detailAxis && axes.some((a) => a.slug === detailAxis)) return;
-    setDetailAxis(axes[0]?.slug ?? null);
-  }, [axes, detailAxis]);
-
   const byKey = React.useMemo(
     () => new Map(variants.map((v) => [optionKey(v.options), v])),
     [variants],
@@ -147,18 +139,6 @@ export function VariantFields({
 
   const axisSlugs = axes.map((a) => a.slug);
   const total = variants.reduce((sum, v) => sum + (Number(v.stock) || 0), 0);
-
-  const detailValues = detailAxis ? (chosen[detailAxis] ?? []) : [];
-  const measurementColumns = Array.from(
-    new Set(
-      detailValues.flatMap((value) =>
-        Object.keys(details[`${detailAxis}:${value}`]?.measurements ?? {}),
-      ),
-    ),
-  );
-
-  const setDetail = (key: string, patch: Partial<OptionDetailUI>) =>
-    onDetailsChange({ ...details, [key]: { ...(details[key] ?? blankDetail()), ...patch } });
 
   if (axes.length === 0) {
     return (
@@ -347,150 +327,190 @@ export function VariantFields({
       )}
 
       {/* ------------------------------ photographs and figures per value */}
-      {detailValues.length > 0 && detailAxis && (
-        <div className="space-y-4 border-t border-outline-variant/40 pt-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+      {axes.some((axis) => (chosen[axis.slug] ?? []).length > 0) && (
+        <div className="space-y-8 border-t border-outline-variant/40 pt-6">
+          <div className="space-y-1">
             <span className="font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant">
               Photographs &amp; measurements
             </span>
-            {axes.length > 1 && (
-              <div className="flex gap-2">
-                {axes.map((axis) => (
-                  <button
-                    key={axis.slug}
-                    type="button"
-                    onClick={() => setDetailAxis(axis.slug)}
-                    className={cn(
-                      'border px-3 py-1.5 font-label-sm text-label-sm uppercase tracking-wider transition-colors',
-                      detailAxis === axis.slug
-                        ? 'border-deep-maroon text-deep-maroon'
-                        : 'border-outline-variant text-on-surface-variant',
-                    )}
-                  >
-                    {axis.name}
-                  </button>
-                ))}
-              </div>
-            )}
+            <p className="font-body-md text-sm text-on-surface-variant">
+              Attached to the value, not to each row: green photographs are the same in every
+              size, and an M measures the same in every colour.
+            </p>
           </div>
 
-          <p className="font-body-md text-sm text-on-surface-variant">
-            Attached to the value, not to each row: green photographs are the same in every
-            size, and an M measures the same in every colour.
-          </p>
-
-          {measurementColumns.length > 0 && (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[420px] border-collapse text-left">
-                <thead>
-                  <tr className="border-b border-outline-variant">
-                    <th className="p-2 font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant">
-                      {axes.find((a) => a.slug === detailAxis)?.name}
-                    </th>
-                    {measurementColumns.map((column) => (
-                      <th
-                        key={column}
-                        className="p-2 font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant"
-                      >
-                        <span className="inline-flex items-center gap-1">
-                          {column}
-                          <button
-                            type="button"
-                            aria-label={`Remove the ${column} measurement`}
-                            className="text-on-surface-variant hover:text-error"
-                            onClick={() => {
-                              const next = { ...details };
-                              for (const value of detailValues) {
-                                const key = `${detailAxis}:${value}`;
-                                const measurements = { ...(next[key]?.measurements ?? {}) };
-                                delete measurements[column];
-                                next[key] = { ...(next[key] ?? blankDetail()), measurements };
-                              }
-                              onDetailsChange(next);
-                            }}
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </span>
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-outline-variant/40">
-                  {detailValues.map((value) => {
-                    const key = `${detailAxis}:${value}`;
-                    return (
-                      <tr key={value}>
-                        <td className="p-2 font-body-md text-sm text-on-surface">{value}</td>
-                        {measurementColumns.map((column) => (
-                          <td key={column} className="p-1">
-                            <Input
-                              value={details[key]?.measurements?.[column] ?? ''}
-                              placeholder="—"
-                              aria-label={`${column} for ${value}`}
-                              onChange={(e) =>
-                                setDetail(key, {
-                                  measurements: {
-                                    ...(details[key]?.measurements ?? {}),
-                                    [column]: e.target.value,
-                                  },
-                                })
-                              }
-                            />
-                          </td>
-                        ))}
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          <label className="flex items-center gap-2">
-            <span className="font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant">
-              Add a measurement
-            </span>
-            <Input
-              value={newMeasurement}
-              placeholder="Chest"
-              className="w-40"
-              onChange={(e) => setNewMeasurement(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key !== 'Enter') return;
-                e.preventDefault();
-                const name = newMeasurement.trim();
-                if (!name || measurementColumns.includes(name)) return;
-                const next = { ...details };
-                for (const value of detailValues) {
-                  const key = `${detailAxis}:${value}`;
-                  next[key] = {
-                    ...(next[key] ?? blankDetail()),
-                    measurements: { ...(next[key]?.measurements ?? {}), [name]: '' },
-                  };
-                }
-                onDetailsChange(next);
-                setNewMeasurement('');
-              }}
+          {/* Every axis at once, rather than one behind a switch. Uploading
+              colour photographs and then forgetting the pattern ones is the
+              obvious mistake, and a control that hides half the work is what
+              invites it. */}
+          {axes.map((axis) => (
+            <AxisDetails
+              key={axis.slug}
+              axis={axis}
+              values={chosen[axis.slug] ?? []}
+              details={details}
+              onDetailsChange={onDetailsChange}
             />
-          </label>
-
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            {detailValues.map((value) => {
-              const key = `${detailAxis}:${value}`;
-              return (
-                <ImageUploader
-                  key={value}
-                  bucket="products"
-                  label={`Photographs for ${value} — shown when it is chosen`}
-                  value={details[key]?.images ?? []}
-                  onChange={(images) => setDetail(key, { images })}
-                />
-              );
-            })}
-          </div>
+          ))}
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * One axis's photographs and measurements.
+ *
+ * Its own component because there is one of these per axis now, each with a
+ * measurement box of its own — a single shared box wrote whatever was typed
+ * into it to whichever axis happened to be on screen.
+ */
+function AxisDetails({
+  axis,
+  values,
+  details,
+  onDetailsChange,
+}: {
+  axis: VariantAxisDef;
+  values: string[];
+  details: Record<string, OptionDetailUI>;
+  onDetailsChange: (next: Record<string, OptionDetailUI>) => void;
+}) {
+  const [newMeasurement, setNewMeasurement] = React.useState('');
+
+  if (values.length === 0) return null;
+
+  const key = (value: string) => `${axis.slug}:${value}`;
+
+  const columns = Array.from(
+    new Set(values.flatMap((value) => Object.keys(details[key(value)]?.measurements ?? {}))),
+  );
+
+  const setDetail = (k: string, patch: Partial<OptionDetailUI>) =>
+    onDetailsChange({ ...details, [k]: { ...(details[k] ?? blankDetail()), ...patch } });
+
+  const addColumn = () => {
+    const name = newMeasurement.trim();
+    if (!name || columns.includes(name)) return;
+    const next = { ...details };
+    for (const value of values) {
+      next[key(value)] = {
+        ...(next[key(value)] ?? blankDetail()),
+        measurements: { ...(next[key(value)]?.measurements ?? {}), [name]: '' },
+      };
+    }
+    onDetailsChange(next);
+    setNewMeasurement('');
+  };
+
+  const dropColumn = (column: string) => {
+    const next = { ...details };
+    for (const value of values) {
+      const measurements = { ...(next[key(value)]?.measurements ?? {}) };
+      delete measurements[column];
+      next[key(value)] = { ...(next[key(value)] ?? blankDetail()), measurements };
+    }
+    onDetailsChange(next);
+  };
+
+  return (
+    <section className="space-y-4 rounded border border-outline-variant/40 p-4">
+      <h3 className="font-headline-md text-lg text-on-surface">{axis.name}</h3>
+
+      {columns.length > 0 && (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[420px] border-collapse text-left">
+            <thead>
+              <tr className="border-b border-outline-variant">
+                <th className="p-2 font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant">
+                  {axis.name}
+                </th>
+                {columns.map((column) => (
+                  <th
+                    key={column}
+                    className="p-2 font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant"
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      {column}
+                      <button
+                        type="button"
+                        aria-label={`Remove the ${column} measurement from ${axis.name}`}
+                        className="text-on-surface-variant hover:text-error"
+                        onClick={() => dropColumn(column)}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-outline-variant/40">
+              {values.map((value) => (
+                <tr key={value}>
+                  <td className="p-2 font-body-md text-sm text-on-surface">{value}</td>
+                  {columns.map((column) => (
+                    <td key={column} className="p-1">
+                      <Input
+                        value={details[key(value)]?.measurements?.[column] ?? ''}
+                        placeholder="—"
+                        aria-label={`${column} for ${value}`}
+                        onChange={(e) =>
+                          setDetail(key(value), {
+                            measurements: {
+                              ...(details[key(value)]?.measurements ?? {}),
+                              [column]: e.target.value,
+                            },
+                          })
+                        }
+                      />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      <div className="flex items-center gap-2">
+        <span className="font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant">
+          Add a measurement
+        </span>
+        <Input
+          value={newMeasurement}
+          placeholder="Chest"
+          className="w-40"
+          aria-label={`Add a measurement to ${axis.name}`}
+          onChange={(e) => setNewMeasurement(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key !== 'Enter') return;
+            // Otherwise this submits the product form.
+            e.preventDefault();
+            addColumn();
+          }}
+        />
+        <button
+          type="button"
+          onClick={addColumn}
+          className="inline-flex items-center gap-1.5 border border-outline-variant px-3 py-2 font-label-sm text-label-sm uppercase tracking-wider text-on-surface transition-colors hover:border-deep-maroon"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Add
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        {values.map((value) => (
+          <ImageUploader
+            key={value}
+            bucket="products"
+            label={`Photographs for ${value} — shown when it is chosen`}
+            value={details[key(value)]?.images ?? []}
+            onChange={(images) => setDetail(key(value), { images })}
+          />
+        ))}
+      </div>
+    </section>
   );
 }
