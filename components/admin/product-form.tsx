@@ -145,6 +145,31 @@ export function ProductForm({ categories, product }: ProductFormProps) {
   }, [product]);
 
   const [attributes, setAttributes] = React.useState<Attribute[]>([]);
+
+  /*
+    Every attribute the shop has defined, which is a different list from the
+    one above.
+
+    The fields a piece is *asked for* belong to its collection — a saree is
+    not asked for a sleeve type. What a piece may *vary by* is not the same
+    question, and tying the two together meant a saree could never be stocked
+    by size, because size was only ever attached to Churidars. Any attribute
+    can be an axis for any piece; the collection only supplies the opening
+    tick.
+  */
+  const [allAttributes, setAllAttributes] = React.useState<Attribute[]>([]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    fetch('/api/admin/attributes')
+      .then((r) => (r.ok ? r.json() : { attributes: [] }))
+      .then((d) => !cancelled && setAllAttributes(d.attributes ?? []))
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   const [attrValues, setAttrValues] = React.useState<Record<string, AttributeDraft>>(
     product?.attributeValues ?? {},
   );
@@ -171,19 +196,19 @@ export function ProductForm({ categories, product }: ProductFormProps) {
   }, [form.category_id]);
 
   /**
-   * The axes this piece may vary along, from the collection it is filed
-   * under. They arrive with the attributes, which are refetched whenever the
-   * collection changes, so moving a piece into Churidars offers colour and
-   * size straight away.
+   * Everything this piece could be varied by — every attribute the shop has
+   * defined, not only the ones its collection asks about. Size lives on
+   * Churidars and colour on Sarees, and neither of those is a reason a saree
+   * cannot be stocked by size.
    */
   const candidateAxes = React.useMemo(
     () =>
-      attributes.map((a) => ({
+      allAttributes.map((a) => ({
         slug: a.slug,
         name: a.name,
         options: a.options.map((o) => o.value),
       })),
-    [attributes],
+    [allAttributes],
   );
 
   const axes = React.useMemo(
@@ -472,10 +497,14 @@ export function ProductForm({ categories, product }: ProductFormProps) {
               <legend className="font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant">
                 This piece varies by
               </legend>
+              <p className="font-body-md text-sm text-on-surface-variant">
+                Any of these. A saree stocked in three colours and two sizes ticks both; a
+                one-of-a-kind piece ticks none and keeps the single stock number above.
+              </p>
               <div className="flex flex-wrap gap-2 pt-1">
                 {candidateAxes.length === 0 && (
                   <span className="font-body-md text-sm text-on-surface-variant">
-                    Choose a collection first — its attributes are what a piece can vary by.
+                    No attributes defined yet.
                   </span>
                 )}
                 {candidateAxes.map((axis) => {

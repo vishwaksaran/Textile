@@ -51,7 +51,7 @@ function validate(details: CheckoutDetails): Errors {
   if (details.name.trim().length < 2) errors.name = 'Please enter your full name.';
   if (!isValidEmail(details.email)) errors.email = 'We need a valid email for your invoice.';
   if (!isValidIndianPhone(details.phone))
-    errors.phone = 'Enter a 10-digit Indian mobile number.';
+    errors.phone = 'Enter a 10-digit Indian WhatsApp number.';
   if (details.address.trim().length < 8)
     errors.address = 'Include the house number, street and landmark.';
   if (!details.city.trim()) errors.city = 'Which city should we ship to?';
@@ -337,7 +337,18 @@ export function CheckoutForm({ shippingSettings }: { shippingSettings: ShippingS
                   />
                 </Field>
 
-                <Field label="Mobile" htmlFor="phone" error={errors.phone} required>
+                {/* Named for what it is used for. Tracking, dispatch and the
+                    delivery note all go out on WhatsApp, so a number that
+                    takes calls but not WhatsApp is a number we cannot reach
+                    the customer on — and the label is the only place to say
+                    so before they type. */}
+                <Field
+                  label="WhatsApp number"
+                  htmlFor="phone"
+                  error={errors.phone}
+                  required
+                  hint="Order updates and tracking come here."
+                >
                   <div className="flex items-center gap-2">
                     <span className="font-body-md text-body-md text-on-surface-variant">+91</span>
                     <Input

@@ -26,7 +26,7 @@ export async function POST(request: Request) {
   }
   if (phone.replace(/\D/g, '').length < 10) {
     return NextResponse.json(
-      { error: 'Enter the 10-digit mobile number used on the order.' },
+      { error: 'Enter the 10-digit WhatsApp number used on the order.' },
       { status: 400 },
     );
   }
@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     // One message for both "no such code" and "phone does not match", so this
     // cannot be used to discover which order codes exist.
     return NextResponse.json(
-      { error: 'No order matches that ID and mobile number.' },
+      { error: 'No order matches that ID and WhatsApp number.' },
       { status: 404 },
     );
   }

@@ -60,7 +60,7 @@ export function TrackOrder() {
       if (!UUID_RE.test(trimmed)) {
         if (phone.replace(/\D/g, '').length < 10) {
           setOrder(null);
-          setError('Also enter the mobile number used on the order.');
+          setError('Also enter the WhatsApp number used on the order.');
           return;
         }
         const res = await fetch('/api/orders/lookup', {
@@ -146,7 +146,7 @@ export function TrackOrder() {
           {/* Only the short code needs a second factor; a full id does not. */}
           {!UUID_RE.test(orderId.trim()) && (
             <Field
-              label="Mobile number"
+              label="WhatsApp number"
               htmlFor="order-phone"
               className="flex-1"
               hint="The number you gave at checkout."

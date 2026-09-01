@@ -22,7 +22,7 @@ interface Body {
 function validateCustomer(c: Partial<CheckoutDetails>): string | null {
   if (!c?.name || c.name.trim().length < 2) return 'Please enter your full name.';
   if (!isValidEmail(c.email ?? '')) return 'Please enter a valid email address.';
-  if (!isValidIndianPhone(c.phone ?? '')) return 'Please enter a valid 10-digit mobile number.';
+  if (!isValidIndianPhone(c.phone ?? '')) return 'Please enter a valid 10-digit WhatsApp number.';
   if (!c.address || c.address.trim().length < 8) return 'Please enter your full address.';
   if (!c.city?.trim()) return 'Please enter your city.';
   if (!c.state?.trim()) return 'Please select your state.';
