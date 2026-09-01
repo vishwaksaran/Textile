@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dialog';
 import { cn, formatINR } from '@/lib/utils';
 import { optionKey, type VariantAxis } from '@/lib/variant-key';
-import { useSelectedOptions, useVariantStore } from '@/stores/variant-store';
+import { useEffectiveOptions, useVariantStore } from '@/stores/variant-store';
 import type { OptionDetail, ProductVariant } from '@/types';
 
 // Re-exported so every call site keeps importing the picker and its axes from
@@ -49,6 +49,11 @@ interface VariantPickerProps {
  * Values that cannot be reached stay on show rather than disappearing: a
  * shopper who wanted the L needs to see that the L exists and is gone, not be
  * left wondering whether the piece is simply cut short.
+ *
+ * A row offering one value is not a choice, and is stated rather than asked.
+ * Left as a button it read as an unanswered question, and the buy button sat
+ * dead behind it saying "select colour and pattern" on a piece that came in
+ * exactly one of each.
  */
 export function VariantPicker({
   productId,
@@ -59,7 +64,7 @@ export function VariantPicker({
   listPrice,
   className,
 }: VariantPickerProps) {
-  const selected = useSelectedOptions(productId);
+  const selected = useEffectiveOptions(productId, axes);
   const select = useVariantStore((s) => s.select);
   const [guideAxis, setGuideAxis] = React.useState<string | null>(null);
 
@@ -128,9 +133,10 @@ export function VariantPicker({
         );
         const current = selected[axis.slug];
         const currentFigures = current ? (detail(axis.slug, current)?.measurements ?? {}) : {};
+        const settled = axis.values.length === 1;
 
         return (
-          <div key={axis.slug} className="space-y-3">
+          <div key={axis.slug} className={settled ? undefined : 'space-y-3'}>
             <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
               <span
                 id={`axis-${productId}-${axis.slug}`}
@@ -161,7 +167,7 @@ export function VariantPicker({
               )}
             </div>
 
-            {hasImages ? (
+            {settled ? null : hasImages ? (
               /* Swatches scroll rather than wrap: a shop with nine colours
                  would otherwise push the Add to cart button off the screen. */
               <div

@@ -37,11 +37,7 @@ export function StickyBuyBar({ product }: { product: Product }) {
   // selection is complete. A category axis this piece does not use must not
   // hold the bar back from ever resolving one.
   const axes = axesForProduct(product.variants ?? [], product.variantAxes ?? []);
-  const variant = useSelectedVariant(
-    product.id,
-    product.variants,
-    axes.map((a) => a.slug),
-  );
+  const variant = useSelectedVariant(product.id, product.variants, axes);
   const soldOut = product.is_sold_out || product.stock_quantity <= 0;
 
   return (

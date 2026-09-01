@@ -30,13 +30,16 @@ export function AddToCart({ product, compact = false, className }: AddToCartProp
       axes: axesForProduct(rows, product.variantAxes ?? []),
     };
   }, [product.variants, product.variantAxes]);
-  const variant = useSelectedVariant(
-    product.id,
-    variants,
-    axes.map((a) => a.slug),
-  );
+  const variant = useSelectedVariant(product.id, variants, axes);
   const { addToCart, pending, justAdded, soldOut, needsChoice, atLimit, inCart, ceiling, remaining } =
     useAddToCart(product, variant);
+
+  /*
+    Only the rows a shopper still has to answer. An axis offering one value
+    is decided for them, so naming it in "Select colour and pattern" would
+    point at something they cannot act on.
+  */
+  const openAxes = axes.filter((axis) => axis.values.length > 1);
 
   const [quantity, setQuantity] = React.useState(1);
 
@@ -76,7 +79,7 @@ export function AddToCart({ product, compact = false, className }: AddToCartProp
         {soldOut
           ? 'Sold Out'
           : needsChoice
-            ? `Choose ${axes[0]?.name.toLowerCase() ?? 'an option'}`
+            ? `Choose ${openAxes[0]?.name.toLowerCase() ?? 'an option'}`
             : pending
               ? 'Adding…'
               : atLimit
@@ -128,7 +131,7 @@ export function AddToCart({ product, compact = false, className }: AddToCartProp
         {soldOut ? (
           'Sold Out'
         ) : needsChoice ? (
-          `Select ${axes.map((a) => a.name.toLowerCase()).join(' and ')}`
+          `Select ${openAxes.map((a) => a.name.toLowerCase()).join(' and ')}`
         ) : pending ? (
           <>
             <Loader2 className="h-4 w-4 animate-spin" /> Adding…

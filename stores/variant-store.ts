@@ -1,7 +1,7 @@
 'use client';
 
 import { create } from 'zustand';
-import { optionKey } from '@/lib/variant-key';
+import { optionKey, withForcedValues, type VariantAxis } from '@/lib/variant-key';
 import type { OptionDetail, Product, ProductVariant } from '@/types';
 
 /**
@@ -40,6 +40,22 @@ export function useSelectedOptions(productId: string): Record<string, string> {
 }
 
 /**
+ * What the shopper has chosen, plus everything that was never theirs to
+ * choose — see withForcedValues.
+ *
+ * Every reader of a selection goes through this, so the picker, the buy
+ * button and the gallery cannot disagree about whether a piece stocked in one
+ * colour has had its colour decided.
+ */
+export function useEffectiveOptions(
+  productId: string,
+  axes: VariantAxis[],
+): Record<string, string> {
+  const selected = useSelectedOptions(productId);
+  return withForcedValues(selected, axes);
+}
+
+/**
  * The variant the current selection names, or null while it is incomplete.
  *
  * Matched on the same normalised key the database stores, built by shared
@@ -49,14 +65,14 @@ export function useSelectedOptions(productId: string): Record<string, string> {
 export function useSelectedVariant(
   productId: string,
   variants: ProductVariant[] | undefined,
-  axisSlugs: string[],
+  axes: VariantAxis[],
 ): ProductVariant | null {
-  const selected = useSelectedOptions(productId);
-  if (!variants?.length || axisSlugs.length === 0) return null;
-  if (axisSlugs.some((slug) => !selected[slug])) return null;
+  const selected = useEffectiveOptions(productId, axes);
+  if (!variants?.length || axes.length === 0) return null;
+  if (axes.some((axis) => !selected[axis.slug])) return null;
 
   const key = optionKey(
-    Object.fromEntries(axisSlugs.map((slug) => [slug, selected[slug]])),
+    Object.fromEntries(axes.map((axis) => [axis.slug, selected[axis.slug]])),
   );
   return variants.find((v) => v.option_key === key) ?? null;
 }
@@ -72,15 +88,15 @@ export function useSelectedVariant(
 export function useActiveImages(
   product: Pick<Product, 'id' | 'images'>,
   optionDetails: Record<string, OptionDetail> | undefined,
-  axisSlugs: string[],
+  axes: VariantAxis[],
 ): string[] {
-  const selected = useSelectedOptions(product.id);
+  const selected = useEffectiveOptions(product.id, axes);
   if (!optionDetails) return product.images ?? [];
 
-  for (const slug of axisSlugs) {
-    const value = selected[slug];
+  for (const axis of axes) {
+    const value = selected[axis.slug];
     if (!value) continue;
-    const images = optionDetails[`${slug}:${value}`]?.images;
+    const images = optionDetails[`${axis.slug}:${value}`]?.images;
     if (images?.length) return images;
   }
   return product.images ?? [];

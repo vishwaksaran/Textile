@@ -10,7 +10,12 @@
  * existed is read back.
  */
 import { lineKey } from '../stores/cart-store';
-import { axesForProduct, optionKey, variantLabel } from '../lib/variant-key';
+import {
+  axesForProduct,
+  optionKey,
+  variantLabel,
+  withForcedValues,
+} from '../lib/variant-key';
 import type { CartItem } from '../types';
 
 const GREEN = (s: string) => `\x1b[32m${s}\x1b[0m`;
@@ -196,6 +201,53 @@ check(
   ])
     .map((a) => a.slug)
     .join(',') === 'size',
+);
+
+console.log('\nRows that were never a choice\n');
+
+/*
+  An axis offering one value is not a question. Leaving it unanswered left the
+  buy button dead at "Select colour and pattern" on a piece stocked in exactly
+  one colour and one pattern, with nothing on the page a shopper could press
+  to satisfy it beyond the two buttons already in front of them.
+*/
+const oneOfEach = [
+  { slug: 'colour', name: 'Colour', values: ['Maroon'] },
+  { slug: 'pattern', name: 'Pattern', values: ['Zari Border'] },
+];
+const colourAndSize = [
+  { slug: 'colour', name: 'Colour', values: ['Green', 'Red'] },
+  { slug: 'size', name: 'Size', values: ['M', 'L'] },
+];
+
+const settledOptions = withForcedValues({}, oneOfEach);
+
+check(
+  'a piece with one colour and one pattern needs no clicks',
+  settledOptions.colour === 'Maroon' && settledOptions.pattern === 'Zari Border',
+  JSON.stringify(settledOptions),
+);
+check(
+  'a real choice is still left to the shopper',
+  Object.keys(withForcedValues({}, colourAndSize)).length === 0,
+);
+check(
+  'a settled row does not answer the open one beside it',
+  JSON.stringify(withForcedValues({}, [oneOfEach[0], colourAndSize[1]])) ===
+    JSON.stringify({ colour: 'Maroon' }),
+);
+check(
+  'what the shopper picked is left alone',
+  withForcedValues({ colour: 'Red', size: 'L' }, colourAndSize).colour === 'Red',
+);
+check(
+  'a piece with no axes is untouched',
+  Object.keys(withForcedValues({}, [])).length === 0,
+);
+check(
+  'a settled combination resolves to a real key',
+  optionKey(settledOptions) === 'colour:maroon|pattern:zari border',
+  optionKey(settledOptions),
 );
 
 console.log('\nWhich chips a shopper can still press\n');

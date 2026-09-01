@@ -82,3 +82,27 @@ export function axesForProduct(
     })
     .filter((axis) => axis.values.length > 0);
 }
+
+/**
+ * The selection, with anything that was never a choice filled in.
+ *
+ * An axis offering one value is not a question. Leaving it unanswered left
+ * the buy button dead at "Select colour and pattern" on a piece stocked in
+ * one colour and one pattern, with nothing on the page a shopper could press
+ * to satisfy it but the two buttons already in front of them.
+ *
+ * Derived rather than written into the store on mount: the server renders the
+ * same answer the browser does, so the button never flashes from disabled to
+ * ready, and there is no state to get out of step with the axes.
+ */
+export function withForcedValues(
+  selected: Record<string, string>,
+  axes: VariantAxis[],
+): Record<string, string> {
+  const forced = axes.filter((axis) => axis.values.length === 1);
+  if (forced.length === 0) return selected;
+
+  const next = { ...selected };
+  for (const axis of forced) next[axis.slug] = axis.values[0];
+  return next;
+}

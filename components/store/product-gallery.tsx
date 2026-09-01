@@ -17,11 +17,7 @@ import type { Product } from '@/types';
  */
 export function ProductGallery({ product, dimmed }: { product: Product; dimmed?: boolean }) {
   const axes = axesForProduct(product.variants ?? [], product.variantAxes ?? []);
-  const images = useActiveImages(
-    product,
-    product.optionDetails,
-    axes.map((a) => a.slug),
-  );
+  const images = useActiveImages(product, product.optionDetails, axes);
 
   return <ImageGallery images={images} alt={product.name} dimmed={dimmed} />;
 }
