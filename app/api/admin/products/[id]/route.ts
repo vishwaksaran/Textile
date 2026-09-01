@@ -3,7 +3,8 @@ import { requireAdmin } from '@/lib/auth';
 import { revalidateCatalogue } from '@/lib/revalidate';
 import { saveProductAttributeValues } from '@/lib/attributes';
 import {
-  getVariantAxes,
+  getSuggestedAxes,
+  resolveAxes,
   parseOptionDetails,
   parseVariantDrafts,
   saveOptionDetails,
@@ -72,24 +73,36 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
     if (error) throw new Error(error.message);
     if (data?.id) {
+      const drafts = parseVariantDrafts(body);
+      const details = parseOptionDetails(body);
+
       /*
-        The axes come from the category, never from the request: they decide
-        which slugs are real, and a browser must not be able to invent one.
+        Which attributes this piece varies by is the piece's own answer, read
+        off what the grid submitted — so any attribute the shop has defined
+        can be an axis, for a saree as readily as for a churidar.
+
+        Resolved against the attributes table rather than taken on trust: a
+        slug the shop has never defined is dropped, so a browser cannot invent
+        an axis of its own.
       */
-      const axes = await getVariantAxes(
+      const axes = await resolveAxes([
+        ...(drafts ?? []).flatMap((d) => Object.keys(d.options)),
+        ...(details ?? []).map((d) => d.attributeSlug),
+      ]);
+
+      /*
+        The collection's suggestion is preserved too. A piece whose grid is
+        empty still has colour answered as a description, and that row must
+        survive a save rather than being deleted as cleared.
+      */
+      const suggested = await getSuggestedAxes(
         (data as { category_id?: string | null }).category_id ?? null,
       );
 
-      // The axes are answered by the grid below, so they are held back from
-      // the descriptor save rather than being deleted as cleared.
-      await saveProductAttributeValues(
-        data.id,
-        body.attributeValues ?? {},
-        axes.map((a) => a.id),
-      );
+      await saveProductAttributeValues(data.id, body.attributeValues ?? {}, [
+        ...new Set([...axes, ...suggested].map((a) => a.id)),
+      ]);
 
-      const drafts = parseVariantDrafts(body);
-      const details = parseOptionDetails(body);
       if (drafts) await saveProductVariants(data.id, drafts, axes);
       if (details) await saveOptionDetails(data.id, details, axes);
     }

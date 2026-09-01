@@ -24,10 +24,81 @@ import type { OptionDetail, ProductVariant } from '@/types';
 
 // ---------------------------------------------------------------- the axes
 
-/** The attributes that form variants for a category, in the shop's order. */
-export async function getVariantAxes(categoryId: string | null): Promise<Attribute[]> {
+/**
+ * What a category *suggests* varying by — the starting position of the
+ * product form's tick boxes, and nothing more.
+ *
+ * It stopped being the authority when axes became a per-product decision:
+ * one saree in a collection may be stocked in four colours while the next is
+ * one of a kind, and a category-wide answer forces the same shape on both.
+ */
+export async function getSuggestedAxes(categoryId: string | null): Promise<Attribute[]> {
   const attributes = await getCategoryAttributes(categoryId);
   return attributes.filter((a) => a.is_variant);
+}
+
+/**
+ * The attributes behind a set of slugs, whatever category they came from.
+ *
+ * This is what a save resolves against, so a piece can vary by any attribute
+ * the shop has defined — not only the ones its collection was seeded with.
+ * Slugs the shop has never defined are dropped rather than invented, which is
+ * what keeps a browser from writing an axis of its own devising.
+ */
+export async function resolveAxes(slugs: string[]): Promise<Attribute[]> {
+  const wanted = [...new Set(slugs.filter(Boolean))];
+  if (wanted.length === 0) return [];
+
+  const supabase = createAdminSupabase() ?? createPublicSupabase();
+  if (!supabase) return [];
+
+  const { data } = await supabase
+    .from('attributes')
+    .select('*')
+    .in('slug', wanted)
+    .order('sort_order', { ascending: true });
+
+  return ((data as Omit<Attribute, 'options'>[] | null) ?? []).map((a) => ({
+    ...a,
+    options: [],
+    is_variant: true,
+  }));
+}
+
+/**
+ * How an axis's values are ordered on the storefront, and what they are
+ * called.
+ *
+ * Without this the chips come out in whatever order the grid happened to
+ * create them — "M, XL, XXL, L" — because a variant's sort_order describes
+ * the combination, not the size. The attribute's own option order is the
+ * shop's answer to how sizes run.
+ */
+export async function getAxisDefinitions(
+  slugs: string[],
+): Promise<{ slug: string; name: string; order: string[] }[]> {
+  const axes = await resolveAxes(slugs);
+  if (axes.length === 0) return [];
+
+  const supabase = createAdminSupabase() ?? createPublicSupabase();
+  if (!supabase) return [];
+
+  const { data } = await supabase
+    .from('attribute_options')
+    .select('attribute_id, value, sort_order')
+    .in(
+      'attribute_id',
+      axes.map((a) => a.id),
+    )
+    .order('sort_order', { ascending: true });
+
+  const byAttribute = new Map<string, string[]>();
+  for (const row of (data as { attribute_id: string; value: string }[] | null) ?? []) {
+    const key = String(row.attribute_id);
+    byAttribute.set(key, [...(byAttribute.get(key) ?? []), row.value]);
+  }
+
+  return axes.map((a) => ({ slug: a.slug, name: a.name, order: byAttribute.get(a.id) ?? [] }));
 }
 
 // ------------------------------------------------------------- reading them

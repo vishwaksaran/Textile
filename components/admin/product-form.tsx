@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
 import { ImageUploader } from '@/components/admin/image-uploader';
 import { ConfirmDialog } from '@/components/shared/confirm-dialog';
-import { formatINR } from '@/lib/utils';
+import { cn, formatINR } from '@/lib/utils';
 import type { Category, Product } from '@/types';
 
 interface ProductFormProps {
@@ -68,6 +68,17 @@ export function ProductForm({ categories, product }: ProductFormProps) {
   const [optionDetails, setOptionDetails] = React.useState<Record<string, OptionDetailUI>>({});
   const [variantsLoaded, setVariantsLoaded] = React.useState(!product);
 
+  /*
+    Which attributes vary *this piece*.
+
+    Per product, not per collection: one saree is stocked in four colours and
+    the next beside it is one of a kind, and a collection-wide answer forces
+    the same shape on both. The collection only supplies the starting tick,
+    below, once its attributes have loaded.
+  */
+  const [axisSlugs, setAxisSlugs] = React.useState<string[]>([]);
+  const [axesTouched, setAxesTouched] = React.useState(false);
+
   React.useEffect(() => {
     if (!product) return;
     let cancelled = false;
@@ -105,6 +116,12 @@ export function ProductForm({ categories, product }: ProductFormProps) {
           }
         }
         setChosen(values);
+        if (Object.keys(values).length > 0) {
+          setAxisSlugs(Object.keys(values));
+          // A piece that already has combinations has answered this itself,
+          // and the collection's suggestion must not overwrite it.
+          setAxesTouched(true);
+        }
 
         setOptionDetails(
           Object.fromEntries(
@@ -159,13 +176,31 @@ export function ProductForm({ categories, product }: ProductFormProps) {
    * collection changes, so moving a piece into Churidars offers colour and
    * size straight away.
    */
-  const axes = React.useMemo(
+  const candidateAxes = React.useMemo(
     () =>
-      attributes
-        .filter((a) => a.is_variant)
-        .map((a) => ({ slug: a.slug, name: a.name, options: a.options.map((o) => o.value) })),
+      attributes.map((a) => ({
+        slug: a.slug,
+        name: a.name,
+        options: a.options.map((o) => o.value),
+      })),
     [attributes],
   );
+
+  const axes = React.useMemo(
+    () => candidateAxes.filter((a) => axisSlugs.includes(a.slug)),
+    [candidateAxes, axisSlugs],
+  );
+
+  /*
+    The collection's suggestion, applied once. Filing a piece under Churidars
+    ticks colour and size for you; touching the ticks yourself, or opening a
+    piece that already has combinations, settles it for good.
+  */
+  React.useEffect(() => {
+    if (axesTouched || attributes.length === 0) return;
+    const suggested = attributes.filter((a) => a.is_variant).map((a) => a.slug);
+    if (suggested.length > 0) setAxisSlugs(suggested);
+  }, [attributes, axesTouched]);
 
   const [errors, setErrors] = React.useState<Partial<Record<keyof FormState, string>>>({});
   const [saving, setSaving] = React.useState(false);
@@ -416,7 +451,9 @@ export function ProductForm({ categories, product }: ProductFormProps) {
               an axis for Sarees without having to rebuild every saree it has
               already entered. */}
           <AttributeFields
-            attributes={attributes.filter((a) => !a.is_variant || variants.length === 0)}
+            attributes={attributes.filter(
+              (a) => !axisSlugs.includes(a.slug) || variants.length === 0,
+            )}
             values={attrValues}
             onChange={(id, draft) => setAttrValues((v) => ({ ...v, [id]: draft }))}
           />
@@ -427,6 +464,65 @@ export function ProductForm({ categories, product }: ProductFormProps) {
               Pick the colours and sizes this piece is stocked in, and every combination gets
               its own stock. Leave it empty for anything sold as a single piece.
             </p>
+            {/* Ticked per piece rather than per collection, so a saree
+                stocked in four colours and a one-off beside it can be
+                entered differently without the collection having to choose
+                between them. */}
+            <fieldset className="mb-6 space-y-2">
+              <legend className="font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant">
+                This piece varies by
+              </legend>
+              <div className="flex flex-wrap gap-2 pt-1">
+                {candidateAxes.length === 0 && (
+                  <span className="font-body-md text-sm text-on-surface-variant">
+                    Choose a collection first — its attributes are what a piece can vary by.
+                  </span>
+                )}
+                {candidateAxes.map((axis) => {
+                  const active = axisSlugs.includes(axis.slug);
+                  const inUse = variants.some((v) => v.options[axis.slug]);
+                  return (
+                    <button
+                      key={axis.slug}
+                      type="button"
+                      title={
+                        inUse && active
+                          ? 'Combinations already use this. Unticking it clears them.'
+                          : undefined
+                      }
+                      onClick={() => {
+                        setAxesTouched(true);
+                        setAxisSlugs((current) =>
+                          active
+                            ? current.filter((slug) => slug !== axis.slug)
+                            : [...current, axis.slug],
+                        );
+                        if (active) {
+                          // The grid is rebuilt from the remaining axes, so a
+                          // value left behind on a dropped one would keep
+                          // producing rows nobody can see a column for.
+                          setChosen((current) => {
+                            const next = { ...current };
+                            delete next[axis.slug];
+                            return next;
+                          });
+                          setVariants([]);
+                        }
+                      }}
+                      className={cn(
+                        'border px-3 py-2 font-body-md text-sm transition-colors',
+                        active
+                          ? 'border-deep-maroon bg-deep-maroon text-primary-fixed'
+                          : 'border-outline-variant text-on-surface hover:border-deep-maroon',
+                      )}
+                    >
+                      {axis.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
+
             <VariantFields
               axes={axes}
               chosen={chosen}

@@ -10,7 +10,7 @@
  * existed is read back.
  */
 import { lineKey } from '../stores/cart-store';
-import { optionKey, variantLabel } from '../lib/variant-key';
+import { axesForProduct, optionKey, variantLabel } from '../lib/variant-key';
 import type { CartItem } from '../types';
 
 const GREEN = (s: string) => `\x1b[32m${s}\x1b[0m`;
@@ -138,6 +138,64 @@ check('Red / M reads its own shelf', levels[lineKey(P, 'v2')]?.stock === 3);
 check(
   'a combination that has gone reads as absent, not as the total',
   levels[lineKey(P, 'v9')] === undefined,
+);
+
+console.log('\nHow the chips are ordered\n');
+
+/*
+  A variant's sort_order describes the combination, not the size, so the chips
+  have to follow the attribute's own option order instead. Without that a size
+  row comes out in whatever order the grid created the rows — the
+  "M, XL, XXL, L" a shopper was shown before this was fixed.
+*/
+const V = (options: Record<string, string>, sort: number) => ({
+  id: Object.values(options).join('-'),
+  product_id: P,
+  label: Object.values(options).join(' / '),
+  option_key: optionKey(options),
+  options,
+  sku: null,
+  stock_quantity: 1,
+  price: null,
+  images: [] as string[],
+  sort_order: sort,
+  is_active: true,
+});
+
+// Deliberately entered out of order, as a grid built colour-first would.
+const jumbled = [
+  V({ size: 'M' }, 10),
+  V({ size: 'XL' }, 20),
+  V({ size: 'XXL' }, 30),
+  V({ size: 'L' }, 40),
+];
+const sizeOrder = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+const sized = (variants: typeof jumbled, order: string[]) =>
+  axesForProduct(variants, [{ slug: 'size', name: 'Size', order }])[0]?.values.join(', ') ?? '';
+
+check(
+  'sizes run the way the shop lists them, not the way they were typed',
+  sized(jumbled, sizeOrder) === 'M, L, XL, XXL',
+  sized(jumbled, sizeOrder),
+);
+check(
+  'a size typed by hand sorts after the listed ones, not before',
+  sized([...jumbled, V({ size: '3XL' }, 50)], sizeOrder) === 'M, L, XL, XXL, 3XL',
+  sized([...jumbled, V({ size: '3XL' }, 50)], sizeOrder),
+);
+check(
+  'with no listed order, values fall back to a natural sort',
+  sized(jumbled, []) === 'L, M, XL, XXL',
+  sized(jumbled, []),
+);
+check(
+  'an axis the piece does not stock is dropped, not shown empty',
+  axesForProduct(jumbled, [
+    { slug: 'colour', name: 'Colour', order: [] },
+    { slug: 'size', name: 'Size', order: sizeOrder },
+  ])
+    .map((a) => a.slug)
+    .join(',') === 'size',
 );
 
 console.log('\nWhich chips a shopper can still press\n');

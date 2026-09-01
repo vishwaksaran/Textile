@@ -1,3 +1,5 @@
+import type { ProductVariant } from '@/types';
+
 /**
  * How a combination of axis values is named and identified.
  *
@@ -31,4 +33,52 @@ export function variantLabel(
     ? axisSlugs.map((slug) => options[slug]).filter(Boolean)
     : Object.values(options).filter(Boolean);
   return ordered.join(' / ');
+}
+
+export interface VariantAxis {
+  slug: string;
+  name: string;
+  /** Values this product actually stocks, in the shop's order. */
+  values: string[];
+}
+
+/**
+ * The axes a product actually offers, built from its variants.
+ *
+ * Derived rather than taken from the category, so a piece entered in green
+ * and red only ever offers green and red — never the shop's whole colour list
+ * with fourteen of them struck through.
+ *
+ * Values follow the attribute's own option order, which is the shop's answer
+ * to how sizes run. Without it the chips come out in whatever order the grid
+ * happened to create them, and a size row reads "M, XL, XXL, L".
+ */
+export function axesForProduct(
+  variants: ProductVariant[],
+  definitions: { slug: string; name: string; order?: string[] }[],
+): VariantAxis[] {
+  return definitions
+    .map(({ slug, name, order = [] }) => {
+      const values = [
+        ...new Set(
+          variants.map((v) => v.options[slug]).filter((value): value is string => Boolean(value)),
+        ),
+      ];
+
+      const rank = (value: string) => {
+        const index = order.indexOf(value);
+        // Anything the shop typed by hand and never added to the attribute
+        // sorts after the listed values rather than jumping to the front.
+        return index === -1 ? order.length : index;
+      };
+
+      return {
+        slug,
+        name,
+        values: values.sort(
+          (a, b) => rank(a) - rank(b) || a.localeCompare(b, undefined, { numeric: true }),
+        ),
+      };
+    })
+    .filter((axis) => axis.values.length > 0);
 }

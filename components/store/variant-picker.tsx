@@ -1,18 +1,24 @@
 'use client';
 
 import * as React from 'react';
+import Image from 'next/image';
 import { Ruler } from 'lucide-react';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { cn, formatINR } from '@/lib/utils';
-import { optionKey } from '@/lib/variant-key';
+import { optionKey, type VariantAxis } from '@/lib/variant-key';
 import { useSelectedOptions, useVariantStore } from '@/stores/variant-store';
 import type { OptionDetail, ProductVariant } from '@/types';
 
-export interface VariantAxis {
-  slug: string;
-  name: string;
-  /** Values this product actually stocks, in the shop's order. */
-  values: string[];
-}
+// Re-exported so every call site keeps importing the picker and its axes from
+// one place; the logic itself is pure and lives beside the key it sorts by.
+export { axesForProduct, type VariantAxis } from '@/lib/variant-key';
+
 
 interface VariantPickerProps {
   productId: string;
@@ -21,16 +27,24 @@ interface VariantPickerProps {
   optionDetails: Record<string, OptionDetail>;
   /** Shown against a combination priced the same as the product. */
   basePrice: number;
+  /** Struck through beside a value's own price, where there is a discount. */
+  listPrice?: number | null;
   className?: string;
 }
 
 /**
- * One row of chips per axis — Colour, then Size — and the measurements behind
- * them.
+ * One row per axis — Colour, then Size — and the measurements behind them.
  *
  * Nothing here names an axis. A shop that decides sarees vary by border
- * colour ticks a box in the Category Manager and this renders it, which is
- * the whole reason the axes are attributes rather than columns.
+ * colour ticks a box on the piece and this renders it, which is the whole
+ * reason the axes are attributes rather than columns.
+ *
+ * How a row is drawn follows from what the shop has entered against its
+ * values, not from what the axis is called:
+ *
+ *   values with photographs   swatches, so a colour is seen and not read
+ *   values with measurements  the figures beside the heading, and a guide
+ *   everything else           plain chips
  *
  * Values that cannot be reached stay on show rather than disappearing: a
  * shopper who wanted the L needs to see that the L exists and is gone, not be
@@ -42,11 +56,12 @@ export function VariantPicker({
   variants,
   optionDetails,
   basePrice,
+  listPrice,
   className,
 }: VariantPickerProps) {
   const selected = useSelectedOptions(productId);
   const select = useVariantStore((s) => s.select);
-  const [showChart, setShowChart] = React.useState(false);
+  const [guideAxis, setGuideAxis] = React.useState<string | null>(null);
 
   const inStock = React.useMemo(
     () => variants.filter((v) => v.is_active && v.stock_quantity > 0),
@@ -75,6 +90,17 @@ export function VariantPicker({
     [inStock, axes, selected],
   );
 
+  /** The cheapest this value can be had for, for the price under a swatch. */
+  const priceFor = React.useCallback(
+    (slug: string, value: string) => {
+      const prices = variants
+        .filter((v) => v.is_active && v.options[slug] === value)
+        .map((v) => v.price ?? basePrice);
+      return prices.length > 0 ? Math.min(...prices) : basePrice;
+    },
+    [variants, basePrice],
+  );
+
   const complete = axes.every((axis) => selected[axis.slug]);
   const chosen = complete
     ? (variants.find(
@@ -84,96 +110,157 @@ export function VariantPicker({
       ) ?? null)
     : null;
 
-  /*
-    A size chart is worth showing when the shop has filled measurements in
-    against the values of one axis. Which axis is not assumed: whichever one
-    carries figures gets the table.
-  */
-  const measuredAxis = axes.find((axis) =>
-    axis.values.some(
-      (value) => Object.keys(optionDetails[`${axis.slug}:${value}`]?.measurements ?? {}).length > 0,
-    ),
-  );
+  const detail = (slug: string, value: string) => optionDetails[`${slug}:${value}`];
 
-  const measurementColumns = measuredAxis
-    ? Array.from(
-        new Set(
-          measuredAxis.values.flatMap((value) =>
-            Object.keys(optionDetails[`${measuredAxis.slug}:${value}`]?.measurements ?? {}),
-          ),
-        ),
-      )
-    : [];
+  const guide = axes.find((a) => a.slug === guideAxis);
 
   return (
     <div className={cn('space-y-6', className)}>
-      {axes.map((axis) => (
-        <div key={axis.slug} className="space-y-3">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <span
-              id={`axis-${productId}-${axis.slug}`}
-              className="font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant"
-            >
-              {axis.name}
-              {selected[axis.slug] && (
-                <span className="ml-2 text-deep-maroon">{selected[axis.slug]}</span>
-              )}
-            </span>
+      {axes.map((axis) => {
+        /*
+          Which shape this row takes is read off the shop's own data. An axis
+          whose values have been photographed is worth seeing; one with
+          figures against it is worth measuring; the rest are just words.
+        */
+        const hasImages = axis.values.some((v) => (detail(axis.slug, v)?.images.length ?? 0) > 0);
+        const measured = axis.values.some(
+          (v) => Object.keys(detail(axis.slug, v)?.measurements ?? {}).length > 0,
+        );
+        const current = selected[axis.slug];
+        const currentFigures = current ? (detail(axis.slug, current)?.measurements ?? {}) : {};
 
-            {measuredAxis?.slug === axis.slug && measurementColumns.length > 0 && (
-              <button
-                type="button"
-                onClick={() => setShowChart((v) => !v)}
-                aria-expanded={showChart}
-                className="inline-flex items-center gap-1.5 font-label-sm text-label-sm uppercase tracking-widest text-earthy-bronze hover:text-deep-maroon"
+        return (
+          <div key={axis.slug} className="space-y-3">
+            <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+              <span
+                id={`axis-${productId}-${axis.slug}`}
+                className="font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant"
               >
-                <Ruler className="h-3.5 w-3.5" />
-                {showChart ? 'Hide measurements' : 'Measurements'}
-              </button>
+                {axis.name}
+                {current && <span className="ml-2 text-deep-maroon">{current}</span>}
+                {/* The figures for the size in hand, where the shopper is
+                    already looking, rather than only inside the guide. */}
+                {Object.keys(currentFigures).length > 0 && (
+                  <span className="ml-3 font-body-md text-sm normal-case tracking-normal text-on-surface-variant">
+                    {Object.entries(currentFigures)
+                      .map(([name, value]) => `${name} ${value}`)
+                      .join(' · ')}
+                  </span>
+                )}
+              </span>
+
+              {measured && (
+                <button
+                  type="button"
+                  onClick={() => setGuideAxis(axis.slug)}
+                  className="inline-flex items-center gap-1.5 font-label-sm text-label-sm uppercase tracking-widest text-earthy-bronze hover:text-deep-maroon"
+                >
+                  <Ruler className="h-3.5 w-3.5" />
+                  {axis.name} guide
+                </button>
+              )}
+            </div>
+
+            {hasImages ? (
+              /* Swatches scroll rather than wrap: a shop with nine colours
+                 would otherwise push the Add to cart button off the screen. */
+              <div
+                role="radiogroup"
+                aria-labelledby={`axis-${productId}-${axis.slug}`}
+                className="-mx-1 flex snap-x gap-3 overflow-x-auto px-1 pb-2"
+              >
+                {axis.values.map((value) => {
+                  const active = current === value;
+                  const available = reachable(axis.slug, value);
+                  const art = detail(axis.slug, value)?.images[0];
+                  const price = priceFor(axis.slug, value);
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      aria-label={`${value}${available ? '' : ' — unavailable'}`}
+                      disabled={!available && !active}
+                      onClick={() => select(productId, axis.slug, active ? null : value)}
+                      className={cn(
+                        'w-[7.5rem] flex-none snap-start border p-1.5 text-left transition-colors',
+                        active
+                          ? 'border-deep-maroon ring-1 ring-deep-maroon'
+                          : 'border-outline-variant hover:border-deep-maroon',
+                        !available && !active && 'cursor-not-allowed opacity-45',
+                      )}
+                    >
+                      <span className="relative block aspect-[3/4] overflow-hidden bg-surface-variant">
+                        {art && (
+                          <Image
+                            src={art}
+                            alt=""
+                            fill
+                            sizes="120px"
+                            className="object-cover"
+                          />
+                        )}
+                      </span>
+                      <span className="mt-2 block truncate font-body-md text-sm text-on-surface">
+                        {value}
+                      </span>
+                      <span className="block font-body-md text-sm text-deep-maroon">
+                        {formatINR(price)}
+                      </span>
+                      {listPrice != null && listPrice > price && (
+                        <span className="block font-body-md text-xs text-on-surface-variant/80 line-through">
+                          {formatINR(listPrice)}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div
+                role="radiogroup"
+                aria-labelledby={`axis-${productId}-${axis.slug}`}
+                className="flex flex-wrap gap-2"
+              >
+                {axis.values.map((value) => {
+                  const active = current === value;
+                  const available = reachable(axis.slug, value);
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      disabled={!available && !active}
+                      onClick={() => select(productId, axis.slug, active ? null : value)}
+                      className={cn(
+                        'relative min-w-[3.25rem] border px-4 py-2.5 font-body-md text-sm transition-colors',
+                        active
+                          ? 'border-deep-maroon bg-deep-maroon text-primary-fixed'
+                          : 'border-outline-variant text-on-surface hover:border-deep-maroon',
+                        !available &&
+                          !active &&
+                          'cursor-not-allowed border-outline-variant/50 text-on-surface-variant/50 hover:border-outline-variant/50',
+                      )}
+                    >
+                      {value}
+                      {/* A line through the label, rather than removing it. */}
+                      {!available && !active && (
+                        <span
+                          aria-hidden
+                          className="pointer-events-none absolute inset-x-2 top-1/2 h-px bg-on-surface-variant/40"
+                        />
+                      )}
+                      <span className="sr-only">{available ? '' : ' — unavailable'}</span>
+                    </button>
+                  );
+                })}
+              </div>
             )}
           </div>
-
-          <div
-            role="radiogroup"
-            aria-labelledby={`axis-${productId}-${axis.slug}`}
-            className="flex flex-wrap gap-2"
-          >
-            {axis.values.map((value) => {
-              const active = selected[axis.slug] === value;
-              const available = reachable(axis.slug, value);
-              return (
-                <button
-                  key={value}
-                  type="button"
-                  role="radio"
-                  aria-checked={active}
-                  disabled={!available && !active}
-                  onClick={() => select(productId, axis.slug, active ? null : value)}
-                  className={cn(
-                    'relative min-w-[3.25rem] border px-4 py-2.5 font-body-md text-sm transition-colors',
-                    active
-                      ? 'border-deep-maroon bg-deep-maroon text-primary-fixed'
-                      : 'border-outline-variant text-on-surface hover:border-deep-maroon',
-                    !available &&
-                      !active &&
-                      'cursor-not-allowed border-outline-variant/50 text-on-surface-variant/50 hover:border-outline-variant/50',
-                  )}
-                >
-                  {value}
-                  {/* A line through the label, rather than removing the chip. */}
-                  {!available && !active && (
-                    <span
-                      aria-hidden
-                      className="pointer-events-none absolute inset-x-2 top-1/2 h-px bg-on-surface-variant/40"
-                    />
-                  )}
-                  <span className="sr-only">{available ? '' : ' — unavailable'}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      ))}
+        );
+      })}
 
       {chosen && chosen.stock_quantity > 0 && chosen.stock_quantity <= 3 && (
         <p className="font-body-md text-sm text-earthy-bronze">
@@ -189,80 +276,68 @@ export function VariantPicker({
         </p>
       )}
 
-      {showChart && measuredAxis && measurementColumns.length > 0 && (
-        <div className="overflow-x-auto border border-outline-variant/40">
-          <table className="w-full min-w-[320px] border-collapse text-left">
-            <thead>
-              <tr className="border-b border-outline-variant/40 bg-surface-container-low">
-                <th className="p-3 font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant">
-                  {measuredAxis.name}
-                </th>
-                {measurementColumns.map((column) => (
-                  <th
-                    key={column}
-                    className="p-3 font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant"
-                  >
-                    {column}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-outline-variant/30">
-              {measuredAxis.values.map((value) => {
-                const measurements =
-                  optionDetails[`${measuredAxis.slug}:${value}`]?.measurements ?? {};
-                if (Object.keys(measurements).length === 0) return null;
-                return (
-                  <tr
-                    key={value}
-                    className={
-                      selected[measuredAxis.slug] === value
-                        ? 'bg-primary-container/10'
-                        : undefined
-                    }
-                  >
-                    <td className="p-3 font-body-md text-sm text-on-surface">{value}</td>
-                    {measurementColumns.map((column) => (
-                      <td
-                        key={column}
-                        className="p-3 font-body-md text-sm text-on-surface-variant"
-                      >
-                        {measurements[column] ?? '—'}
-                      </td>
-                    ))}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <Dialog open={guide != null} onOpenChange={(open) => !open && setGuideAxis(null)}>
+        <DialogContent className="max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{guide?.name} guide</DialogTitle>
+            <DialogDescription>
+              Measured flat, in inches. Allow a little ease for a comfortable fit.
+            </DialogDescription>
+          </DialogHeader>
+          {guide && <MeasurementTable axis={guide} optionDetails={optionDetails} />}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
-/**
- * The axes a product actually offers, built from its variants.
- *
- * Derived rather than taken from the category, so a churidar entered in green
- * and red only ever offers green and red — never the whole colour list with
- * fourteen of them struck through.
- */
-export function axesForProduct(
-  variants: ProductVariant[],
-  definitions: { slug: string; name: string }[],
-): VariantAxis[] {
-  return definitions
-    .map(({ slug, name }) => ({
-      slug,
-      name,
-      values: [
-        ...new Set(
-          variants
-            .map((v) => v.options[slug])
-            .filter((value): value is string => Boolean(value)),
-        ),
-      ],
+function MeasurementTable({
+  axis,
+  optionDetails,
+}: {
+  axis: VariantAxis;
+  optionDetails: Record<string, OptionDetail>;
+}) {
+  const rows = axis.values
+    .map((value) => ({
+      value,
+      measurements: optionDetails[`${axis.slug}:${value}`]?.measurements ?? {},
     }))
-    .filter((axis) => axis.values.length > 0);
+    .filter((row) => Object.keys(row.measurements).length > 0);
+
+  const columns = Array.from(new Set(rows.flatMap((row) => Object.keys(row.measurements))));
+
+  return (
+    <div className="overflow-x-auto border border-outline-variant/40">
+      <table className="w-full min-w-[320px] border-collapse text-left">
+        <thead>
+          <tr className="border-b border-outline-variant/40 bg-surface-container-low">
+            <th className="p-3 font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant">
+              {axis.name}
+            </th>
+            {columns.map((column) => (
+              <th
+                key={column}
+                className="p-3 font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant"
+              >
+                {column}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-outline-variant/30">
+          {rows.map((row) => (
+            <tr key={row.value}>
+              <td className="p-3 font-body-md text-sm text-on-surface">{row.value}</td>
+              {columns.map((column) => (
+                <td key={column} className="p-3 font-body-md text-sm text-on-surface-variant">
+                  {row.measurements[column] ?? '—'}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 }

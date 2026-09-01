@@ -54,7 +54,15 @@ export default async function ProductPage({ params }: { params: { id: string } }
     getProductAttributeValues(product.id),
   ]);
 
+  /*
+    Axes are shown as chips a shopper can press, so repeating them here as
+    "Size: M, XL, XXL, L" is the same answer twice — and the dead one reads
+    as a list of what is available when the live one already says so.
+  */
+  const axisSlugs = new Set((product.variantAxes ?? []).map((a) => a.slug));
+
   const specs = attributes
+    .filter((attribute) => !axisSlugs.has(attribute.slug))
     .map((attribute) => {
       const answer = values[attribute.id];
       const text = answer?.values?.length

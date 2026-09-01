@@ -72,7 +72,7 @@ export interface Product {
    * The axes this product varies along, in the order the category lists them.
    * Names travel with them so no client has to look an attribute up.
    */
-  variantAxes?: { slug: string; name: string }[];
+  variantAxes?: { slug: string; name: string; order: string[] }[];
 }
 
 export interface ProductVariant {

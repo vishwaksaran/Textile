@@ -95,6 +95,7 @@ export function AddToCart({ product, compact = false, className }: AddToCartProp
           variants={variants}
           optionDetails={product.optionDetails ?? {}}
           basePrice={effectivePrice(product)}
+          listPrice={product.discounted_price ? product.price : null}
         />
       )}
 

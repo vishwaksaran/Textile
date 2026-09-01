@@ -163,9 +163,8 @@ export function VariantFields({
   if (axes.length === 0) {
     return (
       <p className={cn('font-body-md text-body-md text-on-surface-variant', className)}>
-        This collection has no varying attributes, so stock is the single number above — right
-        for a saree, and for anything else sold as one piece. Choose which attributes create
-        variants in the Category Manager.
+        Nothing ticked above, so stock is the single number in Price &amp; stock — right for a
+        saree, and for anything else sold as one piece.
       </p>
     );
   }

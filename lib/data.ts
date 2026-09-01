@@ -2,7 +2,7 @@ import 'server-only';
 
 import { createPublicSupabase, isSupabaseConfigured } from '@/lib/supabase/server';
 import { DEMO_CATEGORIES, DEMO_PRODUCTS } from '@/lib/demo-data';
-import { getOptionDetails, getProductVariants, getVariantAxes } from '@/lib/variants';
+import { getAxisDefinitions, getOptionDetails, getProductVariants } from '@/lib/variants';
 import { effectivePrice } from '@/lib/utils';
 import { upgradeImageUrl, upgradeImageUrls } from '@/lib/images';
 import { productIdsMatchingAttributes } from '@/lib/attributes';
@@ -224,18 +224,22 @@ export async function getProductById(id: string): Promise<Product | null> {
     the one read that pays for the extra queries.
   */
   const product = withHiResImages(data as unknown as Product);
-  const [variants, optionDetails, axes] = await Promise.all([
+  const [variants, optionDetails] = await Promise.all([
     getProductVariants(product.id),
     getOptionDetails(product.id),
-    getVariantAxes(product.category_id),
   ]);
 
-  return {
-    ...product,
-    variants,
-    optionDetails,
-    variantAxes: axes.map((a) => ({ slug: a.slug, name: a.name })),
-  };
+  /*
+    The axes come from the piece's own combinations, not from its collection.
+    One saree may be stocked in four colours while the next beside it is one
+    of a kind, and a collection-wide answer would put an empty colour row on
+    the second or none at all on the first.
+  */
+  const variantAxes = await getAxisDefinitions([
+    ...new Set(variants.flatMap((v) => Object.keys(v.options))),
+  ]);
+
+  return { ...product, variants, optionDetails, variantAxes };
 }
 
 export async function getRelatedProducts(product: Product, limit = 6): Promise<Product[]> {
