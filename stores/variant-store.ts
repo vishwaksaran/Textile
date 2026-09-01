@@ -1,7 +1,12 @@
 'use client';
 
 import { create } from 'zustand';
-import { optionKey, withForcedValues, type VariantAxis } from '@/lib/variant-key';
+import {
+  imagesForSelection,
+  optionKey,
+  withForcedValues,
+  type VariantAxis,
+} from '@/lib/variant-key';
 import type { OptionDetail, Product, ProductVariant } from '@/types';
 
 /**
@@ -80,10 +85,10 @@ export function useSelectedVariant(
 /**
  * The photographs to show right now.
  *
- * An axis value may carry its own — colour almost always does — and the first
- * chosen value that has any wins. Falling back to the product's own set is
- * what makes an axis like size, which does not change how a piece looks,
- * cost nothing here.
+ * Every chosen value contributes what it has, in axis order, falling back to
+ * the product's own set when none of them carries a photograph — which is what
+ * makes an axis like size, that does not change how a piece looks, cost
+ * nothing here. See imagesForSelection.
  */
 export function useActiveImages(
   product: Pick<Product, 'id' | 'images'>,
@@ -91,13 +96,6 @@ export function useActiveImages(
   axes: VariantAxis[],
 ): string[] {
   const selected = useEffectiveOptions(product.id, axes);
-  if (!optionDetails) return product.images ?? [];
-
-  for (const axis of axes) {
-    const value = selected[axis.slug];
-    if (!value) continue;
-    const images = optionDetails[`${axis.slug}:${value}`]?.images;
-    if (images?.length) return images;
-  }
-  return product.images ?? [];
+  return imagesForSelection(selected, axes, optionDetails, product.images ?? []);
 }
+

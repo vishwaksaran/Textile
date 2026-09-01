@@ -106,3 +106,39 @@ export function withForcedValues(
   for (const axis of forced) next[axis.slug] = axis.values[0];
   return next;
 }
+
+/**
+ * The photographs to show for a selection.
+ *
+ * Every chosen value contributes, in axis order — not just the first one that
+ * happens to have any. A saree entered with two photographs of the Maroon
+ * cloth and two of the Zari Border showed the Maroon pair and silently
+ * dropped the others, because colour is listed first and the search stopped
+ * there. Nothing a shop takes the trouble to upload should be unreachable.
+ *
+ * Deduplicated, since the same shot is easily attached to both a colour and
+ * a pattern, and the gallery would otherwise show it twice.
+ *
+ * The product's own images are the fallback for a selection that carries
+ * none, rather than an addition to it: a piece photographed per colour should
+ * not trail the generic shot behind every one of them.
+ */
+export function imagesForSelection(
+  selected: Record<string, string>,
+  axes: VariantAxis[],
+  optionDetails: Record<string, { images: string[] }> | undefined,
+  fallback: string[],
+): string[] {
+  if (!optionDetails) return fallback;
+
+  const gathered: string[] = [];
+  for (const axis of axes) {
+    const value = selected[axis.slug];
+    if (!value) continue;
+    for (const image of optionDetails[`${axis.slug}:${value}`]?.images ?? []) {
+      if (!gathered.includes(image)) gathered.push(image);
+    }
+  }
+
+  return gathered.length > 0 ? gathered : fallback;
+}

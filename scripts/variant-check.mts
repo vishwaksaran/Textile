@@ -12,6 +12,7 @@
 import { lineKey } from '../stores/cart-store';
 import {
   axesForProduct,
+  imagesForSelection,
   optionKey,
   variantLabel,
   withForcedValues,
@@ -248,6 +249,60 @@ check(
   'a settled combination resolves to a real key',
   optionKey(settledOptions) === 'colour:maroon|pattern:zari border',
   optionKey(settledOptions),
+);
+
+console.log('\nWhich photographs the gallery shows\n');
+
+/*
+  A saree entered with two photographs of the Maroon cloth and two of the Zari
+  Border showed the Maroon pair and silently dropped the others: colour is
+  listed first, and the search stopped at the first axis that had any. Nothing
+  a shop takes the trouble to upload should be unreachable.
+*/
+const gallery = [
+  { slug: 'colour', name: 'Colour', values: ['Maroon', 'Green'] },
+  { slug: 'pattern', name: 'Pattern', values: ['Zari Border', 'Temple Border'] },
+];
+const art = {
+  'colour:Maroon': { images: ['maroon-1.jpg', 'maroon-2.jpg'] },
+  'pattern:Zari Border': { images: ['zari-1.jpg', 'zari-2.jpg'] },
+  'pattern:Temple Border': { images: [] as string[] },
+  'colour:Green': { images: ['shared.jpg'] },
+  'pattern:Shared': { images: ['shared.jpg'] },
+};
+const own = ['product-1.jpg'];
+
+check(
+  'every chosen value contributes its photographs',
+  imagesForSelection({ colour: 'Maroon', pattern: 'Zari Border' }, gallery, art, own).join() ===
+    'maroon-1.jpg,maroon-2.jpg,zari-1.jpg,zari-2.jpg',
+  imagesForSelection({ colour: 'Maroon', pattern: 'Zari Border' }, gallery, art, own).join(', '),
+);
+check(
+  'a value with none does not blank the ones that have some',
+  imagesForSelection({ colour: 'Maroon', pattern: 'Temple Border' }, gallery, art, own).join() ===
+    'maroon-1.jpg,maroon-2.jpg',
+);
+check(
+  'the product falls back to its own only when nothing else has any',
+  imagesForSelection({ pattern: 'Temple Border' }, gallery, art, own).join() === 'product-1.jpg',
+);
+check(
+  'nothing chosen shows the product',
+  imagesForSelection({}, gallery, art, own).join() === 'product-1.jpg',
+);
+check(
+  'one shot attached to two values is not shown twice',
+  imagesForSelection(
+    { colour: 'Green', pattern: 'Shared' },
+    [gallery[0], { slug: 'pattern', name: 'Pattern', values: ['Shared'] }],
+    art,
+    own,
+  ).join() === 'shared.jpg',
+);
+check(
+  'a piece with no option photographs at all keeps its own',
+  imagesForSelection({ colour: 'Maroon' }, gallery, undefined, own).join() === 'product-1.jpg',
 );
 
 console.log('\nWhich chips a shopper can still press\n');
