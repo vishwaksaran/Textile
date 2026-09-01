@@ -85,3 +85,82 @@ export async function saveVariantAttributes(
       .in('attribute_id', clear);
   }
 }
+
+/**
+ * Deletes collections, and everything filed beneath them.
+ *
+ * Deleting a section takes its subcategories with it — a section without its
+ * children is not a thing the tree can represent, and leaving them behind
+ * would silently promote five weaves to top-level menu items.
+ *
+ * Products are the one thing this will not take. `category_id` is nullable,
+ * so the database would happily let the delete through and leave the pieces
+ * uncategorised: still live, still for sale, and absent from every collection
+ * page. The shop is told to move them instead.
+ *
+ * Shared by the single delete and the bulk one, so the warning a shop reads
+ * in the confirmation cannot describe something different from what happens.
+ */
+export async function deleteCategorySubtree(
+  ids: string[],
+): Promise<{ deleted: number } | { error: string }> {
+  const supabase = requireAdminSupabase();
+
+  const { data: all } = await supabase.from('categories').select('id, name, parent_id');
+  const rows = (all as { id: string; name: string; parent_id: string | null }[] | null) ?? [];
+
+  /*
+    Walked rather than assumed one level deep. The tree is two levels today
+    and this stops being right the moment it is not — quietly leaving a
+    grandchild parented to a row that no longer exists.
+  */
+  const subtree = new Set(ids);
+  for (let added = true; added; ) {
+    added = false;
+    for (const row of rows) {
+      if (row.parent_id && subtree.has(row.parent_id) && !subtree.has(row.id)) {
+        subtree.add(row.id);
+        added = true;
+      }
+    }
+  }
+
+  const doomed = [...subtree];
+
+  const { count } = await supabase
+    .from('products')
+    .select('id', { count: 'exact', head: true })
+    .in('category_id', doomed);
+
+  if ((count ?? 0) > 0) {
+    const names = rows
+      .filter((r) => subtree.has(r.id))
+      .map((r) => r.name)
+      .join(', ');
+    return {
+      error: `${count} ${count === 1 ? 'piece is' : 'pieces are'} filed under ${names}. Move them to another collection first.`,
+    };
+  }
+
+  /*
+    Children before parents. parent_id is `on delete restrict`, so one delete
+    covering both would be refused depending on the order Postgres happened to
+    process the rows.
+  */
+  const depth = (id: string): number => {
+    let level = 0;
+    let current = rows.find((r) => r.id === id)?.parent_id ?? null;
+    while (current) {
+      level += 1;
+      current = rows.find((r) => r.id === current)?.parent_id ?? null;
+    }
+    return level;
+  };
+
+  for (const id of [...doomed].sort((a, b) => depth(b) - depth(a))) {
+    const { error } = await supabase.from('categories').delete().eq('id', id);
+    if (error) throw new Error(error.message);
+  }
+
+  return { deleted: doomed.length };
+}

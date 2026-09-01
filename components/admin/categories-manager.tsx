@@ -65,6 +65,7 @@ export function CategoriesManager({ categories }: { categories: CategoryRow[] })
 
   const [draft, setDraft] = React.useState<Draft | null>(null);
   const [deleting, setDeleting] = React.useState<CategoryRow | null>(null);
+  const [bulkDeleting, setBulkDeleting] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
@@ -230,6 +231,75 @@ export function CategoriesManager({ categories }: { categories: CategoryRow[] })
     }
   }
 
+  /**
+   * Everything a delete would take, counted from the rows already on screen.
+   *
+   * A section takes its subcategories with it, so the confirmation has to say
+   * which ones and how many pieces are filed under them — "delete Sarees" is
+   * a very different act from "delete Khadi Cotton", and the dialog is the
+   * only place that difference is visible.
+   */
+  function reckonDelete(ids: string[]) {
+    const doomed = new Set(ids);
+    for (let added = true; added; ) {
+      added = false;
+      for (const c of categories) {
+        if (c.parent_id && doomed.has(c.parent_id) && !doomed.has(c.id)) {
+          doomed.add(c.id);
+          added = true;
+        }
+      }
+    }
+
+    const rows = categories.filter((c) => doomed.has(c.id));
+    const children = rows.filter((c) => !ids.includes(c.id));
+    return {
+      total: rows.length,
+      children,
+      pieces: rows.reduce((sum, c) => sum + c.productCount, 0),
+    };
+  }
+
+  function describeDelete(ids: string[]) {
+    const { children, pieces } = reckonDelete(ids);
+
+    const parts: string[] = [];
+    if (children.length > 0) {
+      parts.push(
+        `This also deletes ${children.length} ${
+          children.length === 1 ? 'subcategory' : 'subcategories'
+        } beneath it: ${children.map((c) => c.name).join(', ')}.`,
+      );
+    }
+    parts.push(
+      pieces > 0
+        ? `${pieces} ${pieces === 1 ? 'piece is' : 'pieces are'} filed under ${
+            children.length > 0 ? 'them' : 'it'
+          }. Move them to another collection first — the delete will be refused otherwise.`
+        : 'This cannot be undone. It disappears from the storefront navigation.',
+    );
+    return parts.join(' ');
+  }
+
+  async function bulkRemove() {
+    const ids = [...selected];
+    const res = await fetch('/api/admin/categories/bulk-delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      toast.error(data.error ?? 'Could not delete.');
+      return;
+    }
+    toast.success(
+      `${data.deleted} ${data.deleted === 1 ? 'collection' : 'collections'} deleted.`,
+    );
+    setSelected(new Set());
+    router.refresh();
+  }
+
   async function move(id: string, direction: 'up' | 'down') {
     setMoving(id);
     const res = await fetch('/api/admin/categories/reorder', {
@@ -274,14 +344,28 @@ export function CategoriesManager({ categories }: { categories: CategoryRow[] })
             Manage your handloom collections and how they appear on the storefront.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={openNew}
-          className="flex items-center justify-center gap-2 bg-deep-maroon px-6 py-2 font-label-lg text-label-lg uppercase tracking-wider text-primary-fixed shadow-sm transition-colors hover:bg-secondary"
-        >
-          <Plus className="h-4 w-4" />
-          New Category
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Only present when something is ticked, so a destructive control
+              is never sitting next to the pointer by default. */}
+          {selected.size > 0 && (
+            <button
+              type="button"
+              onClick={() => setBulkDeleting(true)}
+              className="flex items-center gap-2 border border-error px-4 py-2 font-label-lg text-label-lg uppercase tracking-wider text-error transition-colors hover:bg-error hover:text-on-error"
+            >
+              <Trash2 className="h-4 w-4" />
+              Delete {selected.size}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={openNew}
+            className="flex items-center justify-center gap-2 bg-deep-maroon px-6 py-2 font-label-lg text-label-lg uppercase tracking-wider text-primary-fixed shadow-sm transition-colors hover:bg-secondary"
+          >
+            <Plus className="h-4 w-4" />
+            New Category
+          </button>
+        </div>
       </div>
 
       {/* ------------------------------------------------------------ table */}
@@ -731,13 +815,18 @@ export function CategoriesManager({ categories }: { categories: CategoryRow[] })
         open={deleting != null}
         onOpenChange={(open) => !open && setDeleting(null)}
         title={`Delete "${deleting?.name}"?`}
-        description={
-          (deleting?.productCount ?? 0) > 0
-            ? `This collection still holds ${deleting?.productCount} pieces. Move them to another collection first — the delete will be refused otherwise.`
-            : 'This cannot be undone. The collection will disappear from the storefront navigation.'
-        }
+        description={deleting ? describeDelete([deleting.id]) : ''}
         confirmLabel="Delete"
         onConfirm={remove}
+      />
+
+      <ConfirmDialog
+        open={bulkDeleting}
+        onOpenChange={(open) => !open && setBulkDeleting(false)}
+        title={`Delete ${selected.size} ${selected.size === 1 ? 'collection' : 'collections'}?`}
+        description={describeDelete([...selected])}
+        confirmLabel="Delete"
+        onConfirm={bulkRemove}
       />
     </>
   );

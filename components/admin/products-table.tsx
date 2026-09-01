@@ -3,10 +3,13 @@
 import * as React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Search } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Search, Trash2 } from 'lucide-react';
+import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/admin/ui';
 import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/shared/confirm-dialog';
 import { discountPercent, effectivePrice, formatINR } from '@/lib/utils';
 import type { Category, Product } from '@/types';
 
@@ -21,9 +24,13 @@ export function ProductsTable({
   categories: Category[];
   initialStock?: StockFilter;
 }) {
+  const router = useRouter();
   const [query, setQuery] = React.useState('');
   const [categoryId, setCategoryId] = React.useState('all');
   const [stock, setStock] = React.useState<StockFilter>(initialStock);
+  const [selected, setSelected] = React.useState<Set<string>>(new Set());
+  const [confirming, setConfirming] = React.useState(false);
+  const [deleting, setDeleting] = React.useState(false);
 
   const filtered = React.useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -36,6 +43,62 @@ export function ProductsTable({
       return true;
     });
   }, [products, query, categoryId, stock]);
+
+  /*
+    Ticks survive a search, but the header checkbox only ever speaks for what
+    is on screen — "select all" that quietly included forty rows behind a
+    filter is how a bulk delete goes wrong.
+  */
+  const allShownSelected = filtered.length > 0 && filtered.every((p) => selected.has(p.id));
+
+  function toggleAll() {
+    const next = new Set(selected);
+    if (allShownSelected) filtered.forEach((p) => next.delete(p.id));
+    else filtered.forEach((p) => next.add(p.id));
+    setSelected(next);
+  }
+
+  function toggleOne(id: string) {
+    const next = new Set(selected);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelected(next);
+  }
+
+  const chosen = products.filter((p) => selected.has(p.id));
+
+  async function bulkDelete() {
+    setDeleting(true);
+    try {
+      const res = await fetch('/api/admin/products/bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids: [...selected] }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? 'Could not delete.');
+        return;
+      }
+
+      // Reported separately: "5 deleted" when two are still in the catalogue
+      // as hidden rows is a lie the shop only discovers later.
+      const said = [
+        data.deleted > 0 ? `${data.deleted} deleted` : null,
+        data.retired > 0
+          ? `${data.retired} hidden instead, having been ordered before`
+          : null,
+      ].filter(Boolean);
+      toast.success(said.join(' · '));
+
+      setSelected(new Set());
+      router.refresh();
+    } catch {
+      toast.error('Network error — please try again.');
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   return (
     <div className="space-y-5">
@@ -97,9 +160,40 @@ export function ProductsTable({
         />
       ) : (
         <div className="overflow-x-auto rounded-lg border border-outline-variant/40 bg-surface-container-lowest">
+          {/* Only present when something is ticked, so a destructive control
+              is never sitting next to the pointer by default. */}
+          {selected.size > 0 && (
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant/40 bg-surface-container-low px-4 py-3">
+              <span className="font-body-md text-sm text-on-surface">
+                {selected.size} selected
+              </span>
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())}>
+                  Clear
+                </Button>
+                <button
+                  type="button"
+                  onClick={() => setConfirming(true)}
+                  className="inline-flex items-center gap-2 border border-error px-4 py-1.5 font-label-sm text-label-sm uppercase tracking-wider text-error transition-colors hover:bg-error hover:text-on-error"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Delete
+                </button>
+              </div>
+            </div>
+          )}
           <table className="w-full min-w-[760px] text-left">
             <thead>
               <tr className="border-b border-outline-variant/40 font-label-sm text-label-sm uppercase tracking-widest text-on-surface-variant">
+                <th className="w-10 px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={allShownSelected}
+                    onChange={toggleAll}
+                    aria-label="Select all shown"
+                    className="border-earthy-bronze text-deep-maroon focus:ring-primary-container"
+                  />
+                </th>
                 <th className="px-4 py-3">Product</th>
                 <th className="px-4 py-3">Collection</th>
                 <th className="px-4 py-3">Price</th>
@@ -112,7 +206,23 @@ export function ProductsTable({
               {filtered.map((product) => {
                 const off = discountPercent(product);
                 return (
-                  <tr key={product.id} className="transition-colors hover:bg-surface-container-low">
+                  <tr
+                    key={product.id}
+                    className={
+                      selected.has(product.id)
+                        ? 'bg-primary-container/10'
+                        : 'transition-colors hover:bg-surface-container-low'
+                    }
+                  >
+                    <td className="px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(product.id)}
+                        onChange={() => toggleOne(product.id)}
+                        aria-label={`Select ${product.name}`}
+                        className="border-earthy-bronze text-deep-maroon focus:ring-primary-container"
+                      />
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className="relative h-14 w-11 flex-none overflow-hidden rounded bg-surface-variant">
@@ -182,7 +292,35 @@ export function ProductsTable({
 
       <p className="font-body-md text-xs text-on-surface-variant">
         Showing {filtered.length} of {products.length} products.
+        {selected.size > 0 && ` · ${selected.size} selected`}
       </p>
+
+      <ConfirmDialog
+        open={confirming}
+        onOpenChange={(open) => !open && setConfirming(false)}
+        title={`Delete ${selected.size} ${selected.size === 1 ? 'piece' : 'pieces'}?`}
+        description={describeProductDelete(chosen)}
+        confirmLabel={deleting ? 'Deleting…' : 'Delete'}
+        onConfirm={bulkDelete}
+      />
     </div>
   );
+}
+
+/**
+ * What the delete will actually do, named before it happens.
+ *
+ * A piece that appears in a past order is hidden rather than removed, so its
+ * name survives on the invoice that was already issued. That is not what
+ * "delete" leads a shop to expect, so the dialog says which pieces it applies
+ * to before the click, not in a toast afterwards.
+ */
+function describeProductDelete(chosen: Product[]): string {
+  const names = chosen
+    .slice(0, 4)
+    .map((p) => p.name)
+    .join(', ');
+  const rest = chosen.length > 4 ? ` and ${chosen.length - 4} more` : '';
+
+  return `${names}${rest}. This cannot be undone. Anything that appears in a past order is hidden from the storefront instead of removed, so old invoices keep their item names.`;
 }

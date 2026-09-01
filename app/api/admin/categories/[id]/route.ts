@@ -1,7 +1,12 @@
 import { NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { revalidateCatalogue } from '@/lib/revalidate';
-import { saveVariantAttributes, errorResponse, validateCategory } from '@/lib/admin-api';
+import {
+  deleteCategorySubtree,
+  errorResponse,
+  saveVariantAttributes,
+  validateCategory,
+} from '@/lib/admin-api';
 import { requireAdminSupabase } from '@/lib/supabase/server';
 import { slugify } from '@/lib/utils';
 
@@ -63,42 +68,16 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 export async function DELETE(_request: Request, { params }: { params: { id: string } }) {
   try {
     await requireAdmin();
-    const supabase = requireAdminSupabase();
 
-    const { count } = await supabase
-      .from('products')
-      .select('id', { count: 'exact', head: true })
-      .eq('category_id', params.id);
+    // Subcategories go with the section, which is what the confirmation says
+    // will happen. Both paths call the same function so they cannot diverge.
+    const result = await deleteCategorySubtree([params.id]);
+    if ('error' in result) return NextResponse.json(result, { status: 409 });
 
-    if ((count ?? 0) > 0) {
-      return NextResponse.json(
-        {
-          error: `This collection still holds ${count} ${count === 1 ? 'piece' : 'pieces'}. Move them first.`,
-        },
-        { status: 409 },
-      );
-    }
-
-    // A section still holding subcategories is refused by the foreign key.
-    // Saying so plainly beats surfacing a constraint name.
-    const { count: children } = await supabase
-      .from('categories')
-      .select('id', { count: 'exact', head: true })
-      .eq('parent_id', params.id);
-
-    if ((children ?? 0) > 0) {
-      return NextResponse.json(
-        {
-          error: `This section still contains ${children} ${children === 1 ? 'subcategory' : 'subcategories'}. Delete or move them first.`,
-        },
-        { status: 409 },
-      );
-    }
-
-    const { error } = await supabase.from('categories').delete().eq('id', params.id);
-    if (error) throw new Error(error.message);
-    return NextResponse.json({ deleted: true });
+    revalidateCatalogue();
+    return NextResponse.json({ deleted: true, count: result.deleted });
   } catch (err) {
     return errorResponse(err);
   }
 }
+
