@@ -120,6 +120,13 @@ export interface OrderItem {
   variant_id: string | null;
   /** The size as printed. Frozen, so retiring a size cannot rewrite a receipt. */
   variant_at_time: string | null;
+  /**
+   * The photograph shown when this line was bought. Frozen for the same
+   * reason: a value renamed or a picture replaced next season must not
+   * change what a receipt from today appears to show. Null falls back to the
+   * product's own first image.
+   */
+  image_at_time: string | null;
   /** Populated by joins on read. */
   products?: Pick<Product, 'id' | 'name' | 'images' | 'hsn_code' | 'gst_rate'> | null;
 }

@@ -110,7 +110,9 @@ function billingAddress(order: Order): string {
 function itemRows(order: Order): string {
   return (order.order_items ?? [])
     .map((item) => {
-      const art = emailThumbUrl(item.products?.images?.[0] ?? null);
+      // The frozen one, so the alert shows the piece that was actually
+      // bought rather than whatever the product leads with today.
+      const art = emailThumbUrl(item.image_at_time ?? item.products?.images?.[0] ?? null);
       const name = escapeHtml(describeItem(item));
 
       const thumb = art

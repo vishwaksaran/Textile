@@ -536,3 +536,101 @@ export function parseOptionDetails(body: {
     }))
     .filter((d) => d.attributeSlug && d.value);
 }
+
+/**
+ * The photograph that stands for each variant of these products.
+ *
+ * Resolved on the server so an order line can freeze it. The browser knows
+ * the answer too — it is what the gallery and the cart show — but a URL taken
+ * on trust from a checkout request is a URL someone can choose, and this one
+ * ends up stored and rendered in the shop's own inbox.
+ *
+ * Same rule the storefront follows: the combination's own art if it has any,
+ * otherwise the first chosen value that has some, in the order the shop lists
+ * its axes. A product whose variants carry no art at all contributes nothing
+ * and falls back to the product's own image at the call site.
+ *
+ * Three queries for the whole cart rather than three per line.
+ */
+export async function getVariantImages(
+  productIds: string[],
+): Promise<Map<string, string>> {
+  const images = new Map<string, string>();
+  if (productIds.length === 0) return images;
+
+  const supabase = createAdminSupabase() ?? createPublicSupabase();
+  if (!supabase) return images;
+
+  const { data: variantRows } = await supabase
+    .from('product_variants')
+    .select('id, product_id, images')
+    .in('product_id', productIds);
+
+  const variants = (variantRows as
+    | { id: string; product_id: string; images: string[] | null }[]
+    | null) ?? [];
+  if (variants.length === 0) return images;
+
+  const [{ data: optionRows }, { data: detailRows }, { data: attrRows }] = await Promise.all([
+    supabase
+      .from('product_variant_options')
+      .select('variant_id, attribute_id, value')
+      .in(
+        'variant_id',
+        variants.map((v) => v.id),
+      ),
+    supabase
+      .from('product_option_details')
+      .select('product_id, attribute_id, value, images')
+      .in('product_id', productIds),
+    supabase.from('attributes').select('id, sort_order'),
+  ]);
+
+  // Axis order is the attribute's own, which is what the storefront sorts by.
+  const rank = new Map(
+    ((attrRows as { id: string; sort_order: number }[] | null) ?? []).map((a) => [
+      String(a.id),
+      Number(a.sort_order ?? 0),
+    ]),
+  );
+
+  const detailArt = new Map(
+    ((detailRows as
+      | { product_id: string; attribute_id: string; value: string; images: string[] | null }[]
+      | null) ?? []).map((d) => [
+      `${d.product_id}|${d.attribute_id}|${d.value}`,
+      d.images ?? [],
+    ]),
+  );
+
+  const byVariant = new Map<string, { attribute_id: string; value: string }[]>();
+  for (const option of (optionRows as
+    | { variant_id: string; attribute_id: string; value: string }[]
+    | null) ?? []) {
+    const key = String(option.variant_id);
+    byVariant.set(key, [...(byVariant.get(key) ?? []), option]);
+  }
+
+  for (const variant of variants) {
+    if (variant.images?.length) {
+      images.set(String(variant.id), variant.images[0]);
+      continue;
+    }
+
+    const options = [...(byVariant.get(String(variant.id)) ?? [])].sort(
+      (a, b) => (rank.get(a.attribute_id) ?? 0) - (rank.get(b.attribute_id) ?? 0),
+    );
+
+    for (const option of options) {
+      const art = detailArt.get(
+        `${variant.product_id}|${option.attribute_id}|${option.value}`,
+      );
+      if (art?.length) {
+        images.set(String(variant.id), art[0]);
+        break;
+      }
+    }
+  }
+
+  return images;
+}

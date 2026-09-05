@@ -2,6 +2,7 @@ import 'server-only';
 
 import { randomUUID } from 'crypto';
 import { createAdminSupabase } from '@/lib/supabase/server';
+import { getVariantImages } from '@/lib/variants';
 import { DEMO_PRODUCTS } from '@/lib/demo-data';
 import { STORE } from '@/lib/config';
 import { shippingFor } from '@/lib/shipping';
@@ -16,6 +17,8 @@ export interface PricedLine {
   variantId: string | null;
   /** Frozen onto the line, so retiring a size cannot rewrite a receipt. */
   variantLabel: string | null;
+  /** The picture the shopper was looking at. Frozen for the same reason. */
+  image: string | null;
   name: string;
   /** Frozen onto the order line so a later rate change cannot rewrite it. */
   hsn: string | null;
@@ -90,6 +93,15 @@ export async function priceCart(
   const variants = new Map(variantRows.map((v) => [String(v.id), v]));
   const hasVariants = new Set(variantRows.map((v) => String(v.product_id)));
 
+  /*
+    The picture each combination stands for, so the line can freeze it.
+
+    Skipped entirely for a cart of one-off pieces, which is most of them —
+    there is nothing for it to resolve and no reason to pay for the lookup.
+  */
+  const variantImages =
+    variantRows.length > 0 ? await getVariantImages(ids) : new Map<string, string>();
+
   const lines: PricedLine[] = requested.map((item) => {
     const product = rows.find((p) => p.id === item.productId);
     if (!product || !product.is_active) {
@@ -128,6 +140,10 @@ export async function priceCart(
       productId: item.productId,
       variantId: variant ? String(variant.id) : null,
       variantLabel: variant ? String(variant.label) : null,
+      image:
+        (variant ? variantImages.get(String(variant.id)) : null) ??
+        (product as { images?: string[] | null }).images?.[0] ??
+        null,
       name: product.name as string,
       quantity: item.quantity,
       unitPrice,
@@ -208,6 +224,7 @@ export async function createPendingOrder(input: {
         product_id: l.productId,
         variant_id: l.variantId,
         variant_at_time: l.variantLabel,
+        image_at_time: l.image,
         quantity: l.quantity,
         price_at_time: l.unitPrice,
         hsn_at_time: l.hsn,
@@ -226,6 +243,7 @@ export async function createPendingOrder(input: {
       product_id: l.productId,
       variant_id: l.variantId,
       variant_at_time: l.variantLabel,
+      image_at_time: l.image,
       quantity: l.quantity,
       price_at_time: l.unitPrice,
       hsn_at_time: l.hsn,
@@ -410,6 +428,7 @@ export async function linesForOrder(orderId: string): Promise<PricedLine[]> {
     // The frozen label, never the live variant — the invoice must read the
     // same next year as it did the day it was issued.
     variantLabel: item.variant_at_time ?? null,
+    image: item.image_at_time ?? item.products?.images?.[0] ?? null,
     name: item.products?.name ?? 'Item',
     quantity: item.quantity,
     unitPrice: Number(item.price_at_time),
