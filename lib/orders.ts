@@ -8,7 +8,7 @@ import { STORE } from '@/lib/config';
 import { shippingFor } from '@/lib/shipping';
 import { getShippingSettings } from '@/lib/shipping-settings';
 import { stateCodeFor, stateCodeFromGstin } from '@/lib/tax';
-import { effectivePrice } from '@/lib/utils';
+import { itemImage, effectivePrice } from '@/lib/utils';
 import type { CheckoutDetails, Order, OrderItem } from '@/types';
 
 export interface PricedLine {
@@ -428,7 +428,7 @@ export async function linesForOrder(orderId: string): Promise<PricedLine[]> {
     // The frozen label, never the live variant — the invoice must read the
     // same next year as it did the day it was issued.
     variantLabel: item.variant_at_time ?? null,
-    image: item.image_at_time ?? item.products?.images?.[0] ?? null,
+    image: itemImage(item),
     name: item.products?.name ?? 'Item',
     quantity: item.quantity,
     unitPrice: Number(item.price_at_time),

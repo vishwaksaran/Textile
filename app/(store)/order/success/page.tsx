@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { AnimatedPage } from '@/components/shared/motion';
 import { getOrderWithItems } from '@/lib/orders';
 import { STORE, whatsappUrl } from '@/lib/config';
-import { describeItem, formatDate, formatINR, shortOrderId } from '@/lib/utils';
+import { itemImage, describeItem, formatDate, formatINR, shortOrderId } from '@/lib/utils';
 import { OrderIdCard } from '@/components/store/order-id-card';
 
 export const metadata: Metadata = {
@@ -69,9 +69,9 @@ export default async function OrderSuccessPage({
             {(order.order_items ?? []).map((item) => (
               <li key={item.id} className="flex gap-4 py-4">
                 <div className="relative h-20 w-16 flex-none overflow-hidden rounded bg-surface-variant">
-                  {item.products?.images?.[0] && (
+                  {itemImage(item) && (
                     <Image
-                      src={item.products.images[0]}
+                      src={itemImage(item)!}
                       alt=""
                       fill
                       sizes="64px"

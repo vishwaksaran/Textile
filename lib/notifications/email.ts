@@ -3,7 +3,7 @@ import 'server-only';
 import { Resend } from 'resend';
 import { STORE, appUrl, envOr, storeAddressOneLine } from '@/lib/config';
 import { emailThumbUrl } from '@/lib/images';
-import { describeItem, formatDate, invoiceNumber, shortOrderId } from '@/lib/utils';
+import { itemImage, describeItem, formatDate, invoiceNumber, shortOrderId } from '@/lib/utils';
 import type { Order } from '@/types';
 
 const apiKey = process.env.RESEND_API_KEY;
@@ -112,7 +112,7 @@ function itemRows(order: Order): string {
     .map((item) => {
       // The frozen one, so the alert shows the piece that was actually
       // bought rather than whatever the product leads with today.
-      const art = emailThumbUrl(item.image_at_time ?? item.products?.images?.[0] ?? null);
+      const art = emailThumbUrl(itemImage(item));
       const name = escapeHtml(describeItem(item));
 
       const thumb = art

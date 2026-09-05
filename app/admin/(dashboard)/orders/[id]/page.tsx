@@ -10,7 +10,7 @@ import { OrderStatusControl } from '@/components/admin/order-status-control';
 import { Button } from '@/components/ui/button';
 import { getOrderWithItems } from '@/lib/orders';
 import { generateCourierTrackingUrl } from '@/lib/config';
-import { describeItem, formatDateTime, formatINR, invoiceNumber, shortOrderId } from '@/lib/utils';
+import { itemImage, describeItem, formatDateTime, formatINR, invoiceNumber, shortOrderId } from '@/lib/utils';
 import { isSupabaseConfigured } from '@/lib/supabase/server';
 
 export const metadata: Metadata = { title: 'Order' };
@@ -101,9 +101,9 @@ export default async function AdminOrderPage({ params }: { params: { id: string 
               {items.map((item) => (
                 <li key={item.id} className="flex items-center gap-4 px-6 py-4">
                   <div className="relative h-20 w-16 flex-none overflow-hidden rounded bg-surface-variant">
-                    {item.products?.images?.[0] && (
+                    {itemImage(item) && (
                       <Image
-                        src={item.products.images[0]}
+                        src={itemImage(item)!}
                         alt=""
                         fill
                         sizes="64px"

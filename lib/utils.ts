@@ -84,7 +84,6 @@ export function slugify(input: string): string {
     .replace(/^-+|-+$/g, '');
 }
 
-/** The effective price a customer pays for a product. */
 /**
  * How an order line is named on an invoice, in an email and in the admin.
  *
@@ -100,6 +99,25 @@ export function describeItem(item: {
   return item.variant_at_time ? `${name} — ${item.variant_at_time}` : name;
 }
 
+/**
+ * The photograph for an order line.
+ *
+ * The frozen one first: a line bought in Handloom Cotton keeps the Handloom
+ * Cotton picture even after the shop replaces what the product leads with.
+ * Falling back to the product covers every order placed before the column
+ * existed, which is exactly what those orders showed at the time.
+ *
+ * Shared, because four screens were each reaching for products.images and
+ * three of them were wrong.
+ */
+export function itemImage(item: {
+  image_at_time?: string | null;
+  products?: { images?: string[] | null } | null;
+}): string | null {
+  return item.image_at_time || item.products?.images?.[0] || null;
+}
+
+/** The effective price a customer pays for a product. */
 export function effectivePrice(p: { price: number; discounted_price: number | null }): number {
   return p.discounted_price && p.discounted_price > 0 && p.discounted_price < p.price
     ? p.discounted_price
