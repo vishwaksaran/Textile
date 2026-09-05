@@ -2,6 +2,7 @@ import 'server-only';
 
 import { Resend } from 'resend';
 import { STORE, appUrl, envOr, storeAddressOneLine } from '@/lib/config';
+import { emailThumbUrl } from '@/lib/images';
 import { describeItem, formatDate, invoiceNumber, shortOrderId } from '@/lib/utils';
 import type { Order } from '@/types';
 
@@ -94,22 +95,50 @@ function billingAddress(order: Order): string {
     .join(', ');
 }
 
+/**
+ * One line per item, with the piece's own photograph beside it.
+ *
+ * Laid out as a nested table rather than a flex row, because half the mail
+ * clients in use predate flexbox and Outlook still renders through Word.
+ *
+ * The image carries width and height attributes as well as CSS: Gmail blocks
+ * remote images until the reader asks for them, and without a reserved box
+ * the text would shift sideways the moment they do. A tinted placeholder sits
+ * behind it so a blocked image reads as a picture rather than a gap, and the
+ * alt text names the piece either way.
+ */
 function itemRows(order: Order): string {
   return (order.order_items ?? [])
-    .map(
-      (item) => `
+    .map((item) => {
+      const art = emailThumbUrl(item.products?.images?.[0] ?? null);
+      const name = escapeHtml(describeItem(item));
+
+      const thumb = art
+        ? `<img src="${escapeHtml(art)}" alt="${name}" width="48" height="60"
+             style="display:block;width:48px;height:60px;border:0;outline:none;
+                    object-fit:cover;background:#eae1d4;" />`
+        : `<div style="width:48px;height:60px;background:#eae1d4;"></div>`;
+
+      return `
       <tr>
         <td style="padding:10px 0;border-bottom:1px solid #eae1d4;color:#1f1b13;">
-          ${escapeHtml(describeItem(item))}
+          <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td width="48" style="width:48px;padding-right:12px;vertical-align:middle;">
+                ${thumb}
+              </td>
+              <td style="vertical-align:middle;color:#1f1b13;">${name}</td>
+            </tr>
+          </table>
         </td>
-        <td style="padding:10px 0;border-bottom:1px solid #eae1d4;text-align:center;color:#4d4635;">
+        <td style="padding:10px 0;border-bottom:1px solid #eae1d4;text-align:center;color:#4d4635;vertical-align:middle;">
           ${item.quantity}
         </td>
-        <td style="padding:10px 0;border-bottom:1px solid #eae1d4;text-align:right;color:#1f1b13;">
+        <td style="padding:10px 0;border-bottom:1px solid #eae1d4;text-align:right;color:#1f1b13;vertical-align:middle;">
           ${money(Number(item.price_at_time) * item.quantity)}
         </td>
-      </tr>`,
-    )
+      </tr>`;
+    })
     .join('');
 }
 
