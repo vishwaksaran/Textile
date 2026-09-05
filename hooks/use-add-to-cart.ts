@@ -4,6 +4,7 @@ import * as React from 'react';
 import { toast } from 'sonner';
 import { lineKey, useCartStore } from '@/stores/cart-store';
 import { COMMERCE } from '@/lib/config';
+import { axesForProduct, imagesForSelection } from '@/lib/variant-key';
 import { effectivePrice, formatINR } from '@/lib/utils';
 import type { Product, ProductVariant } from '@/types';
 
@@ -38,6 +39,32 @@ export function useAddToCart(product: Product, variant?: ProductVariant | null) 
 
   /** Has combinations, none fully chosen. Not an error — just not addable. */
   const needsChoice = (product.variants ?? []).length > 0 && !variant;
+
+  /**
+   * The picture that travels with the line, into the drawer, the cart page
+   * and the checkout summary.
+   *
+   * It has to be the one the shopper was looking at when they pressed the
+   * button. Taking the product's first image instead meant someone choosing
+   * Maheshwari saw a photograph of a field in their cart, because that is
+   * what the piece itself happens to lead with — and a cart that shows you
+   * something you did not pick is a cart you do not trust.
+   *
+   * The same rule the gallery uses, so the two agree: the combination's own
+   * art if it has any, otherwise the first chosen value that does, otherwise
+   * the product's.
+   */
+  const lineImage = React.useMemo(() => {
+    const own = product.images?.[0] ?? null;
+    if (!variant) return own;
+    if (variant.images.length > 0) return variant.images[0];
+
+    const axes = axesForProduct(product.variants ?? [], product.variantAxes ?? []);
+    return (
+      imagesForSelection(variant.options, axes, product.optionDetails, product.images ?? [])[0] ??
+      own
+    );
+  }, [variant, product.images, product.variants, product.variantAxes, product.optionDetails]);
 
   const [pending, setPending] = React.useState(false);
   const [justAdded, setJustAdded] = React.useState(false);
@@ -121,7 +148,7 @@ export function useAddToCart(product: Product, variant?: ProductVariant | null) 
             variantLabel: variant?.label ?? null,
             name: product.name,
             slug: product.categories?.slug ?? '',
-            image: product.images?.[0] ?? null,
+            image: lineImage,
             price,
             originalPrice: product.discounted_price ? product.price : null,
             maxStock: stock,
@@ -152,7 +179,7 @@ export function useAddToCart(product: Product, variant?: ProductVariant | null) 
         setPending(false);
       }
     },
-    [add, openCart, pending, product, soldOut, needsChoice, variant, variantId],
+    [add, openCart, pending, product, soldOut, needsChoice, variant, variantId, lineImage],
   );
 
   return {
