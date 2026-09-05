@@ -49,7 +49,7 @@ export function Hero({ slides }: { slides: HeroSlide[] }) {
 
   return (
     <section
-      className="relative h-[80vh] min-h-[520px] w-full overflow-hidden"
+      className="hero-tall relative min-h-[460px] w-full overflow-hidden sm:min-h-[520px]"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
       onFocusCapture={() => setPaused(true)}

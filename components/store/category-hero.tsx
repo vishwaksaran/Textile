@@ -55,9 +55,15 @@ export function CategoryHero({
       // reaches the top of the screen. Clamped so an over-scroll cannot push
       // the image past the headroom it has.
       const progress = Math.min(Math.max(-rect.top / rect.height, 0), 1);
-      // Travel stays inside the 8% headroom above and below, so the frame can
-      // never expose an edge.
-      image.style.transform = `translate3d(0, ${(progress * 7).toFixed(2)}%, 0)`;
+      /*
+        Travel has to stay inside the headroom, and the two are measured
+        against different boxes: the 8% offset is 8% of the *header*, while a
+        percentage translate is of the *image frame*, which is 116% of it. At
+        7% that worked out to 8.12% of the header — a hair more than the
+        headroom — and the top edge lifted clear at full scroll, showing a
+        line of background above the picture. 6% is 6.96%, inside it.
+      */
+      image.style.transform = `translate3d(0, ${(progress * 6).toFixed(2)}%, 0)`;
     };
 
     const onScroll = () => {
@@ -78,7 +84,7 @@ export function CategoryHero({
   return (
     <header
       ref={frameRef}
-      className="relative flex min-h-[420px] w-full items-center justify-center overflow-hidden md:min-h-[70vh]"
+      className="hero-band relative flex w-full items-center justify-center overflow-hidden"
     >
       {imageUrl ? (
         <>
@@ -107,10 +113,22 @@ export function CategoryHero({
               className="object-cover object-center"
             />
           </div>
-          {/* Graded, not a flat wash: the cloth stays readable at the top
-              while the text below it keeps a dark ground to sit on. */}
+          {/*
+            Two layers rather than one heavy gradient.
+
+            A single wash strong enough to carry the title at the bottom had to
+            be near-opaque there, and on a short header — a phone, or a laptop
+            in a 700px window — that opaque band is most of the picture. The
+            shop pays for the photograph; it should be able to see it.
+
+            So: a light overall veil that only knocks the contrast back, and a
+            second gradient concentrated behind the copy. The text sits on the
+            ground it needs and the cloth stays visible everywhere else, at any
+            height.
+          */}
+          <div className="absolute inset-0 bg-deep-maroon/25" aria-hidden="true" />
           <div
-            className="absolute inset-0 bg-gradient-to-t from-deep-maroon via-deep-maroon/75 to-deep-maroon/20"
+            className="absolute inset-x-0 bottom-0 h-3/5 bg-gradient-to-t from-deep-maroon/85 via-deep-maroon/45 to-transparent"
             aria-hidden="true"
           />
         </>

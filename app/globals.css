@@ -150,6 +150,56 @@
   }
 
 
+/*
+    Viewport-height heroes, measured against the part of the screen a phone
+    actually shows.
+
+    On mobile browsers 1vh is a hundredth of the viewport with the address bar
+    *retracted*, so a vh-sized header is taller than what is on screen when the
+    page loads and resizes as the bar slides away — the picture jumps under the
+    reader's thumb. svh is that same measure with the bar showing, which is the
+    height that is really available.
+
+    Written as a fallback pair rather than a Tailwind arbitrary value, because
+    one utility cannot emit two declarations and a browser without svh needs
+    the vh line to fall back to.
+  */
+  .hero-tall {
+    height: 80vh;
+  }
+
+  /*
+    The whole ladder lives here, not half here and half in a Tailwind
+    min-h utility: two min-height declarations on one element do not take the
+    larger, they take whichever the cascade puts last — and utilities are
+    emitted after components, so the px floor silently won and the viewport
+    height never applied at all.
+
+    A phone keeps a fixed floor. vh is least trustworthy there and a header
+    that does not move as the address bar slides is the calmer thing anyway.
+  */
+  .hero-band {
+    min-height: 420px;
+  }
+
+  @media (min-width: 768px) {
+    .hero-band {
+      min-height: 70vh;
+    }
+  }
+
+  @supports (height: 1svh) {
+    .hero-tall {
+      height: 80svh;
+    }
+
+    @media (min-width: 768px) {
+      .hero-band {
+        min-height: 70svh;
+      }
+    }
+  }
+
   .hide-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
