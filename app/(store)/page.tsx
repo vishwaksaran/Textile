@@ -6,7 +6,7 @@ import { ProductGrid } from '@/components/store/product-grid';
 import { Reveal } from '@/components/shared/motion';
 import { Button } from '@/components/ui/button';
 import { getCategories, getHeroSlides, getLatestProducts } from '@/lib/data';
-import { buildNavTree } from '@/lib/nav';
+import { CategoryShowcase } from '@/components/store/category-showcase';
 import { STORE, marqueeNotices } from '@/lib/config';
 import { getPublicShippingSettings } from '@/lib/shipping-settings';
 import { Marquee } from '@/components/store/marquee';
@@ -48,17 +48,6 @@ export default async function HomePage() {
     getHeroSlides(),
     getPublicShippingSettings(),
   ]);
-
-  /*
-    Weaves, not sections. This band is headed "Heritage Weaves", and once
-    categories became a tree the flat list started with Sarees and Churidars —
-    the menu items — rather than the weaves inside them. Reading the first
-    section's children keeps the band saying what its heading promises, and
-    falls back to the top-level items for a shop with no subcategories yet.
-  */
-  const { sections } = buildNavTree(categories);
-  const featured =
-    sections[0]?.children.length ? sections[0].children : sections.map((s) => s.section);
 
   /*
     The built-in slides, used only until the shop adds its own at
@@ -119,55 +108,8 @@ export default async function HomePage() {
 
       <div className="gold-divider mx-auto max-w-container-max" />
 
-      {/* ------------------------------------------------- featured categories */}
-      <section className="container-page py-20 md:py-24" aria-labelledby="weaves-heading">
-        <Reveal className="mb-14 text-center">
-          <h2
-            id="weaves-heading"
-            className="mb-4 font-headline-lg text-headline-lg text-deep-maroon"
-          >
-            Heritage Weaves
-          </h2>
-          <p className="mx-auto max-w-lg font-body-md text-body-md text-on-surface-variant">
-            Explore our curated selection of India&rsquo;s most celebrated textile traditions, each
-            characterised by unique motifs and weaving techniques.
-          </p>
-        </Reveal>
-
-        <div className="grid grid-cols-1 gap-gutter md:grid-cols-3">
-          {featured.slice(0, 3).map((category, i) => (
-            <Reveal key={category.id} delay={i * 0.1} className={i === 1 ? 'md:mt-12' : undefined}>
-              <Link href={`/category/${category.slug}`} className="group block h-full">
-                <div className="textile-card flex h-full flex-col rounded-lg bg-surface-container-lowest p-4">
-                  <div className="textile-card-image-wrapper relative mb-6 aspect-[3/4] rounded bg-surface-variant/50">
-                    {/* The card is 3:4 and the banner is wide, so a shop that
-                        has uploaded a portrait card gets it here; everyone
-                        else keeps the banner, cropped as before. */}
-                    {(category.thumbnail_url || category.image_url) && (
-                      <Image
-                        src={category.thumbnail_url || category.image_url!}
-                        alt={category.name}
-                        fill
-                        sizes="(max-width: 768px) 100vw, 33vw"
-                        quality={90}
-                        className="object-cover"
-                      />
-                    )}
-                  </div>
-                  <div className="mt-auto pb-2 text-center">
-                    <h3 className="mb-2 font-headline-md text-headline-md text-deep-maroon">
-                      {category.name}
-                    </h3>
-                    <p className="font-body-md text-body-md text-on-surface-variant opacity-80 transition-opacity group-hover:opacity-100">
-                      {category.description}
-                    </p>
-                  </div>
-                </div>
-              </Link>
-            </Reveal>
-          ))}
-        </div>
-      </section>
+      {/* ------------------------------------------------------- categories */}
+      <CategoryShowcase categories={categories} />
 
       {/* ------------------------------------------------------ latest arrivals */}
       <section

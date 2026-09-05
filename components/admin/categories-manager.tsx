@@ -4,7 +4,16 @@ import * as React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ChevronDown, ChevronUp, EyeOff, Loader2, Pencil, Plus, Trash2 } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronUp,
+  EyeOff,
+  ImageOff,
+  Loader2,
+  Pencil,
+  Plus,
+  Trash2,
+} from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Field, Input, Select, Textarea } from '@/components/ui/input';
@@ -422,14 +431,22 @@ export function CategoriesManager({ categories }: { categories: CategoryRow[] })
 
                     <td className="p-4">
                       <div className="flex items-center gap-4">
+{/* The card image, falling back to the banner — the same choice the
+                            home page makes, so what the admin sees here is what a
+                            shopper will see there. */}
                         <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden border border-outline-variant/30 bg-surface-variant">
-                          {category.image_url && (
+                          {category.thumbnail_url || category.image_url ? (
                             <Image
-                              src={category.image_url}
+                              src={category.thumbnail_url || category.image_url!}
                               alt=""
                               fill
                               sizes="48px"
                               className="object-cover"
+                            />
+                          ) : (
+                            <ImageOff
+                              className="absolute inset-0 m-auto h-4 w-4 text-on-surface-variant/50"
+                              aria-label="No image"
                             />
                           )}
                         </div>
@@ -752,7 +769,7 @@ export function CategoriesManager({ categories }: { categories: CategoryRow[] })
 
               <ImageUploader
                 bucket="categories"
-                label="Card image (portrait, home page). Falls back to the banner."
+                label="Card image (portrait) — the Shop by Category tile. Falls back to the banner."
                 max={1}
                 value={draft.thumbnail_url ? [draft.thumbnail_url] : []}
                 onChange={(images) => setDraft({ ...draft, thumbnail_url: images[0] ?? null })}
