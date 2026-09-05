@@ -57,6 +57,27 @@ function escapeHtml(value: string): string {
     .replace(/"/g, '&quot;');
 }
 
+/**
+ * The address the parcel goes to, on one line, in the order a label is
+ * written.
+ *
+ * State was missing, which is the one line nobody can guess from the others:
+ * it decides the delivery charge and which half of the GST applies, and two
+ * cities in India share a name often enough that a packer should not have to.
+ * Empty parts are dropped rather than left as stray commas.
+ */
+function billingAddress(order: Order): string {
+  return [
+    order.customer_address,
+    order.customer_city,
+    order.customer_state,
+    order.customer_pincode,
+  ]
+    .map((part) => part?.trim())
+    .filter(Boolean)
+    .join(', ');
+}
+
 function itemRows(order: Order): string {
   return (order.order_items ?? [])
     .map(
@@ -115,7 +136,7 @@ export async function sendAdminOrderEmail(order: Order): Promise<EmailResult> {
            <p style="font-family:Georgia,serif;font-size:16px;color:#b3261e;margin:0 0 8px;">Paid, but out of stock</p>
            <p style="font-size:13px;color:#1f1b13;line-height:1.6;margin:0;">
              Another customer took the last of <strong>${shortfall.join(', ')}</strong> first.
-             Call ${order.customer_name} on ${order.customer_phone} to offer a substitute or a
+             Call ${escapeHtml(order.customer_name)} on ${escapeHtml(order.customer_phone)} to offer a substitute or a
              refund. Do not ship this order as it stands.
            </p>
          </div>`;
@@ -125,9 +146,9 @@ export async function sendAdminOrderEmail(order: Order): Promise<EmailResult> {
     `${shortfallBanner}
      <h1 style="font-family:Georgia,serif;font-size:20px;color:#4A0404;margin:0 0 16px;">Order ${shortOrderId(order.id)}</h1>
      <p style="font-size:14px;color:#4d4635;line-height:1.6;margin:0 0 20px;">
-       <strong style="color:#1f1b13;">${order.customer_name}</strong><br/>
-       ${order.customer_phone} · ${order.customer_email}<br/>
-       ${order.customer_address}, ${order.customer_city ?? ''} ${order.customer_pincode ?? ''}
+       <strong style="color:#1f1b13;">${escapeHtml(order.customer_name)}</strong><br/>
+       ${escapeHtml(order.customer_phone)} · ${escapeHtml(order.customer_email)}<br/>
+       ${escapeHtml(billingAddress(order))}
      </p>
      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;">
        ${itemRows(order)}
@@ -150,7 +171,7 @@ export async function sendAdminOrderEmail(order: Order): Promise<EmailResult> {
       subject:
         shortfall.length > 0
           ? `ACTION NEEDED — order #${shortOrderId(order.id)} paid but out of stock`
-          : `New order #${shortOrderId(order.id)} — ${money(Number(order.total_amount))} to ${order.customer_city ?? order.customer_state ?? 'India'}`,
+          : `New order #${shortOrderId(order.id)} — ${money(Number(order.total_amount))} to ${order.customer_city || order.customer_state || 'India'}`,
       html,
     });
     if (error) return { sent: false, error: error.message };
@@ -172,7 +193,7 @@ export async function sendCustomerConfirmationEmail(
 
   const html = shell(
     'Order confirmed',
-    `<h1 style="font-family:Georgia,serif;font-size:20px;color:#4A0404;margin:0 0 12px;">Thank you, ${order.customer_name.split(' ')[0]}.</h1>
+    `<h1 style="font-family:Georgia,serif;font-size:20px;color:#4A0404;margin:0 0 12px;">Thank you, ${escapeHtml(order.customer_name.split(' ')[0])}.</h1>
      <p style="font-size:14px;color:#4d4635;line-height:1.7;margin:0 0 20px;">
        We have received your payment of <strong style="color:#1f1b13;">${money(Number(order.total_amount))}</strong>.
        Your pieces are being wrapped in muslin and will leave our Coimbatore store within two working days.
