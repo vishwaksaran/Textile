@@ -110,7 +110,7 @@ export async function fulfilPaidOrder(
         : `${describeItem(items[0])} and ${items.length - 1} more`;
 
   const [adminResult, customerResult, whatsappResult, smsResult] = await Promise.all([
-    sendAdminOrderEmail(withInvoice),
+    sendAdminOrderEmail(withInvoice, pdf),
     sendCustomerConfirmationEmail(withInvoice, pdf),
     withInvoice.customer_phone
       ? sendWhatsAppOrderConfirmation({

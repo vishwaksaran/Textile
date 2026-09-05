@@ -26,6 +26,22 @@ const ORDER_ALERT_TO = envOr(process.env.ORDER_ALERT_EMAIL, envOr(process.env.AD
 
 export const isOrderAlertConfigured = Boolean(apiKey) && ORDER_ALERT_TO.length > 0;
 
+/**
+ * Whether the customer hears from us by email at all.
+ *
+ * Off unless switched on, because the shop reaches its customers on WhatsApp
+ * and an unexpected email from a sender they have never seen is a support
+ * question, not a courtesy. The alert to the shop is unaffected: it is how the
+ * parcel gets packed, and it always goes.
+ *
+ * Turning this on is one variable, and everything it enables is already
+ * written — the confirmation with the invoice attached, and the dispatch note.
+ */
+const CUSTOMER_EMAILS_ENABLED =
+  envOr(process.env.CUSTOMER_EMAILS_ENABLED, '').trim().toLowerCase() === 'true';
+
+export { CUSTOMER_EMAILS_ENABLED };
+
 let resend: Resend | null = null;
 function client(): Resend | null {
   if (!apiKey) return null;
@@ -119,7 +135,10 @@ function shell(title: string, inner: string): string {
 }
 
 /** Notifies the shop the moment a payment clears. */
-export async function sendAdminOrderEmail(order: Order): Promise<EmailResult> {
+export async function sendAdminOrderEmail(
+  order: Order,
+  invoicePdf?: Uint8Array,
+): Promise<EmailResult> {
   const api = client();
   if (!api) return { sent: false, skipped: 'RESEND_API_KEY is not set' };
   if (ORDER_ALERT_TO.length === 0) {
@@ -173,6 +192,21 @@ export async function sendAdminOrderEmail(order: Order): Promise<EmailResult> {
           ? `ACTION NEEDED — order #${shortOrderId(order.id)} paid but out of stock`
           : `New order #${shortOrderId(order.id)} — ${money(Number(order.total_amount))} to ${order.customer_city || order.customer_state || 'India'}`,
       html,
+      /*
+        The customer's receipt, attached to the shop's copy.
+
+        While customer emails are off this is the only place the invoice
+        exists outside the admin, and a shop that has to open a browser to
+        find the bill for the parcel in front of it will stop bothering.
+      */
+      attachments: invoicePdf
+        ? [
+            {
+              filename: `${invoiceNumber(order.id, order.created_at)}.pdf`,
+              content: Buffer.from(invoicePdf).toString('base64'),
+            },
+          ]
+        : undefined,
     });
     if (error) return { sent: false, error: error.message };
     return { sent: true, id: data?.id };
@@ -188,6 +222,10 @@ export async function sendCustomerConfirmationEmail(
 ): Promise<EmailResult> {
   const api = client();
   if (!api) return { sent: false, skipped: 'RESEND_API_KEY is not set' };
+  // Customer-facing, so it waits on the switch above.
+  if (!CUSTOMER_EMAILS_ENABLED) {
+    return { sent: false, skipped: 'CUSTOMER_EMAILS_ENABLED is not true' };
+  }
 
   const invoiceLink = appUrl(`/api/invoice/${order.id}`);
 
@@ -253,6 +291,10 @@ export async function sendShippedEmail(
 ): Promise<EmailResult> {
   const api = client();
   if (!api) return { sent: false, skipped: 'RESEND_API_KEY is not set' };
+  // Customer-facing, so it waits on the switch above.
+  if (!CUSTOMER_EMAILS_ENABLED) {
+    return { sent: false, skipped: 'CUSTOMER_EMAILS_ENABLED is not true' };
+  }
 
   const html = shell(
     'Your order has shipped',
