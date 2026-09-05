@@ -14,7 +14,8 @@ export default async function StoreLayout({ children }: { children: React.ReactN
     <>
       <Navbar categories={categories} />
       {usingDemoData && <DemoDataNotice />}
-      <main id="main" className="flex-grow pb-16 md:pb-0">
+      {/* Clears the bottom tab bar, which is now on screen up to lg. */}
+      <main id="main" className="flex-grow pb-16 lg:pb-0">
         {children}
       </main>
       <Footer categories={categories} />

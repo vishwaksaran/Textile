@@ -59,7 +59,7 @@ export function MobileNav({ categories = [] }: { categories?: Category[] }) {
   return (
     <nav
       aria-label="Quick navigation"
-      className="fixed bottom-0 left-0 right-0 z-30 flex items-stretch border-t border-primary-container/30 bg-warm-cream/95 backdrop-blur-md md:hidden"
+      className="fixed bottom-0 left-0 right-0 z-30 flex items-stretch border-t border-primary-container/30 bg-warm-cream/95 backdrop-blur-md lg:hidden"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <Tab href="/" active={onHome} label="Home">

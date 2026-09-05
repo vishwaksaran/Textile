@@ -56,7 +56,8 @@ export function WhatsAppFab() {
         'ring-1 ring-black/5 transition-[bottom,box-shadow] duration-300',
         'hover:shadow-[0_10px_28px_-6px_rgba(37,211,102,0.75)]',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-container focus-visible:ring-offset-2',
-        'md:right-6 md:bottom-6',
+        // The corner is only free once the tab bar has gone, which is now lg.
+        'md:right-6 lg:bottom-6',
         // Mobile: clear the tab bar, and the buy bar when it is up.
         buyBarVisible ? 'bottom-[140px]' : 'bottom-[76px]',
       )}

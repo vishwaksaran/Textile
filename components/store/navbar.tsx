@@ -16,7 +16,7 @@ import type { Category } from '@/types';
 export const TRENDING_HREF = '/collections?sort=newest';
 
 const navItemClass =
-  'flex items-center gap-1.5 border-b-2 pb-1 font-label-lg text-label-lg uppercase transition-colors';
+  'flex items-center gap-1.5 whitespace-nowrap border-b-2 pb-1 font-label-lg text-label-lg uppercase transition-colors';
 
 export function Navbar({ categories }: { categories: Category[] }) {
   const pathname = usePathname();
@@ -61,22 +61,31 @@ export function Navbar({ categories }: { categories: Category[] }) {
       {/* ------------------------------------------------------------ desktop */}
       <header
         className={cn(
-          'sticky top-0 z-40 hidden w-full border-b border-primary-container/30 bg-warm-cream/90 backdrop-blur-md transition-shadow md:block',
+          'sticky top-0 z-40 hidden w-full border-b border-primary-container/30 bg-warm-cream/90 backdrop-blur-md transition-shadow lg:block',
           scrolled && 'shadow-[0_4px_20px_-5px_rgba(74,4,4,0.06)]',
         )}
       >
-        <div className="container-page flex h-24 items-center justify-between gap-6">
+        <div className="container-page flex h-24 items-center justify-between gap-4 xl:gap-6">
           <Link
             href="/"
             className="flex flex-none items-center gap-3 text-deep-maroon transition-opacity duration-300 hover:opacity-80"
           >
-            <LogoMark className="h-11" priority />
-            <span className="font-display-lg text-headline-lg uppercase tracking-wider">
+            <LogoMark className="h-10 xl:h-11" priority />
+            {/* The mark carries the brand between lg and xl. Six nav items and
+                a fifteen-character wordmark do not both fit a 1024 line, and
+                the wordmark is the half a shopper can do without for 250px —
+                it is still the link home, and the name is in the title, the
+                footer and the page itself. */}
+            <span className="hidden whitespace-nowrap font-display-lg text-headline-lg uppercase tracking-wider xl:inline">
               {STORE.name}
             </span>
           </Link>
 
-          <nav aria-label="Primary" className="flex items-center gap-7">
+          {/* Tight at the width the desktop bar first appears, roomy once
+              there is room. At gap-7 throughout, the wordmark and six items
+              came to more than a 1024 line could hold and New & Trending
+              broke onto a second row. */}
+          <nav aria-label="Primary" className="flex items-center gap-4 xl:gap-7">
             {/* One item per top-level category. A section with children gets
                 a dropdown; one without is a plain link, so a new section
                 needs no code either way. */}
@@ -142,7 +151,7 @@ export function Navbar({ categories }: { categories: Category[] }) {
       </header>
 
       {/* ------------------------------------------------------------- mobile */}
-      <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between border-b border-primary-container/30 bg-warm-cream/90 px-margin-mobile backdrop-blur-md md:hidden">
+      <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between border-b border-primary-container/30 bg-warm-cream/90 px-margin-mobile backdrop-blur-md lg:hidden">
         <button
           type="button"
           onClick={() => setMobileOpen(true)}
@@ -174,7 +183,7 @@ export function Navbar({ categories }: { categories: Category[] }) {
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
-            className="fixed inset-0 z-50 overflow-y-auto bg-warm-cream md:hidden"
+            className="fixed inset-0 z-50 overflow-y-auto bg-warm-cream lg:hidden"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}

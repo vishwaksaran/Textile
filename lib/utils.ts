@@ -1,5 +1,39 @@
 import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { extendTailwindMerge } from 'tailwind-merge';
+
+/**
+ * tailwind-merge, told about this shop's type scale.
+ *
+ * The scale is named — `text-label-lg`, `text-body-md` — and so are the
+ * colours, `text-on-surface-variant`. Out of the box the merger cannot tell
+ * the two apart: it reads both as "a text- utility", decides they conflict,
+ * and keeps whichever came last. Every component that set a size and then a
+ * colour in one `cn()` call was quietly losing its size and rendering at
+ * whatever it inherited — which is how six nav items came to need more room
+ * than a 1024px line has.
+ *
+ * Naming the sizes is all it takes for the two groups to stop colliding.
+ */
+const twMerge = extendTailwindMerge({
+  extend: {
+    classGroups: {
+      'font-size': [
+        {
+          text: [
+            'body-lg',
+            'body-md',
+            'headline-lg',
+            'headline-md',
+            'display-lg',
+            'display-lg-mobile',
+            'label-lg',
+            'label-sm',
+          ],
+        },
+      ],
+    },
+  },
+});
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
