@@ -135,6 +135,27 @@ export async function fulfilPaidOrder(
       : Promise.resolve({ sent: false, skipped: 'no phone number on the order' }),
   ]);
 
+  /*
+    Anything that did not go out is written to the server log with its reason.
+
+    Each result already carries Meta's or Resend's own message, but it was
+    only ever returned to the browser that confirmed the payment — so a
+    failure was invisible the moment that tab closed, and invisible always on
+    the webhook path, which has no browser at all. A shop asking why no
+    WhatsApp arrived had nowhere to look.
+  */
+  for (const [channel, result] of [
+    ['admin email', adminResult],
+    ['customer email', customerResult],
+    ['whatsapp', whatsappResult],
+    ['sms', smsResult],
+  ] as const) {
+    if (result.sent) continue;
+    console.warn(
+      `[fulfilment] ${channel} not sent for order ${shortOrderId(orderId)}: ${describe(result)}`,
+    );
+  }
+
   return {
     order: withInvoice,
     alreadyProcessed: false,
