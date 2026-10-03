@@ -25,13 +25,20 @@ export async function generateMetadata({
   const product = await getProductById(params.id);
   if (!product) return { title: 'Piece not found' };
 
+  // A piece listed without a description still needs a snippet, or Google
+  // writes one from whatever text on the page it reaches first.
+  const description = (
+    product.description?.trim() ||
+    `${product.name} from ${STORE.name}, ${STORE.address.area} ${STORE.address.city}. Shipped insured across India.`
+  ).slice(0, 160);
+
   return {
     alternates: { canonical: canonical(`/product/${product.id}`) },
     title: product.name,
-    description: product.description?.slice(0, 160),
+    description,
     openGraph: {
       title: product.name,
-      description: product.description?.slice(0, 160),
+      description,
       images: product.images?.[0] ? [product.images[0]] : undefined,
     },
   };
@@ -89,8 +96,11 @@ export default async function ProductPage({ params }: { params: { id: string } }
     brand: { '@type': 'Brand', name: STORE.name },
     offers: {
       '@type': 'Offer',
+      url: canonical(`/product/${product.id}`),
       price,
       priceCurrency: 'INR',
+      itemCondition: 'https://schema.org/NewCondition',
+      seller: { '@type': 'Organization', name: STORE.name },
       availability: soldOut
         ? 'https://schema.org/OutOfStock'
         : 'https://schema.org/InStock',
