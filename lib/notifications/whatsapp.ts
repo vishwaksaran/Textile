@@ -7,7 +7,7 @@ const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID;
 const templateName = envOr(process.env.WHATSAPP_TEMPLATE_NAME, 'order_shipped_tracking');
 const confirmTemplateName = envOr(
   process.env.WHATSAPP_CONFIRM_TEMPLATE_NAME,
-  'order_confirmation',
+  'sls_order_confirmed',
 );
 const deliveredTemplateName = envOr(
   process.env.WHATSAPP_DELIVERED_TEMPLATE_NAME,
@@ -113,7 +113,7 @@ export interface WhatsAppConfirmationPayload {
 }
 
 /**
- * Sends the pre-approved `order_confirmation` template the moment payment
+ * Sends the pre-approved `sls_order_confirmed` template the moment payment
  * clears — the WhatsApp equivalent of a receipt.
  *
  * Body placeholders, in order:

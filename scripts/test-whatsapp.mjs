@@ -29,7 +29,7 @@ const DIM = (s) => `\x1b[2m${s}\x1b[0m`;
 
 const token = process.env.WHATSAPP_ACCESS_TOKEN?.trim();
 const phoneId = process.env.WHATSAPP_PHONE_NUMBER_ID?.trim();
-const template = (process.env.WHATSAPP_CONFIRM_TEMPLATE_NAME || 'order_confirmation').trim();
+const template = (process.env.WHATSAPP_CONFIRM_TEMPLATE_NAME || 'sls_order_confirmed').trim();
 const lang = (process.env.WHATSAPP_TEMPLATE_LANG || 'en').trim();
 const version = (process.env.WHATSAPP_GRAPH_VERSION || 'v21.0').trim();
 
