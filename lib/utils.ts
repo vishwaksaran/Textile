@@ -92,10 +92,11 @@ export function slugify(input: string): string {
  * that has already been issued.
  */
 export function describeItem(item: {
+  name_at_time?: string | null;
   variant_at_time?: string | null;
   products?: { name?: string | null } | null;
 }): string {
-  const name = item.products?.name ?? 'Handloom piece';
+  const name = item.name_at_time ?? item.products?.name ?? 'Handloom piece';
   return item.variant_at_time ? `${name} — ${item.variant_at_time}` : name;
 }
 

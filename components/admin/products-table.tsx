@@ -4,7 +4,7 @@ import * as React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Search, Trash2 } from 'lucide-react';
+import { Eye, EyeOff, Search, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState } from '@/components/admin/ui';
@@ -14,6 +14,7 @@ import { discountPercent, effectivePrice, formatINR } from '@/lib/utils';
 import type { Category, Product } from '@/types';
 
 type StockFilter = 'all' | 'in' | 'low' | 'out';
+type VisibilityFilter = 'all' | 'live' | 'hidden';
 
 export function ProductsTable({
   products,
@@ -28,9 +29,11 @@ export function ProductsTable({
   const [query, setQuery] = React.useState('');
   const [categoryId, setCategoryId] = React.useState('all');
   const [stock, setStock] = React.useState<StockFilter>(initialStock);
+  const [visibility, setVisibility] = React.useState<VisibilityFilter>('all');
   const [selected, setSelected] = React.useState<Set<string>>(new Set());
   const [confirming, setConfirming] = React.useState(false);
   const [deleting, setDeleting] = React.useState(false);
+  const [updating, setUpdating] = React.useState(false);
 
   const filtered = React.useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -40,9 +43,11 @@ export function ProductsTable({
       if (stock === 'out' && p.stock_quantity > 0) return false;
       if (stock === 'low' && (p.stock_quantity <= 0 || p.stock_quantity >= 5)) return false;
       if (stock === 'in' && p.stock_quantity <= 0) return false;
+      if (visibility === 'live' && !p.is_active) return false;
+      if (visibility === 'hidden' && p.is_active) return false;
       return true;
     });
-  }, [products, query, categoryId, stock]);
+  }, [products, query, categoryId, stock, visibility]);
 
   /*
     Ticks survive a search, but the header checkbox only ever speaks for what
@@ -81,15 +86,7 @@ export function ProductsTable({
         return;
       }
 
-      // Reported separately: "5 deleted" when two are still in the catalogue
-      // as hidden rows is a lie the shop only discovers later.
-      const said = [
-        data.deleted > 0 ? `${data.deleted} deleted` : null,
-        data.retired > 0
-          ? `${data.retired} hidden instead, having been ordered before`
-          : null,
-      ].filter(Boolean);
-      toast.success(said.join(' · '));
+      toast.success(`${data.deleted} deleted`);
 
       setSelected(new Set());
       router.refresh();
@@ -97,6 +94,32 @@ export function ProductsTable({
       toast.error('Network error — please try again.');
     } finally {
       setDeleting(false);
+    }
+  }
+
+  /** Hide or show — reversible, so it needs no confirmation. */
+  async function setVisible(ids: string[], visible: boolean) {
+    setUpdating(true);
+    try {
+      const res = await fetch('/api/admin/products/visibility', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids, visible }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error ?? 'Could not update.');
+        return;
+      }
+      toast.success(
+        `${ids.length} ${ids.length === 1 ? 'piece' : 'pieces'} ${visible ? 'now live on the website' : 'hidden from the website'}`,
+      );
+      setSelected(new Set());
+      router.refresh();
+    } catch {
+      toast.error('Network error — please try again.');
+    } finally {
+      setUpdating(false);
     }
   }
 
@@ -140,6 +163,17 @@ export function ProductsTable({
           <option value="low">Low (under 5)</option>
           <option value="out">Sold out</option>
         </select>
+
+        <select
+          value={visibility}
+          onChange={(e) => setVisibility(e.target.value as VisibilityFilter)}
+          aria-label="Filter by visibility"
+          className="rounded border border-outline-variant bg-surface-container-lowest px-3 py-2 font-body-md text-sm focus:border-deep-maroon focus:outline-none"
+        >
+          <option value="all">Live & hidden</option>
+          <option value="live">Live only</option>
+          <option value="hidden">Hidden only</option>
+        </select>
       </div>
 
       {filtered.length === 0 ? (
@@ -170,6 +204,24 @@ export function ProductsTable({
               <div className="flex gap-2">
                 <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())}>
                   Clear
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={updating}
+                  onClick={() => void setVisible([...selected], false)}
+                >
+                  <EyeOff className="h-3.5 w-3.5" />
+                  Hide
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={updating}
+                  onClick={() => void setVisible([...selected], true)}
+                >
+                  <Eye className="h-3.5 w-3.5" />
+                  Show
                 </Button>
                 <button
                   type="button"
@@ -277,7 +329,15 @@ export function ProductsTable({
                         <Badge variant="success">Live</Badge>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="whitespace-nowrap px-4 py-3 text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={updating}
+                        onClick={() => void setVisible([product.id], !product.is_active)}
+                      >
+                        {product.is_active ? 'Hide' : 'Show'}
+                      </Button>
                       <Button asChild variant="ghost" size="sm">
                         <Link href={`/admin/products/${product.id}`}>Edit</Link>
                       </Button>
@@ -308,12 +368,8 @@ export function ProductsTable({
 }
 
 /**
- * What the delete will actually do, named before it happens.
- *
- * A piece that appears in a past order is hidden rather than removed, so its
- * name survives on the invoice that was already issued. That is not what
- * "delete" leads a shop to expect, so the dialog says which pieces it applies
- * to before the click, not in a toast afterwards.
+ * What the delete will actually do, named before it happens — and where to
+ * go instead if the shop only wants the pieces off the website.
  */
 function describeProductDelete(chosen: Product[]): string {
   const names = chosen
@@ -322,5 +378,5 @@ function describeProductDelete(chosen: Product[]): string {
     .join(', ');
   const rest = chosen.length > 4 ? ` and ${chosen.length - 4} more` : '';
 
-  return `${names}${rest}. This cannot be undone. Anything that appears in a past order is hidden from the storefront instead of removed, so old invoices keep their item names.`;
+  return `${names}${rest}. This removes them for good and cannot be undone. Past orders and invoices keep the item names. To take them off the website but keep them, use Hide instead.`;
 }

@@ -361,11 +361,7 @@ export function ProductForm({ categories, product }: ProductFormProps) {
       return;
     }
 
-    toast.success(
-      data.deactivated
-        ? 'This piece appears in past orders, so it was hidden rather than deleted.'
-        : 'Product deleted.',
-    );
+    toast.success('Product deleted.');
     router.push('/admin/products');
     router.refresh();
   }
@@ -686,7 +682,7 @@ export function ProductForm({ categories, product }: ProductFormProps) {
         open={confirmDelete}
         onOpenChange={setConfirmDelete}
         title="Delete this product?"
-        description="If it appears in past orders it will be hidden from the storefront instead, so your order history stays intact."
+        description="This removes the piece for good. Past orders and invoices keep its name. To take it off the website but keep it, untick Visible on the storefront instead."
         confirmLabel="Delete"
         onConfirm={remove}
       />

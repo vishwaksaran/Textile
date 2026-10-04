@@ -121,6 +121,12 @@ export interface OrderItem {
   /** The size as printed. Frozen, so retiring a size cannot rewrite a receipt. */
   variant_at_time: string | null;
   /**
+   * The product name as sold. Frozen, so the piece can be deleted later
+   * without an issued invoice losing what it was for. Null falls back to the
+   * product's current name, for lines from before the column existed.
+   */
+  name_at_time: string | null;
+  /**
    * The photograph shown when this line was bought. Frozen for the same
    * reason: a value renamed or a picture replaced next season must not
    * change what a receipt from today appears to show. Null falls back to the

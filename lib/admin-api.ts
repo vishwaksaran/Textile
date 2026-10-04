@@ -164,3 +164,57 @@ export async function deleteCategorySubtree(
 
   return { deleted: doomed.length };
 }
+
+/**
+ * Deletes products outright, including ones that appear in past orders.
+ *
+ * Shared by the single and the bulk delete. An order line keeps its own
+ * copy of the name, photograph and tax code (see migration 0020), and the
+ * foreign key only clears product_id — so the invoice reads exactly as it
+ * did. Lines from before that copy existed are given it here first, so no
+ * receipt can lose what it was for, even if the migration's backfill missed
+ * them.
+ */
+export async function deleteProducts(ids: string[]): Promise<number> {
+  const supabase = requireAdminSupabase();
+
+  const { data: products, error: readError } = await supabase
+    .from('products')
+    .select('id, name, images, hsn_code, gst_rate')
+    .in('id', ids);
+  if (readError) throw new Error(readError.message);
+
+  for (const p of products ?? []) {
+    const { data: lines } = await supabase
+      .from('order_items')
+      .select('id, name_at_time, image_at_time, hsn_at_time, gst_rate_at_time')
+      .eq('product_id', p.id);
+
+    for (const line of lines ?? []) {
+      const freeze = {
+        name_at_time: line.name_at_time ?? p.name,
+        image_at_time: line.image_at_time ?? p.images?.[0] ?? null,
+        hsn_at_time: line.hsn_at_time ?? p.hsn_code ?? null,
+        gst_rate_at_time: line.gst_rate_at_time ?? p.gst_rate ?? null,
+      };
+      const { error } = await supabase.from('order_items').update(freeze).eq('id', line.id);
+      // Stop rather than delete a product an invoice still depends on.
+      if (error) throw new Error(`Could not keep the order history for ${p.name}: ${error.message}`);
+    }
+  }
+
+  // Variants, attribute values and option details cascade; order lines
+  // keep their copy and lose only the link.
+  const { error } = await supabase.from('products').delete().in('id', ids);
+  if (error) throw new Error(error.message);
+  return products?.length ?? 0;
+}
+
+/** Shows or hides products on the storefront without deleting anything. */
+export async function setProductsVisible(ids: string[], visible: boolean): Promise<void> {
+  const { error } = await requireAdminSupabase()
+    .from('products')
+    .update({ is_active: visible })
+    .in('id', ids);
+  if (error) throw new Error(error.message);
+}

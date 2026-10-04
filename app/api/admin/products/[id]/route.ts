@@ -10,7 +10,7 @@ import {
   saveOptionDetails,
   saveProductVariants,
 } from '@/lib/variants';
-import { errorResponse, validateProduct } from '@/lib/admin-api';
+import { deleteProducts, errorResponse, validateProduct } from '@/lib/admin-api';
 import { requireAdminSupabase } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
@@ -121,28 +121,10 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 export async function DELETE(_request: Request, { params }: { params: { id: string } }) {
   try {
     await requireAdmin();
-    const supabase = requireAdminSupabase();
 
-    // Products referenced by past orders are retired rather than deleted, so
-    // order history keeps its item names.
-    const { count } = await supabase
-      .from('order_items')
-      .select('id', { count: 'exact', head: true })
-      .eq('product_id', params.id);
-
-    if ((count ?? 0) > 0) {
-      const { error } = await supabase
-        .from('products')
-        .update({ is_active: false })
-        .eq('id', params.id);
-      if (error) throw new Error(error.message);
-      revalidateCatalogue({ productId: params.id });
-      return NextResponse.json({ deleted: false, deactivated: true });
-    }
-
-    // Attribute values go with the row: the foreign key cascades.
-    const { error } = await supabase.from('products').delete().eq('id', params.id);
-    if (error) throw new Error(error.message);
+    // Past orders keep their own copy of the name, so this always deletes.
+    // Hiding is a separate, reversible action.
+    await deleteProducts([params.id]);
     revalidateCatalogue({ productId: params.id });
     return NextResponse.json({ deleted: true });
   } catch (err) {
