@@ -71,6 +71,8 @@ export function ProductsTable({
   }
 
   const chosen = products.filter((p) => selected.has(p.id));
+  const liveChosen = chosen.filter((p) => p.is_active);
+  const hiddenChosen = chosen.filter((p) => !p.is_active);
 
   async function bulkDelete() {
     setDeleting(true);
@@ -205,24 +207,31 @@ export function ProductsTable({
                 <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())}>
                   Clear
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={updating}
-                  onClick={() => void setVisible([...selected], false)}
-                >
-                  <EyeOff className="h-3.5 w-3.5" />
-                  Hide
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={updating}
-                  onClick={() => void setVisible([...selected], true)}
-                >
-                  <Eye className="h-3.5 w-3.5" />
-                  Show
-                </Button>
+                {/* Each offered only when it would change something: Show on
+                    a selection that is already live is a button that does
+                    nothing. */}
+                {liveChosen.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={updating}
+                    onClick={() => void setVisible(liveChosen.map((p) => p.id), false)}
+                  >
+                    <EyeOff className="h-3.5 w-3.5" />
+                    Hide
+                  </Button>
+                )}
+                {hiddenChosen.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={updating}
+                    onClick={() => void setVisible(hiddenChosen.map((p) => p.id), true)}
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                    Show
+                  </Button>
+                )}
                 <button
                   type="button"
                   onClick={() => setConfirming(true)}
