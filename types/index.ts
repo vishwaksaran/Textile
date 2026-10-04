@@ -160,6 +160,28 @@ export interface Order {
   order_items?: OrderItem[];
 }
 
+export type LeadKind = 'wholesale' | 'retail';
+export type LeadStatus = 'new' | 'contacted' | 'converted' | 'closed';
+
+export interface Lead {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  kind: LeadKind;
+  name: string;
+  phone: string;
+  email: string | null;
+  business_name: string | null;
+  city: string | null;
+  interest: string | null;
+  quantity: string | null;
+  message: string | null;
+  product_id: string | null;
+  product_name: string | null;
+  status: LeadStatus;
+  notes: string | null;
+}
+
 export interface Admin {
   id: string;
   email: string;

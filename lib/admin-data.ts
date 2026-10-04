@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { requireAdminSupabase } from '@/lib/supabase/server';
-import type { Category, Order, Product } from '@/types';
+import type { Category, Lead, Order, Product } from '@/types';
 
 export interface DashboardStats {
   totalOrders: number;
@@ -201,4 +201,27 @@ export async function listAdminOrders(filters: OrderFilters = {}): Promise<Order
 
   const { data } = await query.order('created_at', { ascending: false }).limit(200);
   return (data ?? []) as Order[];
+}
+
+export interface LeadFilters {
+  status?: string;
+  kind?: string;
+  q?: string;
+}
+
+export async function listAdminLeads(filters: LeadFilters = {}): Promise<Lead[]> {
+  const supabase = requireAdminSupabase();
+
+  let query = supabase.from('leads').select('*');
+  if (filters.status && filters.status !== 'all') query = query.eq('status', filters.status);
+  if (filters.kind && filters.kind !== 'all') query = query.eq('kind', filters.kind);
+  if (filters.q?.trim()) {
+    const term = filters.q.trim();
+    query = query.or(
+      `name.ilike.%${term}%,phone.ilike.%${term}%,city.ilike.%${term}%,business_name.ilike.%${term}%`,
+    );
+  }
+
+  const { data } = await query.order('created_at', { ascending: false }).limit(200);
+  return (data ?? []) as Lead[];
 }

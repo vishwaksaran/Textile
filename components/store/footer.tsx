@@ -16,6 +16,7 @@ const EXPLORE = [
   { href: '/story', label: 'Our Story' },
   { href: '/contact', label: 'Contact Us' },
   { href: '/visit', label: 'Visit the Shop' },
+  { href: '/wholesale', label: 'Wholesale Enquiries' },
   { href: '/authenticity', label: 'Authenticity Guarantee' },
   { href: '/faq', label: 'Questions, Answered' },
 ];
@@ -65,6 +66,13 @@ export function Footer({ categories = [] }: { categories?: Category[] }) {
           <p className="font-body-md text-sm text-warm-cream/80">
             {storeHoursLines().join(' · ')}
           </p>
+          <Link
+            href="/wholesale"
+            className="inline-flex items-center gap-2 rounded border border-primary-container px-4 py-2 font-label-sm text-label-sm uppercase tracking-wider text-primary-fixed transition-colors hover:bg-primary-container/10"
+          >
+            Wholesale Enquiries
+            <ArrowRight className="h-4 w-4" strokeWidth={1.5} />
+          </Link>
         </div>
 
         {/* Weaves and other garments are listed apart here for the same reason

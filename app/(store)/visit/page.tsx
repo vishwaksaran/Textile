@@ -99,9 +99,9 @@ export default function VisitPage() {
 
         <h2>Wholesale</h2>
         <p>
-          The shop serves both wholesale and retail buyers. Wholesale is handled in person or by
-          phone rather than through this website, which lists retail prices only — call{' '}
-          {STORE.phone} to discuss quantities.
+          The shop serves both wholesale and retail buyers. This website lists retail prices
+          only — <Link href="/wholesale">send a wholesale enquiry</Link> or call {STORE.phone}{' '}
+          and we will quote for your quantity.
         </p>
 
         <h2>Buying from a distance</h2>

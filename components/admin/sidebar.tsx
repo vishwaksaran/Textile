@@ -7,6 +7,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard,
   ShoppingCart,
+  Inbox,
   Tags,
   Boxes,
   ImageIcon,
@@ -25,6 +26,7 @@ import { cn } from '@/lib/utils';
 export const ADMIN_NAV = [
   { href: '/admin', label: 'Overview', Icon: LayoutDashboard, exact: true },
   { href: '/admin/orders', label: 'Orders', Icon: ShoppingCart },
+  { href: '/admin/leads', label: 'Leads', Icon: Inbox },
   { href: '/admin/categories', label: 'Category Manager', Icon: Tags },
   { href: '/admin/products', label: 'Inventory', Icon: Boxes },
   { href: '/admin/settings/banner', label: 'Home Banner', Icon: ImageIcon },

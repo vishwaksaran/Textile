@@ -7,7 +7,7 @@ import { Reveal } from '@/components/shared/motion';
 import { Button } from '@/components/ui/button';
 import { getCategories, getHeroSlides, getLatestProducts } from '@/lib/data';
 import { CategoryShowcase } from '@/components/store/category-showcase';
-import { STORE, marqueeNotices } from '@/lib/config';
+import { STORE, marqueeNotices, whatsappUrl } from '@/lib/config';
 import { getPublicShippingSettings } from '@/lib/shipping-settings';
 import { Marquee } from '@/components/store/marquee';
 import { ARTISAN_IMAGE, HERO_SLIDE_IMAGES } from '@/lib/demo-data';
@@ -139,6 +139,49 @@ export default async function HomePage() {
 
           <ProductGrid products={latest} />
         </div>
+      </section>
+
+      {/* ------------------------------------------------------------ wholesale */}
+      <section className="bg-deep-maroon py-16 md:py-20" aria-labelledby="wholesale-heading">
+        <Reveal className="container-page flex flex-col items-start justify-between gap-8 lg:flex-row lg:items-center">
+          <div className="max-w-2xl">
+            <p className="mb-2 font-label-sm text-label-sm uppercase tracking-widest text-primary-container">
+              For Shops, Boutiques &amp; Resellers
+            </p>
+            <h2
+              id="wholesale-heading"
+              className="mb-4 font-headline-lg text-headline-lg italic text-primary-fixed"
+            >
+              Wholesale Silk Sarees from {STORE.address.city}
+            </h2>
+            <p className="font-body-md text-body-md leading-relaxed text-warm-cream/80">
+              Kanchipuram, Banarasi, soft silk and cotton sarees supplied to shops across India.
+              Tell us what you need and we will call back with prices for your quantity.
+            </p>
+          </div>
+          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+            <Button asChild variant="gold" size="lg">
+              <Link href="/wholesale">
+                Get Wholesale Prices
+                <ArrowRight className="h-4 w-4" />
+              </Link>
+            </Button>
+            <Button
+              asChild
+              variant="outline"
+              size="lg"
+              className="border-primary-container text-primary-fixed hover:bg-primary-container/10"
+            >
+              <a
+                href={whatsappUrl('Hello, I would like wholesale prices for sarees.')}
+                target="_blank"
+                rel="noreferrer"
+              >
+                WhatsApp Us
+              </a>
+            </Button>
+          </div>
+        </Reveal>
       </section>
 
       {/* ----------------------------------------------------- artisan's journey */}

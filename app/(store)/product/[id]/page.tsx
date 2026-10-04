@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Truck, ShieldCheck, RotateCcw, type LucideIcon } from 'lucide-react';
 import { Breadcrumbs } from '@/components/store/breadcrumbs';
@@ -224,6 +225,12 @@ export default async function ProductPage({ params }: { params: { id: string } }
 
           <div id="buy-box" className="scroll-mt-32 pt-2">
             <AddToCart product={product} />
+            <Link
+              href={`/wholesale?product=${product.id}`}
+              className="mt-4 block text-center font-body-md text-sm text-deep-maroon underline underline-offset-4"
+            >
+              Buying for your shop? Ask for the wholesale price
+            </Link>
           </div>
 
           <ul className="grid grid-cols-1 gap-4 border-t border-outline-variant/40 pt-6 sm:grid-cols-3">

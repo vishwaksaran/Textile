@@ -4,7 +4,7 @@ import { Resend } from 'resend';
 import { STORE, appUrl, envOr, storeAddressOneLine } from '@/lib/config';
 import { emailThumbUrl } from '@/lib/images';
 import { itemImage, describeItem, formatDate, invoiceNumber, shortOrderId } from '@/lib/utils';
-import type { Order } from '@/types';
+import type { Lead, Order } from '@/types';
 
 const apiKey = process.env.RESEND_API_KEY;
 export const isEmailConfigured = Boolean(apiKey);
@@ -344,6 +344,61 @@ export async function sendShippedEmail(
       from: FROM,
       to: order.customer_email,
       subject: `Your ${STORE.name} order has shipped`,
+      html,
+    });
+    if (error) return { sent: false, error: error.message };
+    return { sent: true, id: data?.id };
+  } catch (err) {
+    return { sent: false, error: (err as Error).message };
+  }
+}
+
+/**
+ * Tells the shop someone has asked to be called back.
+ *
+ * Goes to the same private inbox as order alerts. The subject carries the
+ * name, city and quantity, so the shop can decide from a lock screen who to
+ * ring first; the buttons open a call or a WhatsApp chat straight from it.
+ */
+export async function sendAdminLeadEmail(lead: Lead): Promise<EmailResult> {
+  const api = client();
+  if (!api) return { sent: false, skipped: 'RESEND_API_KEY is not set' };
+  if (ORDER_ALERT_TO.length === 0) {
+    return { sent: false, skipped: 'ORDER_ALERT_EMAIL is not set' };
+  }
+
+  const label = lead.kind === 'wholesale' ? 'Wholesale enquiry' : 'Retail enquiry';
+  const row = (name: string, value: string | null) =>
+    value
+      ? `<tr><td style="padding:6px 0;color:#4d4635;width:130px;vertical-align:top;">${name}</td>
+           <td style="padding:6px 0;color:#1f1b13;">${escapeHtml(value)}</td></tr>`
+      : '';
+  const button = (href: string, text: string) =>
+    `<a href="${href}" style="display:inline-block;background:#4A0404;color:#ffe088;padding:12px 20px;margin:0 8px 8px 0;text-decoration:none;font-size:12px;letter-spacing:1px;text-transform:uppercase;">${text}</a>`;
+
+  const html = shell(
+    label,
+    `<h1 style="font-family:Georgia,serif;font-size:20px;color:#4A0404;margin:0 0 16px;">${escapeHtml(lead.name)}</h1>
+     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-size:14px;margin:0 0 20px;">
+       ${row('Phone', lead.phone)}
+       ${row('Shop / business', lead.business_name)}
+       ${row('City', lead.city)}
+       ${row('Interested in', lead.interest)}
+       ${row('Quantity', lead.quantity)}
+       ${row('Piece viewed', lead.product_name)}
+       ${row('Email', lead.email)}
+       ${row('Message', lead.message)}
+     </table>
+     ${button(`https://wa.me/91${lead.phone}`, 'WhatsApp them')}
+     ${button(`tel:+91${lead.phone}`, 'Call')}
+     ${button(appUrl('/admin/leads'), 'Open leads')}`,
+  );
+
+  try {
+    const { data, error } = await api.emails.send({
+      from: FROM,
+      to: ORDER_ALERT_TO,
+      subject: `${label}: ${lead.name}${lead.city ? `, ${lead.city}` : ''}${lead.quantity ? ` — ${lead.quantity}` : ''}`,
       html,
     });
     if (error) return { sent: false, error: error.message };

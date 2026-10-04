@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { MapPin, MessageCircle, Phone, type LucideIcon } from 'lucide-react';
 import { ProsePage } from '@/components/store/prose-page';
 import { STORE, storeAddressLines, whatsappUrl } from '@/lib/config';
@@ -54,6 +55,10 @@ export default function ContactPage() {
       <p>
         For trousseau selections we set aside an hour and bring pieces out that are not on the
         website. Call ahead so we can have the right weaves ready.
+      </p>
+      <p>
+        Buying for a shop? <Link href="/wholesale">Send a wholesale enquiry</Link> and we will
+        call back with prices for your quantity.
       </p>
     </ProsePage>
   );
