@@ -92,6 +92,39 @@ export function CheckoutForm({ shippingSettings }: { shippingSettings: ShippingS
     }
   }, [details]);
 
+  /*
+    Re-check prices and stock on arrival, as the cart page does. A shopper
+    can reach checkout from the cart drawer without ever opening /cart, and
+    the summary below would otherwise show whatever the piece cost when it
+    was added — not what the server is about to charge.
+  */
+  React.useEffect(() => {
+    if (!hydrated || items.length === 0) return;
+    const ids = [...new Set(items.map((i) => i.productId))];
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await fetch('/api/cart/validate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ productIds: ids }),
+        });
+        if (!res.ok || cancelled) return;
+        const notes = reconcile((await res.json()).levels);
+        notes.forEach((note) => toast.warning(note));
+      } catch {
+        // Offline — the server re-prices before creating the payment anyway.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // Once per arrival; quantity edits here do not need a re-check.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated]);
+
   // The destination is known here, so this is the real charge rather than an
   // estimate — and it is the same number the server recomputes before it
   // creates the Razorpay order.

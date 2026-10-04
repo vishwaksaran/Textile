@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { createPublicSupabase, isSupabaseConfigured } from '@/lib/supabase/server';
+import { createFreshPublicSupabase, createPublicSupabase, isSupabaseConfigured } from '@/lib/supabase/server';
 import { DEMO_CATEGORIES, DEMO_PRODUCTS } from '@/lib/demo-data';
 import { getAxisDefinitions, getOptionDetails, getProductVariants } from '@/lib/variants';
 import { effectivePrice } from '@/lib/utils';
@@ -266,7 +266,8 @@ export async function getStockLevels(
   productIds: string[],
 ): Promise<Record<string, { stock: number; price: number; name: string }>> {
   if (productIds.length === 0) return {};
-  const supabase = createPublicSupabase();
+  // Never cached: this is what a cart corrects its prices and stock against.
+  const supabase = createFreshPublicSupabase();
 
   if (!supabase) {
     return Object.fromEntries(

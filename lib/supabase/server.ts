@@ -73,6 +73,22 @@ export function createPublicSupabase(): SupabaseClient | null {
 }
 
 /**
+ * The same anon client, with the Data Cache switched off.
+ *
+ * For public reads a shopper acts on — the live price and stock a cart
+ * checks itself against. Read through the cached client, a price changed in
+ * the admin kept coming back as the old one, so the cart "corrected" itself
+ * to a figure that was no longer true.
+ */
+export function createFreshPublicSupabase(): SupabaseClient | null {
+  if (!isSupabaseConfigured) return null;
+  return createSupabaseClient(supabaseUrl!, anonKey!, {
+    auth: { persistSession: false, autoRefreshToken: false },
+    global: { fetch: uncachedFetch },
+  });
+}
+
+/**
  * Request-scoped client that carries the caller's auth cookie.
  * Reads run under RLS, so this is safe to use for anything user-facing.
  */
