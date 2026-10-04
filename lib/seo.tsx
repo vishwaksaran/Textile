@@ -29,7 +29,7 @@ export function storeJsonLd() {
     '@id': `${appUrl()}#store`,
     name: STORE.name,
     legalName: STORE.legalName,
-    description: `Retail saree showroom on Big Bazaar Street, ${STORE.address.area}, ${STORE.address.city}. Handloom silk sarees sourced from weaving clusters across India — Kanchipuram, Banarasi, khadi cotton and bridal weaves — sold in store and shipped nationwide.`,
+    description: `Wholesale and retail saree showroom on Big Bazaar Street, ${STORE.address.area}, ${STORE.address.city}. Handloom silk sarees sourced from weaving clusters across India — Kanchipuram, Banarasi, khadi cotton and bridal weaves — sold in store and shipped nationwide.`,
     url: appUrl(),
     logo: appUrl('/icon.png'),
     image: appUrl('/icon.png'),

@@ -129,12 +129,17 @@ export default async function HomePage() {
                 Latest Arrivals
               </h2>
             </div>
-            <Button asChild variant="outline">
-              <Link href="/collections">
-                View all
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
+            <div className="flex flex-wrap gap-3">
+              <Button asChild variant="outline">
+                <Link href="/budget-sarees">Sarees under ₹1,000</Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link href="/collections">
+                  View all
+                  <ArrowRight className="h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
           </Reveal>
 
           <ProductGrid products={latest} />

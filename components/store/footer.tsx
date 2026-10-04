@@ -17,6 +17,7 @@ const EXPLORE = [
   { href: '/contact', label: 'Contact Us' },
   { href: '/visit', label: 'Visit the Shop' },
   { href: '/wholesale', label: 'Wholesale Enquiries' },
+  { href: '/budget-sarees', label: 'Budget Sarees' },
   { href: '/authenticity', label: 'Authenticity Guarantee' },
   { href: '/faq', label: 'Questions, Answered' },
 ];

@@ -36,19 +36,19 @@ const body = Libre_Franklin({
 export const metadata: Metadata = {
   metadataBase: new URL(appUrl()),
   title: {
-    default: `Handloom Silk Sarees — ${STORE.name}, ${STORE.address.area} ${STORE.address.city}`,
+    default: `Wholesale & Retail Sarees in ${STORE.address.city} — ${STORE.name}`,
     template: `%s | ${STORE.name}`,
   },
   description:
-    'Silk saree shop on Big Bazaar Street, Town Hall, Coimbatore. Kanchipuram, Banarasi, khadi cotton and bridal weaves — in store, and shipped across India.',
+    'Wholesale and retail saree shop on Big Bazaar Street, Town Hall, Coimbatore. Silk, cotton and budget-friendly sarees — in store, and shipped across India.',
   keywords: [
-    'handloom sarees',
-    'Kanchipuram silk saree',
-    'Banarasi saree',
-    'khadi cotton saree',
-    'bridal silk saree',
+    'wholesale sarees Coimbatore',
+    'budget sarees Coimbatore',
     'saree shop Town Hall Coimbatore',
     'silk saree shop Coimbatore',
+    'cotton sarees Coimbatore',
+    'Kanchipuram silk saree',
+    'Banarasi saree',
   ],
   openGraph: {
     title: `Handloom Silk Sarees Online — ${STORE.name}`,
