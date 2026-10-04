@@ -5,12 +5,12 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ShoppingBag, Trash2 } from 'lucide-react';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { QuantitySelector } from '@/components/store/quantity-selector';
 import { OrderSummary } from '@/components/store/order-summary';
 import { Skeleton } from '@/components/shared/skeleton';
 import { lineKey, useCartStore } from '@/stores/cart-store';
+import { useCartReconcile } from '@/hooks/use-cart-reconcile';
 import { COMMERCE } from '@/lib/config';
 import { formatINR } from '@/lib/utils';
 
@@ -20,36 +20,8 @@ export function CartView() {
   const hydrated = useCartStore((s) => s.hydrated);
   const setQuantity = useCartStore((s) => s.setQuantity);
   const remove = useCartStore((s) => s.remove);
-  const reconcile = useCartStore((s) => s.reconcile);
 
-  React.useEffect(() => {
-    if (!hydrated || items.length === 0) return;
-    // Two sizes of one piece are one product to this call.
-    const ids = [...new Set(items.map((i) => i.productId))];
-    let cancelled = false;
-
-    (async () => {
-      try {
-        const res = await fetch('/api/cart/validate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ productIds: ids }),
-        });
-        if (!res.ok || cancelled) return;
-        const { levels } = await res.json();
-        const notes = reconcile(levels);
-        notes.forEach((note) => toast.warning(note));
-      } catch {
-        // Offline or transient — the checkout re-validates before payment.
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-    // Runs once per mount; quantity edits do not need a re-check.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated]);
+  useCartReconcile();
 
   if (!hydrated) {
     return (

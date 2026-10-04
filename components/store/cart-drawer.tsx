@@ -9,6 +9,7 @@ import { ShoppingBag, Trash2, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { QuantitySelector } from '@/components/store/quantity-selector';
 import { lineKey, useCartStore, cartTotals } from '@/stores/cart-store';
+import { useCartReconcile } from '@/hooks/use-cart-reconcile';
 import { COMMERCE } from '@/lib/config';
 import { formatINR } from '@/lib/utils';
 
@@ -23,6 +24,9 @@ export function CartDrawer() {
   const items = useCartStore((s) => s.items);
   const setQuantity = useCartStore((s) => s.setQuantity);
   const remove = useCartStore((s) => s.remove);
+
+  // Re-checked each time the drawer opens, so it never shows a stale price.
+  useCartReconcile(isOpen);
 
   const { subtotal, savings } = cartTotals(items);
   const awayFromFreeShipping = Math.max(COMMERCE.freeShippingThreshold - subtotal, 0);
