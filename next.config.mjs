@@ -38,6 +38,14 @@ const nextConfig = {
       ...(supabaseHost ? [{ protocol: 'https', hostname: supabaseHost }] : []),
     ],
   },
+  /**
+   * /about is the URL people and AI answers guess for an About page; the
+   * page itself has always lived at /story, which is already indexed.
+   */
+  async redirects() {
+    return [{ source: '/about', destination: '/story', permanent: true }];
+  },
+
   experimental: {
     optimizePackageImports: ['lucide-react', 'framer-motion'],
   },

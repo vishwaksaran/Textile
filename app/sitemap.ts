@@ -25,15 +25,27 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/privacy',
     '/track',
   ].map((path) => ({
+    // No lastModified: stamping every static page with the build time tells
+    // Google they all changed on every regeneration, which teaches it to
+    // ignore the field — including on products, where it is real.
     url: appUrl(path),
-    lastModified: new Date(),
     changeFrequency: 'weekly' as const,
     priority: path === '' ? 1 : 0.6,
   }));
 
+  /*
+    Only collections with something in them. An empty one is marked noindex
+    on its own page, and listing it here as well would be asking Google to
+    crawl a page while telling it not to keep it.
+  */
+  const counts = await Promise.all(
+    categories.map((c) => getProducts({ categorySlug: c.slug, limit: 1 })),
+  );
+  const stocked = categories.filter((_, i) => counts[i].total > 0);
+
   return [
     ...staticPages,
-    ...categories.map((c) => ({
+    ...stocked.map((c) => ({
       url: appUrl(`/category/${c.slug}`),
       lastModified: new Date(),
       changeFrequency: 'daily' as const,

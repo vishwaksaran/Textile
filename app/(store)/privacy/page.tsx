@@ -14,6 +14,7 @@ export default function PrivacyPage() {
     <ProsePage
       eyebrow="Your details"
       title="Privacy Policy"
+      path="/privacy"
       intro="We collect the minimum needed to send you a saree and an invoice, and nothing else."
     >
       <h2>What we collect</h2>

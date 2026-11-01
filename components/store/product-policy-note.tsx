@@ -56,7 +56,7 @@ export function ProductPolicyNote() {
               Message us on WhatsApp as soon as you open the parcel, with the video and a
               photograph of the fault — that part matters straight away, wherever you are.
               Then bring the piece to us at {STORE.address.landmark}, {STORE.address.city},
-              with its tags and authenticity card, whenever you are next able to. Exchanges
+              with its tags, whenever you are next able to. Exchanges
               cannot be completed by post or online: we need to see the cloth and the fault
               ourselves.
             </p>

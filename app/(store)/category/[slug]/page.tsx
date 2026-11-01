@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { ListingView } from '@/components/store/listing-view';
 import { CategoryHero } from '@/components/store/category-hero';
 import { ProductGridSkeleton } from '@/components/shared/skeleton';
-import { getCategories, getCategoryBySlug } from '@/lib/data';
+import { getCategories, getCategoryBySlug, getProducts } from '@/lib/data';
 import { JsonLd, breadcrumbJsonLd, canonical } from '@/lib/seo';
 import { STORE } from '@/lib/config';
 
@@ -41,10 +41,18 @@ export async function generateMetadata({
   const description =
     category.seo_description?.trim() ||
     category.description ||
-    `Handwoven ${noun.toLowerCase()} at our ${STORE.address.area}, ${STORE.address.city} showroom, and shipped across India.`;
+    `Shop ${noun.toLowerCase()} at ${STORE.name}, Big Bazaar Street, ${STORE.address.area}, ${STORE.address.city}. Buy in store or online with delivery across India; wholesale enquiries welcome.`;
+
+  // A collection with nothing in it yet is a page Google calls thin, and
+  // thin pages weigh on how it rates the rest of the site. It stays open to
+  // visitors and its links are still followed; it simply asks not to be
+  // indexed until the first piece lands, which happens without anyone
+  // remembering to undo this.
+  const { total } = await getProducts({ categorySlug: category.slug, limit: 1 });
 
   return {
     alternates: { canonical: canonical(`/category/${category.slug}`) },
+    ...(total === 0 ? { robots: { index: false, follow: true } } : {}),
     title,
     description,
     openGraph: {
@@ -65,12 +73,20 @@ export default async function CategoryPage({
   const category = await getCategoryBySlug(params.slug);
   if (!category) notFound();
 
+  // A weave that sits under a section (Banarasi under Sarees) shows that
+  // section in its trail, so both readers and Google see the hierarchy the
+  // menu already uses.
+  const parent = category.parent_id
+    ? (await getCategories()).find((c) => c.id === category.parent_id)
+    : undefined;
+
   return (
     <>
       <JsonLd
         data={breadcrumbJsonLd([
           { name: 'Home', path: '/' },
           { name: 'Collections', path: '/collections' },
+          ...(parent ? [{ name: parent.name, path: `/category/${parent.slug}` }] : []),
           { name: category.name, path: `/category/${category.slug}` },
         ])}
       />
@@ -82,6 +98,7 @@ export default async function CategoryPage({
         name={category.name}
         description={category.description}
         imageUrl={category.image_url}
+        parent={parent ? { name: parent.name, slug: parent.slug } : undefined}
       />
 
       <Suspense

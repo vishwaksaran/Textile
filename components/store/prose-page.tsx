@@ -1,17 +1,32 @@
 import { Breadcrumbs } from '@/components/store/breadcrumbs';
 import { AnimatedPage } from '@/components/shared/motion';
+import { JsonLd, breadcrumbJsonLd } from '@/lib/seo';
 
 interface ProsePageProps {
   eyebrow: string;
   title: string;
   intro?: string;
+  /**
+   * The page's own path. When given, the visible trail is also published as
+   * BreadcrumbList markup, so the two cannot disagree.
+   */
+  path?: string;
   children: React.ReactNode;
 }
 
 /** Shared layout for the store's editorial and policy pages. */
-export function ProsePage({ eyebrow, title, intro, children }: ProsePageProps) {
+export function ProsePage({ eyebrow, title, intro, path, children }: ProsePageProps) {
   return (
     <AnimatedPage>
+      {path && (
+        <JsonLd
+          data={breadcrumbJsonLd([
+            { name: 'Home', path: '/' },
+            { name: title, path },
+          ])}
+        />
+      )}
+
       <div className="container-page pt-6">
         <Breadcrumbs trail={[{ label: 'Home', href: '/' }, { label: title }]} />
       </div>
@@ -29,7 +44,7 @@ export function ProsePage({ eyebrow, title, intro, children }: ProsePageProps) {
           )}
         </header>
 
-        <div className="mx-auto max-w-2xl space-y-6 font-body-md text-body-md leading-relaxed text-on-surface-variant [&_a]:text-deep-maroon [&_a]:underline [&_h2]:pt-4 [&_h2]:font-headline-md [&_h2]:text-headline-md [&_h2]:text-deep-maroon [&_li]:pl-1 [&_strong]:text-on-surface [&_ul]:list-disc [&_ul]:space-y-2 [&_ul]:pl-5">
+        <div className="mx-auto max-w-2xl space-y-6 font-body-md text-body-md leading-relaxed text-on-surface-variant [&_a]:text-deep-maroon [&_a]:underline [&_h2]:scroll-mt-28 [&_h2]:pt-4 [&_h2]:font-headline-md [&_h2]:text-headline-md [&_h2]:text-deep-maroon [&_h3]:scroll-mt-28 [&_h3]:font-semibold [&_h3]:text-deep-maroon [&_li]:pl-1 [&_strong]:text-on-surface [&_ul]:list-disc [&_ul]:space-y-2 [&_ul]:pl-5">
           {children}
         </div>
       </article>

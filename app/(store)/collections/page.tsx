@@ -3,14 +3,14 @@ import type { Metadata } from 'next';
 import { ListingView } from '@/components/store/listing-view';
 import { ProductGridSkeleton } from '@/components/shared/skeleton';
 import { Breadcrumbs } from '@/components/store/breadcrumbs';
-import { canonical } from '@/lib/seo';
+import { JsonLd, breadcrumbJsonLd, canonical } from '@/lib/seo';
+import { STORE } from '@/lib/config';
 
 export const metadata: Metadata = {
   alternates: { canonical: canonical('/collections') },
   // "All Collections" matches nothing anyone types into Google.
-  title: 'Buy Handloom Sarees Online',
-  description:
-    'Shop every handloom saree we carry — Kanchipuram silk, Banarasi brocade, khadi cotton and bridal weaves. Direct from the loom, shipped across India.',
+  title: 'Buy Cotton, Tussar & Banarasi Sarees Online',
+  description: `Shop cotton, tissue cotton, khadi and semi-handloom tussar sarees and churidars from ${STORE.name}, Town Hall, Coimbatore. Delivery across India.`,
 };
 
 export default function CollectionsPage({
@@ -20,6 +20,13 @@ export default function CollectionsPage({
 }) {
   return (
     <>
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: 'Home', path: '/' },
+          { name: 'All Collections', path: '/collections' },
+        ])}
+      />
+
       <div className="container-page pt-6">
         <Breadcrumbs trail={[{ label: 'Home', href: '/' }, { label: 'All Collections' }]} />
       </div>
@@ -32,8 +39,8 @@ export default function CollectionsPage({
           Every Weave in the House
         </h1>
         <p className="mx-auto max-w-2xl font-body-md text-body-md text-on-surface-variant">
-          Filter by price, weave and availability. Everything listed here is in our Coimbatore
-          store and ships within two working days.
+          Filter by price, weave and availability. Everything listed here is in our Town Hall,
+          Coimbatore shop, and orders are despatched within three days.
         </p>
       </header>
 

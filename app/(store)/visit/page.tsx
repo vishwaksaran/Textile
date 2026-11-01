@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button';
 import {
   STORE,
   storeAddressLines,
-  storeAddressOneLine,
   storeHoursLines,
+  storeMapsUrl,
   whatsappUrl,
 } from '@/lib/config';
 import { JsonLd, canonical, storeJsonLd } from '@/lib/seo';
@@ -15,10 +15,8 @@ import { JsonLd, canonical, storeJsonLd } from '@/lib/seo';
 export const metadata: Metadata = {
   alternates: { canonical: canonical('/visit') },
   title: `Saree Shop in ${STORE.address.area}, ${STORE.address.city}`,
-  description: `Handloom silk sarees on Big Bazaar Street, ${STORE.address.area}, ${STORE.address.city} — Kanchipuram, Banarasi and weaves from across India. Wholesale enquiries welcome.`,
+  description: `Visit our saree shop on Big Bazaar Street, ${STORE.address.area}, ${STORE.address.city} — address, opening hours, directions and phone. Retail and wholesale buyers welcome.`,
 };
-
-const MAPS_QUERY = encodeURIComponent(`${STORE.name}, ${storeAddressOneLine()}`);
 
 /**
  * The shop's own page.
@@ -39,9 +37,10 @@ export default function VisitPage() {
       <ProsePage
         eyebrow="Come and see the cloth"
         title={`Our Shop in ${STORE.address.area}`}
+        path="/visit"
         intro={`Silk is difficult to judge from a photograph. If you are in ${STORE.address.city}, the whole range is on the shelf.`}
       >
-        <h2>Where to find us</h2>
+        <h2 id="address">Where to find us</h2>
         <address className="not-italic">
           {storeAddressLines().map((line) => (
             <span key={line} className="block">
@@ -56,7 +55,7 @@ export default function VisitPage() {
           number 42.
         </p>
 
-        <h2>When we are open</h2>
+        <h2 id="hours">When we are open</h2>
         <ul>
           {storeHoursLines().map((line) => (
             <li key={line}>{line}</li>
@@ -67,7 +66,7 @@ export default function VisitPage() {
         <div className="not-prose my-8 flex flex-wrap gap-3">
           <Button asChild>
             <a
-              href={`https://www.google.com/maps/search/?api=1&query=${MAPS_QUERY}`}
+              href={storeMapsUrl()}
               target="_blank"
               rel="noreferrer"
             >
@@ -89,27 +88,25 @@ export default function VisitPage() {
           </Button>
         </div>
 
-        <h2>What is on the shelf</h2>
+        <h2 id="range">What is on the shelf</h2>
         <p>
-          We buy from weaving clusters across India, so the range is wider than one region —
-          Kanchipuram silk and Banarasi brocade alongside khadi cotton and bridal weaves. Every
-          piece carries the card naming its weaver, whether you buy it here or{' '}
-          <Link href="/collections">online</Link>.
+          We keep {STORE.offering}. Most of what is in the shop is also listed{' '}
+          <Link href="/collections">online</Link>, with prices.
         </p>
 
-        <h2>Wholesale</h2>
+        <h2 id="wholesale">Wholesale</h2>
         <p>
           The shop serves both wholesale and retail buyers. This website lists retail prices
           only — <Link href="/wholesale">send a wholesale enquiry</Link> or call {STORE.phone}{' '}
           and we will quote for your quantity.
         </p>
 
-        <h2>Buying from a distance</h2>
+        <h2 id="from-a-distance">Buying from a distance</h2>
         <p>
           If you cannot visit, everything on the site ships across India, and we will answer
-          questions about weight, drape or zari over <a href={whatsappUrl()}>WhatsApp</a> before
+          questions about fabric, colour or drape over <a href={whatsappUrl()}>WhatsApp</a> before
           you commit to a piece. Read more on{' '}
-          <Link href="/authenticity">how we verify what we sell</Link>, or the{' '}
+          <Link href="/authenticity">how we describe our sarees</Link>, or the{' '}
           <Link href="/faq">questions we are asked most</Link>.
         </p>
       </ProsePage>

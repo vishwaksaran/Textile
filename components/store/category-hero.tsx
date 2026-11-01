@@ -29,10 +29,13 @@ export function CategoryHero({
   name,
   description,
   imageUrl,
+  parent,
 }: {
   name: string;
   description?: string | null;
   imageUrl?: string | null;
+  /** The section this collection sits under, shown in the trail. */
+  parent?: { name: string; slug: string };
 }) {
   const frameRef = React.useRef<HTMLDivElement>(null);
   const imageRef = React.useRef<HTMLDivElement>(null);
@@ -139,7 +142,7 @@ export function CategoryHero({
       <div className="relative mx-auto max-w-3xl px-margin-mobile py-16 text-center md:px-margin-desktop">
         <nav
           aria-label="Breadcrumb"
-          className="mb-6 flex justify-center gap-2 font-label-sm text-label-sm uppercase tracking-widest text-warm-cream/80"
+          className="mb-6 flex flex-wrap justify-center gap-2 font-label-sm text-label-sm uppercase tracking-widest text-warm-cream/80"
         >
           <Link href="/" className="transition-colors hover:text-primary-fixed">
             Home
@@ -149,7 +152,20 @@ export function CategoryHero({
             Collections
           </Link>
           <span aria-hidden="true">/</span>
-          <span className="font-bold text-primary-fixed">{name}</span>
+          {parent && (
+            <>
+              <Link
+                href={`/category/${parent.slug}`}
+                className="transition-colors hover:text-primary-fixed"
+              >
+                {parent.name}
+              </Link>
+              <span aria-hidden="true">/</span>
+            </>
+          )}
+          <span aria-current="page" className="font-bold text-primary-fixed">
+            {name}
+          </span>
         </nav>
 
         <h1 className="font-display-lg text-[34px] leading-tight text-warm-cream drop-shadow-[0_2px_10px_rgba(0,0,0,0.5)] md:text-[56px]">

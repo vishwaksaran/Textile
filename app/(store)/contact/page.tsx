@@ -2,13 +2,19 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { MapPin, MessageCircle, Phone, type LucideIcon } from 'lucide-react';
 import { ProsePage } from '@/components/store/prose-page';
-import { STORE, storeAddressLines, whatsappUrl } from '@/lib/config';
+import {
+  STORE,
+  storeAddressLines,
+  storeHoursLines,
+  storeMapsUrl,
+  whatsappUrl,
+} from '@/lib/config';
 import { canonical } from '@/lib/seo';
 
 export const metadata: Metadata = {
   alternates: { canonical: canonical('/contact') },
-  title: 'Contact Us',
-  description: `Reach ${STORE.name} at our Town Hall, Coimbatore shop — by phone or WhatsApp, or come and see the cloth.`,
+  title: `Contact Us — ${STORE.address.area}, ${STORE.address.city}`,
+  description: `Call or WhatsApp ${STORE.name} on ${STORE.phone}, or visit our saree shop on Big Bazaar Street, ${STORE.address.area}, ${STORE.address.city}. Retail and wholesale enquiries.`,
 };
 
 export default function ContactPage() {
@@ -16,7 +22,8 @@ export default function ContactPage() {
     <ProsePage
       eyebrow="We would like to hear from you"
       title="Contact Us"
-      intro="Someone from the family answers the phone between 10am and 8pm, every day except Sunday."
+      path="/contact"
+      intro={`Call, WhatsApp or visit — we answer during shop hours: ${storeHoursLines().join('; ')}.`}
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <ContactCard
@@ -35,30 +42,37 @@ export default function ContactPage() {
           Icon={MapPin}
           label="Visit"
           value={storeAddressLines().join(', ')}
+          href={storeMapsUrl()}
         />
       </div>
 
-      <h2>Before you get in touch</h2>
+      <h2 id="orders">Before you get in touch</h2>
       <p>
         If your question is about an order, send the order ID from your confirmation — it
-        lets us pull up the exact piece, the weaver and the courier docket in one go.
+        lets us pull up the exact piece and the courier docket in one go. You can also{' '}
+        <Link href="/track">track your order</Link> yourself.
       </p>
 
-      <h2>Store hours</h2>
+      <h2 id="hours">Store hours</h2>
       <ul>
-        <li>Monday to Saturday, 10:00 – 20:00 IST</li>
+        {storeHoursLines().map((line) => (
+          <li key={line}>{line}</li>
+        ))}
         <li>Sunday closed, though WhatsApp messages are read</li>
         <li>Orders placed on a Sunday are packed on Monday morning</li>
       </ul>
 
-      <h2>Wholesale and bridal appointments</h2>
-      <p>
-        For trousseau selections we set aside an hour and bring pieces out that are not on the
-        website. Call ahead so we can have the right weaves ready.
-      </p>
+      <h2 id="wholesale">Wholesale enquiries</h2>
       <p>
         Buying for a shop? <Link href="/wholesale">Send a wholesale enquiry</Link> and we will
-        call back with prices for your quantity.
+        call back with prices for your quantity. If you plan to visit, call ahead so we can have
+        the right pieces ready.
+      </p>
+
+      <h2 id="directions">Finding the shop</h2>
+      <p>
+        Directions, landmarks and a map link are on the <Link href="/visit">visit the shop</Link>{' '}
+        page. Common questions are answered on the <Link href="/faq">FAQ</Link>.
       </p>
     </ProsePage>
   );

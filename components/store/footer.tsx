@@ -1,24 +1,19 @@
-'use client';
-
-import * as React from 'react';
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
-import { toast } from 'sonner';
-import { STORE, storeAddressLines, storeHoursLines } from '@/lib/config';
+import { ArrowRight, MessageCircle, Phone } from 'lucide-react';
+import { STORE, storeAddressLines, storeHoursLines, whatsappUrl } from '@/lib/config';
 import { splitNavCategories } from '@/lib/nav';
 import { SocialIcon, type SocialNetwork } from '@/components/store/social-icons';
-import { isValidEmail } from '@/lib/utils';
 import { LogoMark } from '@/components/store/logo';
 import type { Category } from '@/types';
 
 const EXPLORE = [
   { href: '/collections', label: 'All Collections' },
-  { href: '/story', label: 'Our Story' },
+  { href: '/story', label: 'About Us' },
   { href: '/contact', label: 'Contact Us' },
   { href: '/visit', label: 'Visit the Shop' },
   { href: '/wholesale', label: 'Wholesale Enquiries' },
   { href: '/budget-sarees', label: 'Budget Sarees' },
-  { href: '/authenticity', label: 'Authenticity Guarantee' },
+  { href: '/authenticity', label: 'How We Describe Our Sarees' },
   { href: '/faq', label: 'Questions, Answered' },
 ];
 
@@ -30,23 +25,7 @@ const CARE = [
 ];
 
 export function Footer({ categories = [] }: { categories?: Category[] }) {
-  const [email, setEmail] = React.useState('');
-  const { sarees, standalone } = React.useMemo(
-    () => splitNavCategories(categories),
-    [categories],
-  );
-
-  function subscribe(e: React.FormEvent) {
-    e.preventDefault();
-    if (!isValidEmail(email)) {
-      toast.error('Please enter a valid email address.');
-      return;
-    }
-    setEmail('');
-    toast.success('You are on the list.', {
-      description: 'We will write when new weaves come off the loom.',
-    });
-  }
+  const { sarees, standalone } = splitNavCategories(categories);
 
   return (
     <footer className="mt-auto w-full border-t-4 border-primary-container bg-deep-maroon">
@@ -97,37 +76,40 @@ export function Footer({ categories = [] }: { categories?: Category[] }) {
 
           <SocialRow />
 
+          {/*
+            This used to be an email sign-up that thanked people and stored
+            nothing. WhatsApp is where the shop actually answers, so the
+            footer points there instead of collecting addresses into a void.
+          */}
           <p className="font-body-md text-sm text-warm-cream/80">
-            Follow our journey of heritage and craftsmanship, or join the journal for new
-            arrivals.
+            Ask about a piece, an order or wholesale prices — we reply on WhatsApp during shop
+            hours.
           </p>
 
-          <form className="flex items-center gap-3" onSubmit={subscribe} noValidate>
-            <label htmlFor="newsletter-email" className="sr-only">
-              Email address
-            </label>
-            <input
-              id="newsletter-email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Email address"
-              className="min-w-0 flex-grow border-0 border-b border-primary-container bg-transparent px-0 py-2 font-body-md text-sm text-warm-cream placeholder:text-warm-cream/50 focus:border-primary-fixed focus:outline-none focus:ring-0"
-            />
-            <button
-              type="submit"
-              aria-label="Subscribe"
-              className="rounded p-2 text-primary-fixed transition-colors hover:text-primary-fixed-dim"
+          <div className="flex flex-col gap-2">
+            <a
+              href={whatsappUrl()}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-2 font-body-md text-sm text-warm-cream/80 transition-colors hover:text-primary-fixed-dim"
             >
-              <ArrowRight className="h-5 w-5" strokeWidth={1.5} />
-            </button>
-          </form>
+              <MessageCircle className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />
+              WhatsApp {STORE.phone}
+            </a>
+            <a
+              href={`tel:${STORE.phone.replace(/\s/g, '')}`}
+              className="inline-flex items-center gap-2 font-body-md text-sm text-warm-cream/80 transition-colors hover:text-primary-fixed-dim"
+            >
+              <Phone className="h-4 w-4" strokeWidth={1.5} aria-hidden="true" />
+              Call {STORE.phone}
+            </a>
+          </div>
         </div>
       </div>
 
       <div className="container-page flex flex-col items-center justify-between gap-4 border-t border-primary-container/30 pb-8 pt-4 md:flex-row">
         <p className="font-body-md text-xs text-warm-cream/80">
-          © {new Date().getFullYear()} {STORE.legalName}. Handcrafted Excellence.
+          © {new Date().getFullYear()} {STORE.legalName}. Wholesale &amp; retail sarees, Town Hall, Coimbatore.
         </p>
         <p className="font-body-md text-xs text-warm-cream/80">
           GSTIN {STORE.gstin}

@@ -1,13 +1,20 @@
 import Image from 'next/image';
 import Link from 'next/link';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, MapPin, MessageCircle, Phone } from 'lucide-react';
 import { Hero, type HeroSlide } from '@/components/store/hero';
 import { ProductGrid } from '@/components/store/product-grid';
 import { Reveal } from '@/components/shared/motion';
 import { Button } from '@/components/ui/button';
 import { getCategories, getHeroSlides, getLatestProducts } from '@/lib/data';
 import { CategoryShowcase } from '@/components/store/category-showcase';
-import { STORE, marqueeNotices, whatsappUrl } from '@/lib/config';
+import {
+  STORE,
+  marqueeNotices,
+  storeAddressLines,
+  storeHoursLines,
+  storeMapsUrl,
+  whatsappUrl,
+} from '@/lib/config';
 import { getPublicShippingSettings } from '@/lib/shipping-settings';
 import { Marquee } from '@/components/store/marquee';
 import { ARTISAN_IMAGE, HERO_SLIDE_IMAGES } from '@/lib/demo-data';
@@ -20,24 +27,47 @@ export const metadata: Metadata = {
   alternates: { canonical: canonical('/') },
 };
 
-const TESTIMONIALS = [
+/*
+  Three questions a first-time visitor asks before anything else, answered
+  on the page they land on. Deliberately not marked up as FAQPage: the full
+  set, with schema, lives at /faq, and repeating the same questions in two
+  places would only compete with it.
+*/
+const QUICK_ANSWERS: { id: string; q: string; a: React.ReactNode }[] = [
   {
-    quote:
-      'The Kanjeevaram arrived folded in muslin with a handwritten note naming the weaver. I have never been sent a saree that way.',
-    name: 'Meera R.',
-    place: 'Bengaluru',
+    id: 'what-we-sell',
+    q: 'What sarees do you sell?',
+    a: (
+      <>
+        Cotton, <Link href="/category/tissuecotton">tissue cotton</Link>, linen,{' '}
+        <Link href="/category/khadi-cotton">khadi cotton</Link>,{' '}
+        <Link href="/category/semi-handloom-tussar">semi-handloom tussar</Link> and{' '}
+        Banarasi sarees, plus{' '}
+        <Link href="/category/churidars">churidars</Link> and dress materials. Many are{' '}
+        <Link href="/budget-sarees">under ₹1,000</Link>.
+      </>
+    ),
   },
   {
-    quote:
-      'I wore the Banarasi to my sister’s wedding and three people asked where the zari was woven. The answer was on the card in the box.',
-    name: 'Anjali S.',
-    place: 'Pune',
+    id: 'buy-wholesale',
+    q: 'Can shops buy wholesale?',
+    a: (
+      <>
+        Yes. We supply shops, boutiques and resellers.{' '}
+        <Link href="/wholesale">Send a wholesale enquiry</Link> with your city and quantity, and
+        we call back with prices.
+      </>
+    ),
   },
   {
-    quote:
-      'My mother wore khadi all her life. This is the first one I have bought that she said felt right.',
-    name: 'Divya K.',
-    place: 'Chennai',
+    id: 'delivery',
+    q: 'Do you deliver outside Coimbatore?',
+    a: (
+      <>
+        Yes, across India. Orders are despatched within three days, with tracking by WhatsApp
+        and SMS — see our <Link href="/shipping">shipping policy</Link>.
+      </>
+    ),
   },
 ];
 
@@ -61,22 +91,22 @@ export default async function HomePage() {
       eyebrow: STORE.tagline,
       title: 'The Regal Banarasi',
       body: 'Woven with threads of gold, a testament to centuries of royal heritage.',
-      ctaLabel: 'Shop Banarasi Collection',
+      ctaLabel: 'Shop Banarasi Sarees',
       ctaHref: '/category/banarasi',
     },
     {
       image: HERO_SLIDE_IMAGES.kanjeevaram,
-      eyebrow: 'From the Southern Looms',
-      title: 'Kanjeevaram Splendor',
-      body: 'Timeless elegance from the looms of South India for your most auspicious moments.',
-      ctaLabel: 'Explore Kanjeevaram',
-      ctaHref: '/category/kanchipuram',
+      eyebrow: 'Wholesale & Retail',
+      title: 'Sarees for Every Day',
+      body: 'Cotton, tissue, linen and tussar sarees from Big Bazaar Street, Town Hall.',
+      ctaLabel: 'Explore All Sarees',
+      ctaHref: '/collections',
     },
     {
       image: HERO_SLIDE_IMAGES.cotton,
-      eyebrow: 'Slow Fashion, Woven by Hand',
-      title: 'Everyday Heritage',
-      body: 'Breathable handloom cottons that bring tradition to your daily life.',
+      eyebrow: 'Comfortable Cottons',
+      title: 'Khadi Cotton Sarees',
+      body: 'Breathable cotton sarees for daily wear and the office.',
       ctaLabel: 'View Cotton Collection',
       ctaHref: '/category/khadi-cotton',
     },
@@ -157,10 +187,10 @@ export default async function HomePage() {
               id="wholesale-heading"
               className="mb-4 font-headline-lg text-headline-lg italic text-primary-fixed"
             >
-              Wholesale Silk Sarees from {STORE.address.city}
+              Wholesale Sarees from {STORE.address.city}
             </h2>
             <p className="font-body-md text-body-md leading-relaxed text-warm-cream/80">
-              Kanchipuram, Banarasi, soft silk and cotton sarees supplied to shops across India.
+              Cotton, tissue, linen, tussar and Banarasi sarees supplied to shops across India.
               Tell us what you need and we will call back with prices for your quantity.
             </p>
           </div>
@@ -189,15 +219,15 @@ export default async function HomePage() {
         </Reveal>
       </section>
 
-      {/* ----------------------------------------------------- artisan's journey */}
-      <section className="container-page py-20 md:py-24" aria-labelledby="artisan-heading">
+      {/* ---------------------------------------------------------- about */}
+      <section className="container-page py-20 md:py-24" aria-labelledby="about-heading">
         <div className="flex flex-col items-center gap-16 lg:flex-row">
           <Reveal className="w-full lg:w-1/2">
             <div className="relative">
               <div className="textile-card relative aspect-[4/3] overflow-hidden rounded-lg">
                 <Image
                   src={ARTISAN_IMAGE}
-                  alt="A master weaver at a traditional pit loom"
+                  alt="A weaver working at a traditional loom"
                   fill
                   sizes="(max-width: 1024px) 100vw, 50vw"
                   quality={90}
@@ -211,69 +241,129 @@ export default async function HomePage() {
             </div>
           </Reveal>
 
+          {/*
+            The paragraph a search engine or an AI answer is most likely to
+            quote when asked who this shop is — so it says who, where and
+            what in its first sentence, and nothing it cannot back up.
+          */}
           <Reveal delay={0.15} className="w-full space-y-6 lg:w-1/2">
             <p className="font-label-sm text-label-sm uppercase tracking-widest text-earthy-bronze">
-              The Artisan&rsquo;s Journey
+              About the Shop
             </p>
             <h2
-              id="artisan-heading"
+              id="about-heading"
               className="font-headline-lg text-headline-lg italic text-deep-maroon"
             >
-              Slow Fashion, Woven by Hand
+              Wholesale &amp; Retail Sarees in {STORE.address.area}, {STORE.address.city}
             </h2>
             <p className="font-body-md text-body-md leading-relaxed text-on-surface-variant">
-              Behind every length of fabric is an artisan whose skills have been passed down through
-              generations. Our commitment to slow fashion ensures that these ancient techniques
-              continue to thrive.
+              {STORE.name} is a saree shop on Big Bazaar Street, {STORE.address.area},{' '}
+              {STORE.address.city}, selling to retail customers and wholesale buyers alike. We
+              carry {STORE.offering}.
             </p>
             <p className="font-body-md text-body-md leading-relaxed text-on-surface-variant">
-              We partner directly with weaving clusters across India, providing fair wages and a
-              platform for their artistry to reach an audience that appreciates true luxury — the
-              luxury of time, patience, and human touch.
+              Choose in person at the shop, order here online with delivery across India, or
+              send a wholesale enquiry and we will quote for your quantity. If you want a closer
+              look before buying, ask us on WhatsApp for more photos or a video.
             </p>
-            <Link
-              href="/story"
-              className="group inline-flex items-center gap-2 pt-2 font-label-sm text-label-sm uppercase tracking-wider text-deep-maroon transition-colors hover:text-earthy-bronze"
-            >
-              Read our story
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-            </Link>
+            <div className="flex flex-wrap gap-x-8 gap-y-3 pt-2">
+              <Link
+                href="/story"
+                className="group inline-flex items-center gap-2 font-label-sm text-label-sm uppercase tracking-wider text-deep-maroon transition-colors hover:text-earthy-bronze"
+              >
+                About us
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+              <Link
+                href="/collections"
+                className="group inline-flex items-center gap-2 font-label-sm text-label-sm uppercase tracking-wider text-deep-maroon transition-colors hover:text-earthy-bronze"
+              >
+                Explore collections
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+            </div>
           </Reveal>
         </div>
       </section>
 
-      {/* --------------------------------------------------------- testimonials */}
+      {/* ---------------------------------------------------- visit & answers */}
       <section
         className="border-t border-outline-variant/30 bg-surface-container-low py-20 md:py-24"
-        aria-labelledby="voices-heading"
+        aria-labelledby="visit-heading"
       >
-        <div className="container-page">
-          <Reveal className="mb-14 text-center">
+        <div className="container-page grid grid-cols-1 gap-12 lg:grid-cols-2 lg:gap-16">
+          <Reveal className="space-y-6">
+            <p className="font-label-sm text-label-sm uppercase tracking-widest text-earthy-bronze">
+              Visit Our Store
+            </p>
             <h2
-              id="voices-heading"
-              className="font-headline-lg text-headline-lg text-deep-maroon"
+              id="visit-heading"
+              className="font-headline-lg text-headline-lg italic text-deep-maroon"
             >
-              In Their Words
+              Find Us at {STORE.address.area}
             </h2>
+            <address className="font-body-md text-body-md not-italic leading-relaxed text-on-surface-variant">
+              {storeAddressLines().map((line) => (
+                <span key={line} className="block">
+                  {line}
+                </span>
+              ))}
+            </address>
+            <p className="font-body-md text-body-md text-on-surface-variant">
+              {storeHoursLines().join(' · ')} · Closed on Sunday
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <Button asChild>
+                <a href={storeMapsUrl()} target="_blank" rel="noreferrer">
+                  <MapPin className="h-4 w-4" />
+                  Get directions
+                </a>
+              </Button>
+              <Button asChild variant="outline">
+                <a href={`tel:${STORE.phone.replace(/\s/g, '')}`}>
+                  <Phone className="h-4 w-4" />
+                  Call us
+                </a>
+              </Button>
+              <Button asChild variant="outline">
+                <a href={whatsappUrl()} target="_blank" rel="noreferrer">
+                  <MessageCircle className="h-4 w-4" />
+                  WhatsApp
+                </a>
+              </Button>
+            </div>
+            <div>
+              <Link
+                href="/contact"
+                className="group inline-flex items-center gap-2 font-label-sm text-label-sm uppercase tracking-wider text-deep-maroon transition-colors hover:text-earthy-bronze"
+              >
+                All contact options
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+            </div>
           </Reveal>
 
-          <div className="grid grid-cols-1 gap-gutter md:grid-cols-3">
-            {TESTIMONIALS.map((t, i) => (
-              <Reveal key={t.name} delay={i * 0.1}>
-                <figure className="flex h-full flex-col rounded-lg border border-outline-variant/40 bg-surface-container-lowest p-8">
-                  <span aria-hidden="true" className="mb-4 font-display-lg text-4xl leading-none text-earthy-bronze">
-                    &ldquo;
-                  </span>
-                  <blockquote className="flex-1 font-body-md text-body-md italic leading-relaxed text-on-surface-variant">
-                    {t.quote}
-                  </blockquote>
-                  <figcaption className="mt-6 font-label-sm text-label-sm uppercase tracking-widest text-deep-maroon">
-                    {t.name} · <span className="text-earthy-bronze">{t.place}</span>
-                  </figcaption>
-                </figure>
-              </Reveal>
+          <Reveal delay={0.1} className="space-y-8">
+            {QUICK_ANSWERS.map(({ id, q, a }) => (
+              <div key={id} className="border-l-2 border-primary-container/60 pl-5">
+                <h3 id={id} className="mb-2 font-headline-md text-headline-md text-deep-maroon">
+                  {q}
+                </h3>
+                <p className="font-body-md text-body-md leading-relaxed text-on-surface-variant [&_a]:text-deep-maroon [&_a]:underline [&_a]:underline-offset-4">
+                  {a}
+                </p>
+              </div>
             ))}
-          </div>
+            <div>
+              <Link
+                href="/faq"
+                className="group inline-flex items-center gap-2 font-label-sm text-label-sm uppercase tracking-wider text-deep-maroon transition-colors hover:text-earthy-bronze"
+              >
+                More questions, answered
+                <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+            </div>
+          </Reveal>
         </div>
       </section>
     </>

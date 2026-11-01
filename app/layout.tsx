@@ -40,20 +40,20 @@ export const metadata: Metadata = {
     template: `%s | ${STORE.name}`,
   },
   description:
-    'Wholesale and retail saree shop on Big Bazaar Street, Town Hall, Coimbatore. Silk, cotton and budget-friendly sarees — in store, and shipped across India.',
+    'Wholesale and retail saree shop on Big Bazaar Street, Town Hall, Coimbatore. Cotton, tissue, tussar and budget sarees — in store and shipped across India.',
   keywords: [
     'wholesale sarees Coimbatore',
     'budget sarees Coimbatore',
     'saree shop Town Hall Coimbatore',
     'silk saree shop Coimbatore',
     'cotton sarees Coimbatore',
-    'Kanchipuram silk saree',
+    'tussar sarees Coimbatore',
     'Banarasi saree',
   ],
   openGraph: {
-    title: `Handloom Silk Sarees Online — ${STORE.name}`,
+    title: `Wholesale & Retail Sarees in ${STORE.address.city} — ${STORE.name}`,
     description:
-      'Kanchipuram, Banarasi and khadi cotton sarees, woven by hand and shipped across India.',
+      'Cotton, tissue cotton, linen, tussar and Banarasi sarees from Big Bazaar Street, Town Hall, Coimbatore — in store and shipped across India.',
     type: 'website',
     locale: 'en_IN',
     siteName: STORE.name,

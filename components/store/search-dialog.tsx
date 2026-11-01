@@ -168,8 +168,8 @@ export function SearchDialog() {
             <div className="max-h-[60vh] overflow-y-auto">
               {term.trim().length < MIN_CHARS ? (
                 <p className="px-5 py-8 text-center font-body-md text-body-md text-on-surface-variant">
-                  Type at least {MIN_CHARS} letters — try &ldquo;Kanjeevaram&rdquo;, &ldquo;khadi&rdquo;
-                  or &ldquo;zari&rdquo;.
+                  Type at least {MIN_CHARS} letters — try &ldquo;cotton&rdquo;, &ldquo;tussar&rdquo;
+                  or &ldquo;linen&rdquo;.
                 </p>
               ) : loading && results.length === 0 ? (
                 <div className="space-y-3 p-5">

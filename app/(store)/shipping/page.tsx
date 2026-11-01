@@ -1,8 +1,10 @@
 import type { Metadata } from 'next';
 import { ProsePage } from '@/components/store/prose-page';
-import { COMMERCE } from '@/lib/config';
 import { formatINR } from '@/lib/utils';
 import { canonical } from '@/lib/seo';
+import { getPublicShippingSettings } from '@/lib/shipping-settings';
+
+export const revalidate = 300;
 
 export const metadata: Metadata = {
   alternates: { canonical: canonical('/shipping') },
@@ -10,17 +12,22 @@ export const metadata: Metadata = {
   description: 'Dispatch times, courier partners, charges and delivery windows.',
 };
 
-export default function ShippingPage() {
+export default async function ShippingPage() {
+  // The live threshold from the admin settings, not the build-time default,
+  // so this page cannot promise a figure checkout no longer honours.
+  const { freeThreshold } = await getPublicShippingSettings();
+
   return (
     <ProsePage
       eyebrow="Getting it to you"
       title="Shipping Policy"
+      path="/shipping"
       intro="Everything is insured, packed in muslin, and tracked door to door."
     >
       <h2>Charges</h2>
       <ul>
         <li>
-          Free shipping on orders of {formatINR(COMMERCE.freeShippingThreshold)} and above.
+          Free shipping on orders of {formatINR(freeThreshold)} and above.
         </li>
         <li>
           Below that, delivery is charged by distance — least within Tamil Nadu, most to the

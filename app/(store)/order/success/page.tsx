@@ -137,7 +137,7 @@ export default async function OrderSuccessPage({
             What happens next
           </h2>
           <ol className="space-y-3 font-body-md text-body-md text-on-surface-variant">
-            <Step n={1} text="Your pieces are checked, folded in muslin and packed with the authenticity card." />
+            <Step n={1} text="Your pieces are checked by hand and packed for the courier." />
             <Step n={2} text="We hand the parcel to the courier, usually within two working days." />
             <Step n={3} text="Tracking details reach you by WhatsApp and SMS the moment it ships." />
           </ol>

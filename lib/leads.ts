@@ -9,11 +9,12 @@ import type { LeadKind, LeadStatus } from '@/types';
 export const LEAD_STATUSES: LeadStatus[] = ['new', 'contacted', 'converted', 'closed'];
 
 export const LEAD_INTERESTS = [
-  'Kanchipuram silk',
+  'Cotton & khadi cotton',
+  'Tissue cotton',
+  'Linen',
+  'Semi-handloom tussar',
   'Banarasi',
-  'Soft silk',
-  'Khadi & cotton',
-  'Bridal',
+  'Churidars & dress materials',
   'Mixed assortment',
 ] as const;
 

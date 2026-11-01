@@ -37,6 +37,16 @@ function withScheme(url: string): string {
 export const STORE = {
   name: 'Sri Laxmi Silks',
   tagline: 'Quality. Value. Trust.',
+  /**
+   * What the shop sells, in one sentence — used by the structured data, the
+   * home page and meta descriptions so all three say the same thing.
+   *
+   * Written from the live catalogue. Name a weave here only once it is
+   * actually on the shelf: this line is what Google and AI answers quote
+   * when someone asks what the shop carries.
+   */
+  offering:
+    'cotton, tissue cotton, linen, khadi cotton, semi-handloom tussar and Banarasi sarees, along with churidar sets and dress materials',
   legalName: 'Sri Laxmi Silks Coimbatore',
   /**
    * The shop's PUBLIC address — printed in email footers and published in the
@@ -106,7 +116,7 @@ export const STORE = {
  * account is the cheapest defence a small shop has.
  */
 export const MARQUEE_NOTICES = [
-  `🎉 Welcome to ${'Sri Laxmi Silks'} — handloom silk sarees from Coimbatore`,
+  `🎉 Welcome to ${'Sri Laxmi Silks'} — wholesale & retail sarees from Town Hall, Coimbatore`,
   '⚠️ Shop only through our official pages: @sri_laxmi_silks_cbe',
   '__FREE_SHIPPING__',
   '🌍 Worldwide shipping available',
@@ -218,6 +228,21 @@ export function storeHoursLines(): string[] {
 /** The same address on one line, for the invoice header and email footer. */
 export function storeAddressOneLine(): string {
   return storeAddressLines().join(', ');
+}
+
+/**
+ * Directions link for the shop. A search rather than a place ID, so it needs
+ * nothing from the Google Business Profile to keep working — and the same URL
+ * is published as `hasMap` in the structured data.
+ */
+export function storeMapsUrl(): string {
+  const query = encodeURIComponent(`${STORE.name}, ${storeAddressOneLine()}`);
+  return `https://www.google.com/maps/search/?api=1&query=${query}`;
+}
+
+/** The shop's configured profiles, for `sameAs`. Blank ones are left out. */
+export function storeProfileUrls(): string[] {
+  return Object.values(STORE.social).filter(Boolean);
 }
 
 /**

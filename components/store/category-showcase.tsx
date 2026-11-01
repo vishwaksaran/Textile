@@ -36,8 +36,8 @@ export function CategoryShowcase({ categories }: { categories: Category[] }) {
           Shop by Category
         </h2>
         <p className="mx-auto max-w-lg font-body-md text-body-md text-on-surface-variant">
-          Every collection we keep, from the looms of Kanchipuram to everyday cottons. Choose one
-          to see what is in it.
+          Every collection we keep, from everyday cottons and linen to tussar and Banarasi. Choose
+          one to see what is in it.
         </p>
       </Reveal>
 

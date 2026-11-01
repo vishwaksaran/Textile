@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { Truck, ShieldCheck, RotateCcw, type LucideIcon } from 'lucide-react';
+import { Truck, MessageCircle, RotateCcw, type LucideIcon } from 'lucide-react';
 import { Breadcrumbs } from '@/components/store/breadcrumbs';
 import { ProductGallery } from '@/components/store/product-gallery';
 import { AddToCart } from '@/components/store/add-to-cart';
@@ -11,9 +11,10 @@ import { RelatedCarousel } from '@/components/store/related-carousel';
 import { Badge } from '@/components/ui/badge';
 import { AnimatedPage } from '@/components/shared/motion';
 import { getProductById, getRelatedProducts } from '@/lib/data';
-import { COMMERCE, STORE } from '@/lib/config';
+import { STORE } from '@/lib/config';
+import { getPublicShippingSettings } from '@/lib/shipping-settings';
 import { discountPercent, effectivePrice, formatINR } from '@/lib/utils';
-import { breadcrumbJsonLd, canonical } from '@/lib/seo';
+import { JsonLd, breadcrumbJsonLd, canonical, productJsonLd } from '@/lib/seo';
 import { getCategoryAttributes, getProductAttributeValues } from '@/lib/attributes';
 
 export const revalidate = 120;
@@ -27,10 +28,12 @@ export async function generateMetadata({
   if (!product) return { title: 'Piece not found' };
 
   // A piece listed without a description still needs a snippet, or Google
-  // writes one from whatever text on the page it reaches first.
+  // writes one from whatever text on the page it reaches first. Built only
+  // from what the page itself shows: name, collection and price.
+  const kind = product.categories?.name ? ` (${product.categories.name})` : '';
   const description = (
     product.description?.trim() ||
-    `${product.name} from ${STORE.name}, ${STORE.address.area} ${STORE.address.city}. Shipped insured across India.`
+    `${product.name}${kind} for ${formatINR(effectivePrice(product))} at ${STORE.name}, ${STORE.address.area} ${STORE.address.city}. Buy online with delivery across India, or see it in our shop.`
   ).slice(0, 160);
 
   return {
@@ -49,7 +52,10 @@ export default async function ProductPage({ params }: { params: { id: string } }
   const product = await getProductById(params.id);
   if (!product) notFound();
 
-  const related = await getRelatedProducts(product);
+  const [related, shipping] = await Promise.all([
+    getRelatedProducts(product),
+    getPublicShippingSettings(),
+  ]);
 
   /*
     Attributes and answers are read together and zipped here rather than in
@@ -88,52 +94,20 @@ export default async function ProductPage({ params }: { params: { id: string } }
   const soldOut = product.is_sold_out || product.stock_quantity <= 0;
   const low = !soldOut && product.stock_quantity <= 3;
 
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'Product',
-    name: product.name,
-    description: product.description ?? undefined,
-    image: product.images,
-    brand: { '@type': 'Brand', name: STORE.name },
-    offers: {
-      '@type': 'Offer',
-      url: canonical(`/product/${product.id}`),
-      price,
-      priceCurrency: 'INR',
-      itemCondition: 'https://schema.org/NewCondition',
-      seller: { '@type': 'Organization', name: STORE.name },
-      availability: soldOut
-        ? 'https://schema.org/OutOfStock'
-        : 'https://schema.org/InStock',
-    },
-  };
-
   return (
     <AnimatedPage>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
-
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify(
-            breadcrumbJsonLd([
-              { name: 'Home', path: '/' },
-              { name: 'Collections', path: '/collections' },
-              ...(product.categories
-                ? [
-                    {
-                      name: product.categories.name,
-                      path: `/category/${product.categories.slug}`,
-                    },
-                  ]
-                : []),
-              { name: product.name, path: `/product/${product.id}` },
-            ]),
-          ),
-        }}
+      <JsonLd
+        data={[
+          productJsonLd(product),
+          breadcrumbJsonLd([
+            { name: 'Home', path: '/' },
+            { name: 'Collections', path: '/collections' },
+            ...(product.categories
+              ? [{ name: product.categories.name, path: `/category/${product.categories.slug}` }]
+              : []),
+            { name: product.name, path: `/product/${product.id}` },
+          ]),
+        ]}
       />
 
       <div className="container-page pt-6">
@@ -178,8 +152,8 @@ export default async function ProductPage({ params }: { params: { id: string } }
             </div>
             <p className="font-body-md text-xs text-on-surface-variant">
               Inclusive of all taxes.{' '}
-              {COMMERCE.freeShippingThreshold > 0 &&
-                `Free shipping above ${formatINR(COMMERCE.freeShippingThreshold)}.`}
+              {shipping.freeThreshold > 0 &&
+                `Free shipping above ${formatINR(shipping.freeThreshold)}.`}
             </p>
           </div>
 
@@ -236,9 +210,9 @@ export default async function ProductPage({ params }: { params: { id: string } }
           <ul className="grid grid-cols-1 gap-4 border-t border-outline-variant/40 pt-6 sm:grid-cols-3">
             <Assurance Icon={Truck} title="Ships in 3 days" body="Insured courier, pan-India." />
             <Assurance
-              Icon={ShieldCheck}
-              title="Authenticity card"
-              body="Named weaver and loom origin."
+              Icon={MessageCircle}
+              title="See it first"
+              body="Ask for more photos or a video on WhatsApp."
             />
             <Assurance
               Icon={RotateCcw}

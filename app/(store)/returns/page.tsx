@@ -15,6 +15,7 @@ export default function ReturnsPage() {
     <ProsePage
       eyebrow="Before you order"
       title="Return & Exchange Policy"
+      path="/returns"
       intro="Every piece is checked by hand before it is packed. If something is genuinely wrong with what arrives, tell us as soon as you open the parcel and we will put it right."
     >
       <h2>Delivery time</h2>
@@ -36,7 +37,7 @@ export default function ReturnsPage() {
           be expected to reach Coimbatore in a few days — but the report has to be prompt,
           because that is what lets us raise it with the courier.
         </li>
-        <li>The piece unworn and unwashed, with its tags and authenticity card attached.</li>
+        <li>The piece unworn and unwashed, with its tags attached.</li>
       </ul>
 
       <h2>What we cannot accept</h2>
@@ -75,7 +76,7 @@ export default function ReturnsPage() {
       </p>
       <p>Bring with you:</p>
       <ul>
-        <li>The piece, unworn and unwashed, with its tags and authenticity card.</li>
+        <li>The piece, unworn and unwashed, with its tags.</li>
         <li>Your order ID, from the invoice or the confirmation message.</li>
         <li>The unboxing video, unedited, on your phone.</li>
       </ul>

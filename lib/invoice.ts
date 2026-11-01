@@ -257,7 +257,7 @@ export function buildInvoicePdf(order: Order, tax?: TaxSummary | null): Uint8Arr
   doc.setFontSize(8);
   doc.setTextColor(...BRONZE);
   doc.text(
-    'Thank you for supporting handloom weavers. Every piece is woven by hand and carries an authenticity card.',
+    'Thank you for shopping with Sri Laxmi Silks, Town Hall, Coimbatore.',
     margin,
     footerY,
   );

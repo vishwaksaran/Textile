@@ -22,7 +22,7 @@ const BUDGET = 1000;
 export const metadata: Metadata = {
   alternates: { canonical: canonical('/budget-sarees') },
   title: `Budget-Friendly Sarees in ${STORE.address.city} — Under ₹${BUDGET.toLocaleString('en-IN')}`,
-  description: `Affordable cotton, tussar and tissue sarees under ₹${BUDGET.toLocaleString('en-IN')} from ${STORE.name}, ${STORE.address.area} ${STORE.address.city}. Buy in store or online with delivery across India. Wholesale rates for shops.`,
+  description: `Affordable cotton, tussar and tissue sarees under ₹${BUDGET.toLocaleString('en-IN')} from ${STORE.name}, ${STORE.address.area} ${STORE.address.city}. In store or online, delivered across India.`,
 };
 
 /**
@@ -111,8 +111,8 @@ export default async function BudgetSareesPage() {
           </h2>
           <p>
             {STORE.name} is a saree shop on Big Bazaar Street, {STORE.address.area} — the heart
-            of {STORE.address.city}&rsquo;s cloth market. Alongside silk, we keep a wide range of
-            cotton and blended sarees at prices meant for daily wear, so a good saree does not
+            of {STORE.address.city}&rsquo;s cloth market. We keep a wide range of cotton, tissue,
+            linen and tussar sarees at prices meant for daily wear, so a good saree does not
             have to wait for a wedding.
           </p>
 
