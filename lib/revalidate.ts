@@ -6,7 +6,7 @@ import { revalidatePath } from 'next/cache';
  * Pushes a catalogue change onto the storefront immediately.
  *
  * The storefront pages are statically generated with a `revalidate` window —
- * 300s on the home and category pages, 120s on a product — which is what
+ * an hour on the home, category and product pages — which is what
  * makes them fast. The cost is that an edit in the admin is invisible until
  * that window lapses: setting a sold-out piece back to 2 in stock left the
  * category page still showing SOLD OUT, and a shop owner reasonably reads
@@ -29,7 +29,9 @@ export function revalidateCatalogue(options: {
   productId?: string | null;
   categorySlug?: string | null;
 } = {}): void {
-  const paths = ['/', '/collections'];
+  // /budget-sarees lists products and /shipping prints the shipping rates;
+  // both sit on the same hour-long window, so both are cleared here too.
+  const paths = ['/', '/collections', '/budget-sarees', '/shipping'];
 
   if (options.categorySlug) paths.push(`/category/${options.categorySlug}`);
   if (options.productId) paths.push(`/product/${options.productId}`);
@@ -49,5 +51,17 @@ export function revalidateCatalogue(options: {
     revalidatePath('/category/[slug]', 'page');
   } catch (err) {
     console.error('[revalidate] could not clear the category pages', err);
+  }
+
+  // A save with no product named (a collection, the shipping rates, the
+  // banner) can still change what every product page prints — its
+  // breadcrumb, its delivery note — so those are cleared too. Admin edits of
+  // that kind are rare; a sale names its products and never reaches here.
+  if (!options.productId) {
+    try {
+      revalidatePath('/product/[id]', 'page');
+    } catch (err) {
+      console.error('[revalidate] could not clear the product pages', err);
+    }
   }
 }

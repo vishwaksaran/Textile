@@ -4,7 +4,7 @@ import { formatINR } from '@/lib/utils';
 import { canonical } from '@/lib/seo';
 import { getPublicShippingSettings } from '@/lib/shipping-settings';
 
-export const revalidate = 300;
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   alternates: { canonical: canonical('/shipping') },

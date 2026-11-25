@@ -21,7 +21,7 @@ import { ARTISAN_IMAGE, HERO_SLIDE_IMAGES } from '@/lib/demo-data';
 import { JsonLd, canonical, organizationJsonLd, searchActionJsonLd, storeJsonLd } from '@/lib/seo';
 import type { Metadata } from 'next';
 
-export const revalidate = 300;
+export const revalidate = 3600;
 
 export const metadata: Metadata = {
   alternates: { canonical: canonical('/') },

@@ -128,6 +128,21 @@ export function createAdminSupabase(): SupabaseClient | null {
   });
 }
 
+/**
+ * Client for reading rows the public can already see (catalogue, attributes,
+ * option details — all `select using (true)` under RLS).
+ *
+ * By default it is the uncached service-role client, which is what admin
+ * screens and API routes want. `cached: true` swaps in the cacheable anon
+ * client for statically generated storefront pages: a single `no-store`
+ * read anywhere in a render makes Next 14 render that page on every visit,
+ * whatever its `revalidate` says. Freshness there comes from
+ * revalidateCatalogue(), which clears the page whenever the admin writes.
+ */
+export function createReadSupabase({ cached = false }: { cached?: boolean } = {}) {
+  return cached ? createPublicSupabase() : (createAdminSupabase() ?? createPublicSupabase());
+}
+
 /** Throws instead of returning null — for routes that cannot degrade. */
 export function requireAdminSupabase(): SupabaseClient {
   const client = createAdminSupabase();

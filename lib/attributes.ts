@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { createAdminSupabase, createPublicSupabase } from '@/lib/supabase/server';
+import { createAdminSupabase, createPublicSupabase, createReadSupabase } from '@/lib/supabase/server';
 
 export type AttributeInputType =
   | 'dropdown'
@@ -56,9 +56,12 @@ export interface AttributeValue {
  * a product form still renders — with its fixed fields — on an install where
  * this migration has not been run.
  */
-export async function getCategoryAttributes(categoryId: string | null): Promise<Attribute[]> {
+export async function getCategoryAttributes(
+  categoryId: string | null,
+  { cached = false }: { cached?: boolean } = {},
+): Promise<Attribute[]> {
   if (!categoryId) return [];
-  const supabase = createAdminSupabase() ?? createPublicSupabase();
+  const supabase = createReadSupabase({ cached });
   if (!supabase) return [];
 
   const { data: category } = await supabase
@@ -151,8 +154,9 @@ export async function getAllAttributes(): Promise<Attribute[]> {
 /** What one product has answered, keyed by attribute id. */
 export async function getProductAttributeValues(
   productId: string,
+  { cached = false }: { cached?: boolean } = {},
 ): Promise<Record<string, AttributeValue>> {
-  const supabase = createAdminSupabase() ?? createPublicSupabase();
+  const supabase = createReadSupabase({ cached });
   if (!supabase) return {};
 
   const { data, error } = await supabase

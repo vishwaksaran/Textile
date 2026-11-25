@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { createAdminSupabase, createPublicSupabase } from '@/lib/supabase/server';
+import { createAdminSupabase, createPublicSupabase, createReadSupabase } from '@/lib/supabase/server';
 import { getCategoryAttributes, type Attribute } from '@/lib/attributes';
 import { optionKey, variantLabel } from '@/lib/variant-key';
 import type { OptionDetail, ProductVariant } from '@/types';
@@ -45,11 +45,14 @@ export async function getSuggestedAxes(categoryId: string | null): Promise<Attri
  * Slugs the shop has never defined are dropped rather than invented, which is
  * what keeps a browser from writing an axis of its own devising.
  */
-export async function resolveAxes(slugs: string[]): Promise<Attribute[]> {
+export async function resolveAxes(
+  slugs: string[],
+  { cached = false }: { cached?: boolean } = {},
+): Promise<Attribute[]> {
   const wanted = [...new Set(slugs.filter(Boolean))];
   if (wanted.length === 0) return [];
 
-  const supabase = createAdminSupabase() ?? createPublicSupabase();
+  const supabase = createReadSupabase({ cached });
   if (!supabase) return [];
 
   const { data } = await supabase
@@ -76,11 +79,12 @@ export async function resolveAxes(slugs: string[]): Promise<Attribute[]> {
  */
 export async function getAxisDefinitions(
   slugs: string[],
+  { cached = false }: { cached?: boolean } = {},
 ): Promise<{ slug: string; name: string; order: string[] }[]> {
-  const axes = await resolveAxes(slugs);
+  const axes = await resolveAxes(slugs, { cached });
   if (axes.length === 0) return [];
 
-  const supabase = createAdminSupabase() ?? createPublicSupabase();
+  const supabase = createReadSupabase({ cached });
   if (!supabase) return [];
 
   const { data } = await supabase
@@ -199,8 +203,9 @@ export async function getAllProductVariants(productId: string): Promise<ProductV
 /** Keyed `slug:value`, because that is how both callers look one up. */
 export async function getOptionDetails(
   productId: string,
+  { cached = false }: { cached?: boolean } = {},
 ): Promise<Record<string, OptionDetail>> {
-  const supabase = createAdminSupabase() ?? createPublicSupabase();
+  const supabase = createReadSupabase({ cached });
   if (!supabase) return {};
 
   const [{ data, error }, { data: attrRows }] = await Promise.all([

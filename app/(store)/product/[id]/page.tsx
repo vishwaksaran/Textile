@@ -10,21 +10,37 @@ import { StickyBuyBar } from '@/components/store/sticky-buy-bar';
 import { RelatedCarousel } from '@/components/store/related-carousel';
 import { Badge } from '@/components/ui/badge';
 import { AnimatedPage } from '@/components/shared/motion';
-import { getProductById, getRelatedProducts } from '@/lib/data';
+import { getLatestProducts, getProductById, getRelatedProducts } from '@/lib/data';
 import { STORE } from '@/lib/config';
 import { getPublicShippingSettings } from '@/lib/shipping-settings';
 import { discountPercent, effectivePrice, formatINR } from '@/lib/utils';
 import { JsonLd, breadcrumbJsonLd, canonical, productJsonLd } from '@/lib/seo';
 import { getCategoryAttributes, getProductAttributeValues } from '@/lib/attributes';
 
-export const revalidate = 120;
+/*
+  An hour is only the fallback. Every admin save and every sale clears this
+  page through revalidateCatalogue(), so the window exists for nothing but
+  data changed outside the app — and each lapse costs a server render.
+*/
+export const revalidate = 3600;
+
+/*
+  Without this, Next 14 never registers the route for ISR: it renders on the
+  server for every single visit despite the `revalidate` above. The newest
+  pieces are built up front; any other id is rendered on its first visit and
+  cached from then on (dynamicParams stays at its default, true).
+*/
+export async function generateStaticParams() {
+  const latest = await getLatestProducts(24);
+  return latest.map((p) => ({ id: p.id }));
+}
 
 export async function generateMetadata({
   params,
 }: {
   params: { id: string };
 }): Promise<Metadata> {
-  const product = await getProductById(params.id);
+  const product = await getProductById(params.id, { cached: true });
   if (!product) return { title: 'Piece not found' };
 
   // A piece listed without a description still needs a snippet, or Google
@@ -49,7 +65,7 @@ export async function generateMetadata({
 }
 
 export default async function ProductPage({ params }: { params: { id: string } }) {
-  const product = await getProductById(params.id);
+  const product = await getProductById(params.id, { cached: true });
   if (!product) notFound();
 
   const [related, shipping] = await Promise.all([
@@ -64,8 +80,8 @@ export default async function ProductPage({ params }: { params: { id: string } }
     answer.
   */
   const [attributes, values] = await Promise.all([
-    getCategoryAttributes(product.category_id),
-    getProductAttributeValues(product.id),
+    getCategoryAttributes(product.category_id, { cached: true }),
+    getProductAttributeValues(product.id, { cached: true }),
   ]);
 
   /*

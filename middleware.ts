@@ -62,9 +62,11 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Everything except static assets and image files — the session cookie
-     * needs refreshing on page requests, not on /_next/static.
+     * Only the admin carries a session. The storefront has no login, so
+     * running this on shop pages bought nothing but an invocation per page
+     * view — including views the CDN would otherwise answer on its own.
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif)$).*)',
+    '/admin/:path*',
+    '/api/admin/:path*',
   ],
 };

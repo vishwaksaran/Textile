@@ -8,7 +8,7 @@ import { getProducts } from '@/lib/data';
 import { STORE, whatsappUrl } from '@/lib/config';
 import { JsonLd, breadcrumbJsonLd, canonical, faqJsonLd } from '@/lib/seo';
 
-export const revalidate = 300;
+export const revalidate = 3600;
 
 /** The ceiling the page promises. Every piece listed is at or under it. */
 const BUDGET = 1000;

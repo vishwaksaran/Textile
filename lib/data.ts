@@ -206,7 +206,14 @@ export async function getProducts(q: ProductQuery = {}): Promise<{
   };
 }
 
-export async function getProductById(id: string): Promise<Product | null> {
+/**
+ * @param cached Pass true only from a statically generated page — see
+ *   createReadSupabase. API routes keep the default, uncached reads.
+ */
+export async function getProductById(
+  id: string,
+  { cached = false }: { cached?: boolean } = {},
+): Promise<Product | null> {
   const supabase = createPublicSupabase();
   if (!supabase) return DEMO_PRODUCTS.find((p) => p.id === id) ?? null;
 
@@ -226,7 +233,7 @@ export async function getProductById(id: string): Promise<Product | null> {
   const product = withHiResImages(data as unknown as Product);
   const [variants, optionDetails] = await Promise.all([
     getProductVariants(product.id),
-    getOptionDetails(product.id),
+    getOptionDetails(product.id, { cached }),
   ]);
 
   /*
@@ -235,9 +242,10 @@ export async function getProductById(id: string): Promise<Product | null> {
     of a kind, and a collection-wide answer would put an empty colour row on
     the second or none at all on the first.
   */
-  const variantAxes = await getAxisDefinitions([
-    ...new Set(variants.flatMap((v) => Object.keys(v.options))),
-  ]);
+  const variantAxes = await getAxisDefinitions(
+    [...new Set(variants.flatMap((v) => Object.keys(v.options)))],
+    { cached },
+  );
 
   return { ...product, variants, optionDetails, variantAxes };
 }

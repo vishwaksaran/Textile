@@ -8,7 +8,7 @@ import { getCategories, getCategoryBySlug, getProducts } from '@/lib/data';
 import { JsonLd, breadcrumbJsonLd, canonical } from '@/lib/seo';
 import { STORE } from '@/lib/config';
 
-export const revalidate = 300;
+export const revalidate = 3600;
 
 export async function generateStaticParams() {
   const categories = await getCategories();
