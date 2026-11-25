@@ -1,4 +1,6 @@
 import { STORE, appUrl, storeMapsUrl, storeProfileUrls } from '@/lib/config';
+import { shippingFor, type ShippingSettings } from '@/lib/shipping';
+import { INDIAN_STATES } from '@/lib/states';
 import { effectivePrice } from '@/lib/utils';
 import type { Product } from '@/types';
 
@@ -61,10 +63,19 @@ export function storeJsonLd() {
     description: `Wholesale and retail saree shop on Big Bazaar Street, ${STORE.address.area}, ${STORE.address.city}, selling ${STORE.offering} — in store, and shipped across India.`,
     url: appUrl(),
     logo: appUrl('/icon.png'),
-    image: appUrl('/icon.png'),
+    image: appUrl(STORE.photo ?? '/icon.png'),
     telephone: STORE.phone,
     email: STORE.email,
     address: postalAddress(),
+    ...(STORE.geo
+      ? {
+          geo: {
+            '@type': 'GeoCoordinates',
+            latitude: STORE.geo.latitude,
+            longitude: STORE.geo.longitude,
+          },
+        }
+      : {}),
     hasMap: storeMapsUrl(),
     ...(STORE.openingHours.length
       ? { openingHours: STORE.openingHours as unknown as string[] }
@@ -98,7 +109,56 @@ export function organizationJsonLd() {
       areaServed: 'IN',
       availableLanguage: ['English', 'Tamil'],
     },
+    hasMerchantReturnPolicy: returnPolicyJsonLd(),
     ...sameAs(),
+  };
+}
+
+/**
+ * The return policy as /returns states it.
+ *
+ * The category describes an ordinary return, and the shop does not take
+ * those: there is no change-of-mind return, only an exchange for a piece
+ * that arrived defective, brought to the shop in person. Schema.org has no
+ * category for "defects only", so the honest one is NotPermitted, with the
+ * link carrying the detail. Claiming a return window here would put a
+ * promise in Google's results that the shop would then refuse at the counter.
+ *
+ * Change it only when the policy on /returns changes.
+ */
+export function returnPolicyJsonLd() {
+  return {
+    '@type': 'MerchantReturnPolicy',
+    applicableCountry: 'IN',
+    returnPolicyCategory: 'https://schema.org/MerchantReturnNotPermitted',
+    merchantReturnLink: appUrl('/returns'),
+  };
+}
+
+/**
+ * Delivery to India for one piece at this price.
+ *
+ * Rates vary by state, but Google reads regional rates only for a handful of
+ * countries — not India — so a single figure has to stand for all of it.
+ * That figure is the highest any state pays: quoting the Tamil Nadu rate
+ * would show a Delhi customer less than checkout charges them, which is the
+ * mismatch Google penalises. At or above the free-delivery threshold every
+ * state pays nothing, and then the figure is exact.
+ *
+ * Times are the ones /shipping publishes: despatched within 3 days, then 2 to
+ * 10 working days in transit depending on the region.
+ */
+function shippingDetailsJsonLd(price: number, settings: ShippingSettings) {
+  const rate = Math.max(...INDIAN_STATES.map((s) => shippingFor(price, s, settings, 1)));
+  return {
+    '@type': 'OfferShippingDetails',
+    shippingRate: { '@type': 'MonetaryAmount', value: rate, currency: 'INR' },
+    shippingDestination: { '@type': 'DefinedRegion', addressCountry: 'IN' },
+    deliveryTime: {
+      '@type': 'ShippingDeliveryTime',
+      handlingTime: { '@type': 'QuantitativeValue', minValue: 0, maxValue: 3, unitCode: 'DAY' },
+      transitTime: { '@type': 'QuantitativeValue', minValue: 2, maxValue: 10, unitCode: 'DAY' },
+    },
   };
 }
 
@@ -143,24 +203,31 @@ export function searchActionJsonLd() {
  * No brand: the shop is the seller, not the maker, and naming it as the brand
  * of every saree would be a claim nobody can stand behind. The seller points
  * at the organization by @id instead of restating it.
+ *
+ * The SKU is the product's id: the shop's own identifier for the piece, which
+ * is all the field asserts. (Only variants carry a separate SKU code.)
  */
-export function productJsonLd(product: Product) {
+export function productJsonLd(product: Product, shipping: ShippingSettings) {
   const soldOut = product.is_sold_out || product.stock_quantity <= 0;
+  const price = effectivePrice(product);
   return {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: product.name,
+    sku: product.id,
     description: product.description ?? undefined,
     image: product.images,
     ...(product.categories?.name ? { category: product.categories.name } : {}),
     offers: {
       '@type': 'Offer',
       url: canonical(`/product/${product.id}`),
-      price: effectivePrice(product),
+      price,
       priceCurrency: 'INR',
       itemCondition: 'https://schema.org/NewCondition',
       seller: { '@type': 'Organization', '@id': `${appUrl()}#organization`, name: STORE.name },
       availability: soldOut ? 'https://schema.org/OutOfStock' : 'https://schema.org/InStock',
+      shippingDetails: shippingDetailsJsonLd(price, shipping),
+      hasMerchantReturnPolicy: returnPolicyJsonLd(),
     },
   };
 }

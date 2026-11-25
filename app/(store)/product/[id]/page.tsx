@@ -114,7 +114,7 @@ export default async function ProductPage({ params }: { params: { id: string } }
     <AnimatedPage>
       <JsonLd
         data={[
-          productJsonLd(product),
+          productJsonLd(product, shipping),
           breadcrumbJsonLd([
             { name: 'Home', path: '/' },
             { name: 'Collections', path: '/collections' },

@@ -31,7 +31,7 @@ export function revalidateCatalogue(options: {
 } = {}): void {
   // /budget-sarees lists products and /shipping prints the shipping rates;
   // both sit on the same hour-long window, so both are cleared here too.
-  const paths = ['/', '/collections', '/budget-sarees', '/shipping'];
+  const paths = ['/', '/collections', '/budget-sarees', '/shipping', '/llms.txt'];
 
   if (options.categorySlug) paths.push(`/category/${options.categorySlug}`);
   if (options.productId) paths.push(`/product/${options.productId}`);

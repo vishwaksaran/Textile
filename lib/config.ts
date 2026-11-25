@@ -75,6 +75,25 @@ export const STORE = {
   openingHours: ['Mo-Sa 10:00-21:00'] as string[],
 
   /**
+   * A photograph of the shop itself — the front, the signboard, the counter —
+   * for the store's structured data. Google uses it as the business image in
+   * local results, where the logo icon reads as no photo at all.
+   *
+   * A path under /public, e.g. '/images/shop-front.jpg'. Null falls back to
+   * the logo. Use a real photo of this shop: a stock image here is exactly
+   * the kind of inaccurate local data Google discounts.
+   */
+  photo: null as string | null,
+
+  /**
+   * The shop's map pin, for the store's structured data. Copy it from Google
+   * Maps: right-click the shop's pin and click the numbers at the top of the
+   * menu (they look like 10.99…, 76.95…). Null omits it — a guessed point
+   * a street away would be worse than none.
+   */
+  geo: null as { latitude: number; longitude: number } | null,
+
+  /**
    * The shop's own profiles.
    *
    * Blank by default and blank means hidden. The footer used to link the word
@@ -248,9 +267,11 @@ export function storeProfileUrls(): string[] {
 /**
  * Public "message us" link for the floating button and the contact page.
  *
- * Uses NEXT_PUBLIC_WHATSAPP_NUMBER when set, otherwise falls back to the
- * store's listed phone number. wa.me wants digits only, including the country
- * code and no plus sign.
+ * Always the store's listed phone number. It used to prefer
+ * NEXT_PUBLIC_WHATSAPP_NUMBER, which pointed the chat at a different number
+ * from the one printed beside the button — a customer who saved the number
+ * they could see never reached the chat they had started. One number, one
+ * place. wa.me wants digits only, including the country code and no plus.
  *
  * NOTE ON DIRECTION: `text` prefills the *customer's* compose box — it is the
  * opening line they send to you, not a greeting they receive. The auto-reply
@@ -260,8 +281,7 @@ export function storeProfileUrls(): string[] {
 export const WHATSAPP_PREFILL = `Hello ${STORE.name}, Can I have More Info`;
 
 export function whatsappUrl(message?: string): string {
-  const raw = envOr(process.env.NEXT_PUBLIC_WHATSAPP_NUMBER, STORE.phone);
-  const digits = raw.replace(/\D/g, '');
+  const digits = STORE.phone.replace(/\D/g, '');
   const number = digits.length === 10 ? `91${digits}` : digits;
   const text = message ?? WHATSAPP_PREFILL;
   return `https://wa.me/${number}?text=${encodeURIComponent(text)}`;
