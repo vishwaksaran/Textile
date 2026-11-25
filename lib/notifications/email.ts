@@ -28,6 +28,24 @@ const ORDER_ALERT_TO = envOr(process.env.ORDER_ALERT_EMAIL, envOr(process.env.AD
 export const isOrderAlertConfigured = Boolean(apiKey) && ORDER_ALERT_TO.length > 0;
 
 /**
+ * Where a "new enquiry" alert goes: everyone on the order list, plus
+ * LEAD_ALERT_EMAIL (also comma-separated) for people who follow up enquiries
+ * but have no part in packing orders. Private, like the order list.
+ */
+const LEAD_ALERT_TO = [
+  ...new Set(
+    [
+      ...ORDER_ALERT_TO,
+      ...envOr(process.env.LEAD_ALERT_EMAIL, '')
+        .split(',')
+        .map((address) => address.trim()),
+    ]
+      .filter(Boolean)
+      .map((address) => address.toLowerCase()),
+  ),
+];
+
+/**
  * Whether the customer hears from us by email at all.
  *
  * Off unless switched on, because the shop reaches its customers on WhatsApp
@@ -356,15 +374,15 @@ export async function sendShippedEmail(
 /**
  * Tells the shop someone has asked to be called back.
  *
- * Goes to the same private inbox as order alerts. The subject carries the
+ * Goes to the order-alert inboxes plus LEAD_ALERT_EMAIL. The subject carries the
  * name, city and quantity, so the shop can decide from a lock screen who to
  * ring first; the buttons open a call or a WhatsApp chat straight from it.
  */
 export async function sendAdminLeadEmail(lead: Lead): Promise<EmailResult> {
   const api = client();
   if (!api) return { sent: false, skipped: 'RESEND_API_KEY is not set' };
-  if (ORDER_ALERT_TO.length === 0) {
-    return { sent: false, skipped: 'ORDER_ALERT_EMAIL is not set' };
+  if (LEAD_ALERT_TO.length === 0) {
+    return { sent: false, skipped: 'neither ORDER_ALERT_EMAIL nor LEAD_ALERT_EMAIL is set' };
   }
 
   const label = lead.kind === 'wholesale' ? 'Wholesale enquiry' : 'Retail enquiry';
@@ -397,7 +415,7 @@ export async function sendAdminLeadEmail(lead: Lead): Promise<EmailResult> {
   try {
     const { data, error } = await api.emails.send({
       from: FROM,
-      to: ORDER_ALERT_TO,
+      to: LEAD_ALERT_TO,
       subject: `${label}: ${lead.name}${lead.city ? `, ${lead.city}` : ''}${lead.quantity ? ` — ${lead.quantity}` : ''}`,
       html,
     });
