@@ -14,8 +14,8 @@ import { JsonLd, canonical, storeJsonLd } from '@/lib/seo';
 
 export const metadata: Metadata = {
   alternates: { canonical: canonical('/visit') },
-  title: `Saree Shop in ${STORE.address.area}, ${STORE.address.city}`,
-  description: `Visit our saree shop on Big Bazaar Street, ${STORE.address.area}, ${STORE.address.city} — address, opening hours, directions and phone. Retail and wholesale buyers welcome.`,
+  title: `Saree & Textile Shop in ${STORE.address.area}, ${STORE.address.city}`,
+  description: `Visit our saree shop on Big Bazaar Street, in the ${STORE.address.area} textile market of ${STORE.address.city} — address, opening hours, directions and phone. Retail and wholesale buyers welcome.`,
 };
 
 /**
@@ -50,7 +50,7 @@ export default function VisitPage() {
         </address>
 
         <p>
-          We are on Big Bazaar Street, in the {STORE.address.area} area — near Pothys, a few
+          We are on Big Bazaar Street, in the {STORE.address.area} textile market — near Pothys, a few
           minutes from the Town Hall bus stop. Look for Murugan Shopping Complex; we are at
           number 42.
         </p>

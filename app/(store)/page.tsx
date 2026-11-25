@@ -257,8 +257,9 @@ export default async function HomePage() {
               Wholesale &amp; Retail Sarees in {STORE.address.area}, {STORE.address.city}
             </h2>
             <p className="font-body-md text-body-md leading-relaxed text-on-surface-variant">
-              {STORE.name} is a saree shop on Big Bazaar Street, {STORE.address.area},{' '}
-              {STORE.address.city}, selling to retail customers and wholesale buyers alike. We
+              {STORE.name} is a saree shop on Big Bazaar Street, in {STORE.address.city}&rsquo;s{' '}
+              {STORE.address.area} textile market, selling to retail customers and wholesale
+              buyers alike. We
               carry {STORE.offering}.
             </p>
             <p className="font-body-md text-body-md leading-relaxed text-on-surface-variant">

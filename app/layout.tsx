@@ -40,7 +40,7 @@ export const metadata: Metadata = {
     template: `%s | ${STORE.name}`,
   },
   description:
-    'Wholesale and retail saree shop on Big Bazaar Street, Town Hall, Coimbatore. Cotton, tissue, tussar and budget sarees — in store and shipped across India.',
+    'Wholesale and retail saree shop in the Town Hall textile market, Big Bazaar Street, Coimbatore. Cotton, tissue, tussar and budget sarees, shipped across India.',
   keywords: [
     'wholesale sarees Coimbatore',
     'budget sarees Coimbatore',

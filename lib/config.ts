@@ -49,6 +49,14 @@ export const STORE = {
     'cotton, tissue cotton, linen, khadi cotton, semi-handloom tussar and Banarasi sarees, along with churidar sets and dress materials',
   legalName: 'Sri Laxmi Silks Coimbatore',
   /**
+   * Other spellings people search for the shop under — "sri lakshmi silks"
+   * ranked 7.5 in Search Console while "sri laxmi silks" ranked 1.4.
+   *
+   * Structured data and llms.txt ONLY. Never render these on the page: the
+   * shop's name, everywhere a visitor reads it, is STORE.name.
+   */
+  alternateNames: ['Sri Lakshmi Silks', 'Lakshmi Silks Coimbatore'] as string[],
+  /**
    * The shop's PUBLIC address — printed in email footers and published in the
    * Organization structured data that Google reads.
    *

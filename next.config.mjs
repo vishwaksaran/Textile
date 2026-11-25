@@ -43,7 +43,11 @@ const nextConfig = {
    * page itself has always lived at /story, which is already indexed.
    */
   async redirects() {
-    return [{ source: '/about', destination: '/story', permanent: true }];
+    return [
+      { source: '/about', destination: '/story', permanent: true },
+      // A collection that no longer exists, still shown in search results.
+      { source: '/category/wedding', destination: '/collections', permanent: true },
+    ];
   },
 
   experimental: {

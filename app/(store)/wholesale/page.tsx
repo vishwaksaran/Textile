@@ -7,13 +7,16 @@ import { STORE, whatsappUrl } from '@/lib/config';
 import { JsonLd, canonical, faqJsonLd } from '@/lib/seo';
 
 /*
-  Titled for what a reseller types into Google, not for what the shop calls
-  the page: "wholesale silk sarees Coimbatore", "saree supplier".
+  Titled for what resellers actually type, per Search Console: "wholesale
+  shop coimbatore", "coimbatore wholesale cloth market", "wholesale saree
+  shop in coimbatore". Locals call Town Hall and Big Bazaar Street the cloth
+  market, so the page does too. "Chudithar" is the spelling most churidar
+  searches here use.
 */
 export const metadata: Metadata = {
   alternates: { canonical: canonical('/wholesale') },
-  title: `Wholesale Saree Supplier in ${STORE.address.city}`,
-  description: `Wholesale sarees in ${STORE.address.city} from ${STORE.name}, Big Bazaar Street, ${STORE.address.area}. Cotton, tissue, tussar and more for shops across India.`,
+  title: `Wholesale Saree & Cloth Shop in ${STORE.address.city}`,
+  description: `Wholesale sarees and churidar materials from ${STORE.name} in ${STORE.address.city}'s ${STORE.address.area} cloth market. Minimum order 50–100 pieces; shipped across India.`,
 };
 
 /** Restates the process below; promises nothing the shop has not said. */
@@ -21,7 +24,17 @@ const FAQS: { id: string; q: string; a: string }[] = [
   {
     id: 'where',
     q: `Where can I buy wholesale sarees in ${STORE.address.city}?`,
-    a: `${STORE.name} supplies sarees wholesale from Big Bazaar Street, ${STORE.address.area}, ${STORE.address.city}. Send the enquiry form on this page or call ${STORE.phone}.`,
+    a: `${STORE.name} supplies sarees wholesale from Big Bazaar Street, in the ${STORE.address.area} cloth market of ${STORE.address.city}. Send the enquiry form on this page or call ${STORE.phone}.`,
+  },
+  {
+    id: 'minimum-order',
+    q: 'What is the minimum wholesale order?',
+    a: '50 to 100 pieces, depending on the product. Prices also depend on the product and the quantity, so tell us what you need and we will quote for it.',
+  },
+  {
+    id: 'churidar',
+    q: 'Do you sell churidar (chudithar) materials wholesale?',
+    a: 'Yes. Churidar sets and dress materials are supplied wholesale alongside the sarees, with the same minimum order.',
   },
   {
     id: 'outside-coimbatore',
@@ -55,7 +68,7 @@ export default async function WholesalePage({
       eyebrow="For shops, boutiques and resellers"
       title={`Wholesale Sarees in ${STORE.address.city}`}
       path="/wholesale"
-      intro={`${STORE.name} supplies sarees to shops across India from our Town Hall, ${STORE.address.city} showroom. Tell us what you need and we will call back with prices for your quantity.`}
+      intro={`${STORE.name} supplies sarees and churidar materials to shops across India from our showroom in ${STORE.address.city}'s ${STORE.address.area} cloth market. Tell us what you need and we will call back with prices for your quantity.`}
     >
       <LeadForm
         product={product ? { id: product.id, name: product.name } : null}
@@ -74,10 +87,21 @@ export default async function WholesalePage({
           sarees
         </li>
         <li>
-          <Link href="/category/churidars">Churidar sets</Link> and dress materials
+          <Link href="/category/churidars">Churidar (chudithar) sets</Link> and dress materials
         </li>
         <li>Mixed assortments for a new shop or a festival season</li>
       </ul>
+
+      <h2 id="minimum-order">Minimum order and prices</h2>
+      <p>
+        The minimum wholesale order is 50 to 100 pieces, depending on the product. Prices depend
+        on the product and the quantity, so we quote for each order rather than publish one rate
+        card — send the form or{' '}
+        <a href={whatsappUrl('Hello, I would like wholesale prices. Minimum order and rates please.')}>
+          ask on WhatsApp
+        </a>{' '}
+        with what you need.
+      </p>
 
       <h2 id="how-it-works">How it works</h2>
       <ul>

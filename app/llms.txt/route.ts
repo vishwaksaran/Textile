@@ -35,7 +35,9 @@ export async function GET() {
   const body = [
     `# ${STORE.name}`,
     '',
-    `> Wholesale and retail saree shop on Big Bazaar Street, ${STORE.address.area}, ${STORE.address.city}, India. Sells ${STORE.offering}. Buy in store, order online with delivery across India, or ask for wholesale prices.`,
+    `Also searched as: ${STORE.alternateNames.join(', ')}.`,
+    '',
+    `> Wholesale and retail saree shop on Big Bazaar Street, in the ${STORE.address.area} textile market of ${STORE.address.city}, India. Sells ${STORE.offering}. Buy in store, order online with delivery across India, or ask for wholesale prices.`,
     '',
     `- Address: ${storeAddressOneLine()}`,
     `- Hours: ${storeHoursLines().join(', ')}; closed on Sunday`,
