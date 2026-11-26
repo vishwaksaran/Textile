@@ -105,7 +105,27 @@ const ORDER_TONE: Record<OrderStatus, 'muted' | 'gold' | 'success' | 'error'> = 
   cancelled: 'error',
 };
 
-export function OrderStatusBadge({ status }: { status: OrderStatus }) {
+/**
+ * An order's fulfilment status, read together with its payment.
+ *
+ * Every order is saved as `processing` the moment the customer presses Pay,
+ * before Razorpay has taken anything, so an abandoned checkout used to show
+ * as "Processing" — which reads as "we are working on it" for an order that
+ * was never paid. Until the money arrives there is nothing to process, and
+ * the badge says so.
+ */
+export function OrderStatusBadge({
+  status,
+  paymentStatus,
+}: {
+  status: OrderStatus;
+  paymentStatus?: PaymentStatus;
+}) {
+  if (status === 'processing' && paymentStatus && paymentStatus !== 'paid') {
+    return (
+      <Badge variant="muted">{paymentStatus === 'failed' ? 'Payment failed' : 'Awaiting payment'}</Badge>
+    );
+  }
   return <Badge variant={ORDER_TONE[status] ?? 'muted'}>{status}</Badge>;
 }
 

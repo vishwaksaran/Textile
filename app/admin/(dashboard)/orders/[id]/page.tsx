@@ -27,6 +27,7 @@ export default async function AdminOrderPage({ params }: { params: { id: string 
   const subtotal = items.reduce((sum, i) => sum + Number(i.price_at_time) * i.quantity, 0);
   const shipping = Math.max(Number(order.total_amount ?? subtotal) - subtotal, 0);
   const invoiceHref = `/api/invoice/${order.id}`;
+  const paid = order.payment_status === 'paid';
 
   return (
     <AdminPage>
@@ -43,6 +44,9 @@ export default async function AdminOrderPage({ params }: { params: { id: string 
         code={`#${shortOrderId(order.id)}`}
         codeSecondary={invoiceNumber(order.id, order.created_at)}
         action={
+          // The invoice route refuses unpaid orders, so the buttons would only
+          // lead to an error page.
+          paid && (
           <div className="flex flex-wrap gap-2">
             <Button asChild variant="outline" size="sm">
               <a href={invoiceHref} target="_blank" rel="noreferrer">
@@ -57,18 +61,40 @@ export default async function AdminOrderPage({ params }: { params: { id: string 
               </a>
             </Button>
           </div>
+          )
         }
       />
 
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <PaymentStatusBadge status={order.payment_status} />
-        <OrderStatusBadge status={order.order_status} />
+        <OrderStatusBadge status={order.order_status} paymentStatus={order.payment_status} />
         {order.razorpay_payment_id && (
           <span className="font-body-md text-xs text-on-surface-variant">
             Payment ID: {order.razorpay_payment_id}
           </span>
         )}
       </div>
+
+      {!paid && (
+        <div className="mb-6 rounded-lg border border-outline-variant bg-surface-container-low p-5">
+          <h2 className="mb-2 font-headline-md text-headline-md text-deep-maroon">
+            {order.payment_status === 'failed' ? 'Payment failed' : 'Awaiting payment'} — not an
+            order yet
+          </h2>
+          <p className="font-body-md text-body-md text-on-surface">
+            {order.customer_name} started checkout but{' '}
+            {order.payment_status === 'failed'
+              ? 'the payment did not go through'
+              : 'did not finish paying'}
+            . No money was received and no stock was set aside, so do not pack or ship this.
+          </p>
+          <p className="mt-2 font-body-md text-sm text-on-surface-variant">
+            If they say they paid, search their phone number in the Razorpay dashboard under
+            Payments before doing anything else. Otherwise this is a lead: a WhatsApp message
+            often finishes the sale.
+          </p>
+        </div>
+      )}
 
       {/* Money was taken for something that cannot be shipped, so this sits
           above everything else on the page rather than in a status pill. */}
@@ -155,7 +181,7 @@ export default async function AdminOrderPage({ params }: { params: { id: string 
             </dl>
           </section>
 
-          <TrackingForm order={order} />
+          {paid && <TrackingForm order={order} />}
         </div>
 
         <div className="space-y-6">

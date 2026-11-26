@@ -38,6 +38,16 @@ export async function POST(request: Request, { params }: { params: { id: string 
     const existing = await getOrderWithItems(params.id);
     if (!existing) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
 
+    // An unpaid order is an abandoned checkout. Saving a tracking id would
+    // tell the customer over WhatsApp, SMS and email that a parcel they never
+    // paid for is on its way.
+    if (existing.payment_status !== 'paid') {
+      return NextResponse.json(
+        { error: 'This order has not been paid, so it cannot be shipped.' },
+        { status: 409 },
+      );
+    }
+
     const nextStatus = existing.order_status === 'delivered' ? 'delivered' : 'shipped';
 
     await updateOrder(params.id, {

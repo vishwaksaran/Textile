@@ -72,11 +72,18 @@ export function OrderStatusControl({ order }: { order: Order }) {
         onChange={(e) => void change(e.target.value as OrderStatus)}
         className="capitalize"
       >
-        {STATUSES.map((s) => (
-          <option key={s} value={s}>
-            {s}
-          </option>
-        ))}
+        {STATUSES.map((s) => {
+          // Mirrors the status route: an unpaid order can be cancelled, not
+          // shipped or delivered.
+          const blocked =
+            order.payment_status !== 'paid' && (s === 'shipped' || s === 'delivered');
+          return (
+            <option key={s} value={s} disabled={blocked}>
+              {s === 'processing' && order.payment_status !== 'paid' ? 'Awaiting payment' : s}
+              {blocked ? ' (needs payment)' : ''}
+            </option>
+          );
+        })}
       </Select>
     </div>
   );

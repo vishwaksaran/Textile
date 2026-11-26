@@ -149,7 +149,7 @@ export default async function AdminDashboardPage() {
                       <PaymentStatusBadge status={order.payment_status} />
                     </td>
                     <td className="px-5 py-3">
-                      <OrderStatusBadge status={order.order_status} />
+                      <OrderStatusBadge status={order.order_status} paymentStatus={order.payment_status} />
                     </td>
                     <td className="px-5 py-3 font-body-md text-sm text-on-surface-variant">
                       {formatDate(order.created_at)}

@@ -12,6 +12,14 @@ import type { Order } from '@/types';
 const STATUSES = ['all', 'processing', 'shipped', 'delivered', 'cancelled'] as const;
 const PAYMENTS = ['all', 'paid', 'pending', 'failed'] as const;
 
+/*
+  What a filter means when it is absent from the URL. Payment defaults to
+  paid: the list is where orders get packed, and an abandoned checkout is not
+  an order. "Any payment" is then a real value (payment=all) rather than the
+  absence of one. The orders page applies the same default on the server.
+*/
+const DEFAULTS: Record<string, string> = { payment: 'paid' };
+
 /** Filters are URL-driven so the server re-queries and views stay shareable. */
 export function OrdersTable({ orders }: { orders: Order[] }) {
   const router = useRouter();
@@ -22,7 +30,7 @@ export function OrdersTable({ orders }: { orders: Order[] }) {
   const update = React.useCallback(
     (key: string, value: string) => {
       const next = new URLSearchParams(params.toString());
-      if (!value || value === 'all') next.delete(key);
+      if (!value || value === (DEFAULTS[key] ?? 'all')) next.delete(key);
       else next.set(key, value);
       router.push(`${pathname}?${next.toString()}`);
     },
@@ -64,14 +72,14 @@ export function OrdersTable({ orders }: { orders: Order[] }) {
         </select>
 
         <select
-          value={params.get('payment') ?? 'all'}
+          value={params.get('payment') ?? DEFAULTS.payment}
           onChange={(e) => update('payment', e.target.value)}
           aria-label="Filter by payment status"
           className="rounded border border-outline-variant bg-surface-container-lowest px-3 py-2 font-body-md text-sm capitalize focus:border-deep-maroon focus:outline-none"
         >
           {PAYMENTS.map((s) => (
             <option key={s} value={s}>
-              {s === 'all' ? 'Any payment' : s}
+              {s === 'all' ? 'Any payment' : s === 'pending' ? 'Awaiting payment' : s}
             </option>
           ))}
         </select>
@@ -148,7 +156,10 @@ export function OrdersTable({ orders }: { orders: Order[] }) {
                     <PaymentStatusBadge status={order.payment_status} />
                   </td>
                   <td className="px-4 py-3">
-                    <OrderStatusBadge status={order.order_status} />
+                    <OrderStatusBadge
+                      status={order.order_status}
+                      paymentStatus={order.payment_status}
+                    />
                     {order.stock_shortfall && order.stock_shortfall.length > 0 && (
                       <span
                         title={`Paid but out of stock: ${order.stock_shortfall.join(', ')}`}
@@ -164,6 +175,9 @@ export function OrdersTable({ orders }: { orders: Order[] }) {
                         {order.tracking_id}
                         <span className="block opacity-70">{order.courier_name}</span>
                       </>
+                    ) : order.payment_status !== 'paid' ? (
+                      // Nothing to ship until it is paid.
+                      <span aria-label="Not shippable until paid">—</span>
                     ) : (
                       <Button asChild variant="ghost" size="sm">
                         <Link href={`/admin/orders/${order.id}#tracking`}>Add</Link>
@@ -181,7 +195,10 @@ export function OrdersTable({ orders }: { orders: Order[] }) {
       )}
 
       <p className="font-body-md text-xs text-on-surface-variant">
-        Showing {orders.length} orders (most recent first, capped at 200).
+        Showing {orders.length} {params.get('payment') ? '' : 'paid '}orders (most recent first,
+        capped at 200).
+        {!params.get('payment') &&
+          ' Choose “Any payment” to include checkouts that were never paid.'}
       </p>
     </div>
   );

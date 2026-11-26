@@ -29,6 +29,19 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     const existing = await getOrderWithItems(params.id);
     if (!existing) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
 
+    // Unpaid orders can be cancelled (tidying an abandoned checkout) but not
+    // moved on: "delivered" messages the customer, and neither shipped nor
+    // delivered is true of something nobody paid for.
+    if (
+      existing.payment_status !== 'paid' &&
+      (status === 'shipped' || status === 'delivered')
+    ) {
+      return NextResponse.json(
+        { error: 'This order has not been paid, so it cannot be shipped or delivered.' },
+        { status: 409 },
+      );
+    }
+
     const order = await updateOrder(params.id, { order_status: status });
     if (!order) return NextResponse.json({ error: 'Order not found' }, { status: 404 });
 
