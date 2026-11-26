@@ -13,12 +13,10 @@ const STATUSES = ['all', 'processing', 'shipped', 'delivered', 'cancelled'] as c
 const PAYMENTS = ['all', 'paid', 'pending', 'failed'] as const;
 
 /*
-  What a filter means when it is absent from the URL. Payment defaults to
-  paid: the list is where orders get packed, and an abandoned checkout is not
-  an order. "Any payment" is then a real value (payment=all) rather than the
-  absence of one. The orders page applies the same default on the server.
+  Every filter starts at "all": the shop wants to see every order, unpaid
+  checkouts included — those are labelled "Awaiting payment" in the table,
+  so they cannot be mistaken for orders to pack.
 */
-const DEFAULTS: Record<string, string> = { payment: 'paid' };
 
 /** Filters are URL-driven so the server re-queries and views stay shareable. */
 export function OrdersTable({ orders }: { orders: Order[] }) {
@@ -30,7 +28,7 @@ export function OrdersTable({ orders }: { orders: Order[] }) {
   const update = React.useCallback(
     (key: string, value: string) => {
       const next = new URLSearchParams(params.toString());
-      if (!value || value === (DEFAULTS[key] ?? 'all')) next.delete(key);
+      if (!value || value === 'all') next.delete(key);
       else next.set(key, value);
       router.push(`${pathname}?${next.toString()}`);
     },
@@ -72,7 +70,7 @@ export function OrdersTable({ orders }: { orders: Order[] }) {
         </select>
 
         <select
-          value={params.get('payment') ?? DEFAULTS.payment}
+          value={params.get('payment') ?? 'all'}
           onChange={(e) => update('payment', e.target.value)}
           aria-label="Filter by payment status"
           className="rounded border border-outline-variant bg-surface-container-lowest px-3 py-2 font-body-md text-sm capitalize focus:border-deep-maroon focus:outline-none"
@@ -195,10 +193,7 @@ export function OrdersTable({ orders }: { orders: Order[] }) {
       )}
 
       <p className="font-body-md text-xs text-on-surface-variant">
-        Showing {orders.length} {params.get('payment') ? '' : 'paid '}orders (most recent first,
-        capped at 200).
-        {!params.get('payment') &&
-          ' Choose “Any payment” to include checkouts that were never paid.'}
+        Showing {orders.length} orders (most recent first, capped at 200).
       </p>
     </div>
   );

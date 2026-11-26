@@ -17,8 +17,7 @@ export default async function AdminOrdersPage({
   // The layout renders the setup notice; skip the queries that would throw.
   if (!isSupabaseConfigured) return null;
 
-  // Paid unless the URL says otherwise — see DEFAULTS in OrdersTable.
-  const orders = await listAdminOrders({ ...searchParams, payment: searchParams.payment ?? 'paid' });
+  const orders = await listAdminOrders(searchParams);
 
   return (
     <AdminPage>
